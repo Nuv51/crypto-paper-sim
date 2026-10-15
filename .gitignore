@@ -1,0 +1,13 @@
+# Nunca subas credenciales ni datos locales
+.env
+*.env
+data/
+out/
+*.db
+*.db-wal
+*.db-shm
+__pycache__/
+*.pyc
+.cache/
+cache/
+code/bundle.json

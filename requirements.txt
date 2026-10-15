@@ -1,0 +1,6 @@
+pandas>=2.2
+numpy>=1.26
+requests>=2.31
+streamlit>=1.37      # st.fragment(run_every=...) para el auto-refresco
+plotly>=5.20
+pytest>=8.0
