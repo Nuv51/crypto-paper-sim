@@ -121,3 +121,20 @@ Flujo de cada corrida: leer `code/bundle.json` + `state/ledger.json` → desempa
 * Prueba sin red: `python cloud_step.py --source synthetic --out out` (datos inventados; el tablero lo marca en rojo).
 * No usa llaves de API de ningún exchange (solo lectura de precios públicos).
 * Tras cambiar código: `python make_bundle.py code/bundle.json` y publicar el bundle junto con `web/index.html`.
+
+---
+
+## Ejecución automática con GitHub Actions (recomendada)
+
+`.github/workflows/simulate.yml` corre el simulador cada 6 horas (y a mano: pestaña **Actions → simulate → Run workflow**).
+Cada corrida guarda en la rama **`sim-data`**: `binance/state/ledger.json` (estado), `binance/data/*.json` (tablero) y
+`binance/index.html` (el tablero). Si falla (p. ej. Binance bloquea las IP de GitHub), el estado anterior no se toca,
+`status.json` explica el motivo y la corrida sale en rojo (la app GitHub Mobile avisa).
+
+* **Prueba sin red:** Run workflow → `source = synthetic` (datos inventados; guarda aparte, en `synthetic/`).
+* **Aviso al celular con métricas (opcional):** instala la app *ntfy*, suscríbete a un tema difícil de adivinar y guárdalo como
+  secreto del repo `NTFY_TOPIC` (Settings → Secrets and variables → Actions). Cada corrida manda una línea:
+  `OK · 24 barras · Equity 10,082 · P&L +82 · ROI +0.8% · Peor DD −1.4% · 12 ops`.
+* **Tablero web (opcional):** Settings → Pages → Branch `sim-data` → `/ (root)`; queda en `https://<usuario>.github.io/crypto-paper-sim/binance/`.
+* Los repos públicos pierden los flujos programados tras 60 días sin actividad; si pasa, se reactivan desde la pestaña Actions.
+* Todo es simulación con dinero ficticio y sin llaves de API.
