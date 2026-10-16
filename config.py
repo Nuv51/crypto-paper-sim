@@ -1,7 +1,7 @@
 """Configuración del portafolio simulado. Edita aquí capital, monedas y parámetros.
 
 El % de capital y los controles de riesgo salen del glosario del proyecto (puntos de partida para
-SIMULAR, no recomendaciones). Asignación vigente del glosario: 15/15/8/12/10/8/8/7/5/10 % = 98 %, con 2 %
+SIMULAR, no recomendaciones). Asignación del glosario: 15/15/8/12/10/8/8/7/5/10 % = 98 %, que al final de este archivo se escala a 100 %. Antes quedaba 2 %
 sin desplegar como colchón. Cambiar CUALQUIER parámetro de un bot invalida el estado guardado de la simulación
 en la nube (a propósito: no se afinan parámetros a mitad de una prueba hacia adelante); reinicia con la opción
 `fresh` del workflow.
@@ -102,3 +102,10 @@ BOTS = [
         risk=dict(max_drawdown=0.05, action="pause_and_resume", cooldown_bars=168, max_strikes=3, strike_window_bars=720),
     ),
 ]
+
+
+# El glosario suma 98 %. Para que la simulación arranque con los 10,000 USDT completos (sin colchón sin desplegar),
+# los % se escalan proporcionalmente a 100 %: cada bot conserva su peso relativo del glosario.
+_TOTAL_PCT = sum(b["capital_pct"] for b in BOTS)
+for _b in BOTS:
+    _b["capital_pct"] = _b["capital_pct"] / _TOTAL_PCT

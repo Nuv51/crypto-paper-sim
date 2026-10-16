@@ -723,7 +723,7 @@ function panelResumen(d, st, w) {
     kpi('Pérdida histórica', (Math.abs(K.gross_loss) > 0 ? '−' : '') + nf(Math.abs(K.gross_loss), 2), 'ventas perdedoras, neto de comisiones') +
     kpi('Comisiones pagadas', nf(K.fees, 2)) +
     kpi('Máx. drawdown portafolio', nf(K.max_dd, 2) + '%') + '</div>';
-  out += '<p class="hint">Ganancia y pérdida histórica suman solo P&amp;L realizado (ventas); las posiciones abiertas se ven en el equity. El capital mostrado es el asignado a estos bots' + (fin(K.reserve) ? '; ' + nf(K.reserve, 0) + ' USDT quedan de reserva para los bots aún sin construir' : '') + '.' +
+  out += '<p class="hint">Ganancia y pérdida histórica suman solo P&amp;L realizado (ventas); las posiciones abiertas se ven en el equity. El capital mostrado es el asignado a estos bots' + (fin(K.reserve) && K.reserve > 0.5 ? '; ' + nf(K.reserve, 0) + ' USDT quedan de reserva para los bots aún sin construir' : '') + '.' +
     (fin(K.btc_ret) ? ' Referencia: comprar y mantener BTC en el mismo periodo rindió ' + sgn(K.btc_ret, 2, '%') + ' (sin comisiones).' : '') + '</p>';
   var series = d.bots.map(function (b) { return { key: b.id, name: b.name, color: cm[b.id], ys: S.equity[b.id].map(function (v) { return (v / cap[b.id] - 1) * 100; }) }; });
   series.push({ key: '_total', name: 'Portafolio de bots', color: 'var(--ink)', width: 3, ys: S.total.map(function (v) { return (v / K.capital - 1) * 100; }) });

@@ -442,7 +442,10 @@ def test_changing_the_bot_config_midway_is_refused(tmp_path):
 
 
 def test_portfolio_allocation_matches_the_glossary():
+    glossary = {"b01_carry": 0.15, "b02_stable": 0.15, "b03_dca": 0.08, "b04_grid": 0.12, "b05_meanrev": 0.10,
+                "b06_mm": 0.08, "b07_trend": 0.08, "b08_breakout": 0.07, "b09_ml": 0.05, "b10_xrp": 0.10}
     pct = {b["id"]: b["capital_pct"] for b in config.BOTS}
-    assert pct == {"b01_carry": 0.15, "b02_stable": 0.15, "b03_dca": 0.08, "b04_grid": 0.12, "b05_meanrev": 0.10,
-                   "b06_mm": 0.08, "b07_trend": 0.08, "b08_breakout": 0.07, "b09_ml": 0.05, "b10_xrp": 0.10}
-    assert sum(pct.values()) == pytest.approx(0.98)                       # 2% queda como colchón
+    assert sum(pct.values()) == pytest.approx(1.0)                        # arranca con el 100 % de los 10,000 USDT
+    for k, v in glossary.items():
+        assert pct[k] == pytest.approx(v / 0.98)                          # pesos relativos del glosario intactos
+    assert sum(b["capital_pct"] * config.PORTFOLIO_CAPITAL for b in config.BOTS) == pytest.approx(10_000.0)

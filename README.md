@@ -42,7 +42,8 @@ línea por bot.
 | 9 | Señales ML | BTC, ETH, XRP | Binance | 5% | opera solo con P ≥ 0.60, stop 3%, reentrena cada 14 días; DD máx. 12% |
 | 10 | Arbitraje XRP (Bitso ↔ Binance/KuCoin) | XRP | Bitso + Binance + KuCoin | 10% | umbral neto ≥ 0.30%, máx. 35% de desbalance de inventario |
 
-Capital: 10,000 USDT ficticios × %; **98% desplegado y 2% de colchón**, como en el glosario.
+Capital: 10,000 USDT ficticios **100% desplegados**. Los % de la tabla son los del glosario (suman 98%); en `config.py` se
+escalan proporcionalmente a 100% (cada bot conserva su peso relativo; p. ej. Carry 15% → 15.3%).
 
 ### Qué hace cada uno de los bots nuevos (y qué NO demuestra)
 
