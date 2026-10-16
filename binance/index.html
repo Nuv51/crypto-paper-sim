@@ -184,12 +184,29 @@ var ago = function (ms) {
 var REASONS = { stop: 'Stop', take_profit: 'Take profit', mean_reached: 'Media alcanzada', time_stop: 'Salida por tiempo', trailing_stop: 'Trailing stop',
   trend_end: 'Fin de tendencia', trend_up: 'Tendencia alcista', dca: 'Compra DCA', grid_buy: 'Grid: compra', grid_sell: 'Grid: venta',
   grid_break_down: 'Ruptura bajista', grid_break_up: 'Ruptura alcista', rsi_bb_oversold: 'Sobreventa RSI + Bollinger', stop_atr: 'Stop ATR',
-  false_breakout: 'Falsa ruptura', channel_exit: 'Salida de canal', donchian_breakout: 'Ruptura Donchian', risk_halt: 'Control de riesgo' };
-var reason = function (r) { return REASONS[r] || r || '—'; };
+  false_breakout: 'Falsa ruptura', channel_exit: 'Salida de canal', donchian_breakout: 'Ruptura Donchian', risk_halt: 'Control de riesgo',
+  carry_open: 'Abre carry (spot + corto)', funding: 'Funding cobrado', funding_negative: 'Funding negativo', margin_stress: 'Estrés de margen',
+  peg_deviation: 'Desvío del peg', peg_restored: 'Peg restablecido', depeg_exit: 'Salida por de-peg', mm_init: 'Inventario inicial',
+  mm_bid: 'MM: compra', mm_ask: 'MM: venta', mm_rebalance: 'MM: rebalanceo', ml_signal: 'Señal del modelo', signal_flip: 'Señal invertida',
+  rebalance_xrp_rail: 'Rebalanceo por riel XRP' };
+var VENUE = { bitso: 'Bitso', binance: 'Binance', kucoin: 'KuCoin' };
+var reason = function (r) {
+  if (REASONS[r]) return REASONS[r];
+  var m = /^(\w+)->(\w+)$/.exec(r || '');
+  return m ? (VENUE[m[1]] || m[1]) + ' → ' + (VENUE[m[2]] || m[2]) : (r || '—');
+};
+var SYNTH = { perp: 1, funding: 1, arb: 1 };
+var sideLabel = function (side, kind) {
+  if (kind === 'perp') return side === 'buy' ? '▲ Abre corto' : '▽ Cierra corto';
+  if (kind === 'funding') return '＋ Funding';
+  if (kind === 'arb') return '⇄ Arbitraje';
+  return side === 'buy' ? '▲ Compra' : '▽ Venta';
+};
+var kindLabel = function (kind) { return kind === 'limit' ? 'Límite' : kind === 'perp' ? 'Perpetuo' : kind === 'funding' ? 'Funding' : kind === 'arb' ? 'Arbitraje' : 'Mercado'; };
 var STATUS = { active: 'Activo', paused: 'En pausa', halted: 'Detenido' };
 var ACTIONS = { liquidate_and_halt: 'Liquida y se detiene (revisión manual)', pause_and_resume: 'Liquida y pausa', flag_only: 'Solo alerta de revisión manual' };
 var T = { ts: 0, bot: 1, ex: 2, sym: 3, side: 4, kind: 5, qty: 6, price: 7, notional: 8, fee: 9, pnl: 10, reason: 11 };
-var short = function (s) { return String(s || '').replace(/USDT$/, ''); };
+var short = function (s) { return String(s || '').replace(/USDT~PERP$/, ' perp').replace(/~RAIL$/, '').replace(/USDT$/, ''); };
 
 /* ------------------------------------------------------------------ escalas */
 function niceTicks(min, max, n) {
@@ -325,7 +342,7 @@ function priceChart(o) {
   svg += '<line class="xh" y1="' + f.m.t + '" y2="' + (f.h - f.m.b) + '" style="display:none"/></svg>';
   REG[o.id] = { w: f.w, xpx: xp, tip: function (i) {
     var r = '<div class="t">' + esc(fmtDT(P.ts[i])) + '</div><div class="r"><span>Cierre</span><b>' + esc(nf(P.close[i], P.close[i] < 1 ? 5 : 2)) + '</b></div>';
-    (at[i] || []).forEach(function (t) { r += '<div class="r"><span>' + (t[T.side] === 'buy' ? '▲ Compra' : '▽ Venta') + ' · ' + esc(o.names[t[T.bot]] || t[T.bot]) + '</span><b>' + esc(nf(t[T.price], t[T.price] < 1 ? 5 : 2)) + '</b></div>'; });
+    (at[i] || []).forEach(function (t) { r += '<div class="r"><span>' + sideLabel(t[T.side], t[T.kind]) + ' · ' + esc(o.names[t[T.bot]] || t[T.bot]) + '</span><b>' + esc(nf(t[T.price], t[T.price] < 1 ? 5 : 2)) + '</b></div>'; });
     return r;
   } };
   return chartWrap(o.id, svg);
@@ -409,7 +426,7 @@ function panelPnl(d, st, w) {
   else {
     out += '<div class="legend">' + d.bots.map(function (b) { return '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2)"><i class="sq" style="background:' + cm[b.id] + ';display:inline-block;width:10px;height:10px;border-radius:2px"></i>' + esc(b.name) + '</span>'; }).join('') + '</div>';
     out += barChart({ id: 'c-bars', w: w, rows: sells.map(function (r) { return { v: r[T.pnl], color: cm[r[T.bot]] || 'var(--ink2)', name: nm[r[T.bot]] || r[T.bot], ts: r[T.ts], sym: r[T.sym], reason: r[T.reason] }; }), yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0); }, label: 'P&L por operación de cierre' });
-    out += '<p class="hint" style="margin-top:6px">Cada venta usa costo promedio ponderado e incluye comisiones de compra y venta. En el grid una venta puede salir negativa aunque el ciclo completo gane; el acumulado sí es exacto.' + (d.trades.total > d.trades.rows.length ? ' Se muestran las últimas ' + d.trades.rows.length + ' de ' + d.trades.total + ' operaciones.' : '') + '</p>';
+    out += '<p class="hint" style="margin-top:6px">Cada venta usa costo promedio ponderado e incluye comisiones de compra y venta. En el grid una venta puede salir negativa aunque el ciclo completo gane; en el carry el P&amp;L del spot y el del perpetuo se compensan y el funding cobrado aparece como operación aparte; el acumulado sí es exacto.' + (d.trades.total > d.trades.rows.length ? ' Se muestran las últimas ' + d.trades.rows.length + ' de ' + d.trades.total + ' operaciones.' : '') + '</p>';
   }
   out += '</div><div><h2>Ganadoras y perdedoras por bot</h2><div class="tw"><table><thead><tr><th>Bot</th><th class="n">Cierres</th><th class="n">Ganancia bruta</th><th class="n">Pérdida bruta</th><th class="n">P&amp;L realizado</th><th class="n">Win rate</th><th class="n">Profit factor</th></tr></thead><tbody>' +
     d.bots.map(function (b) { return '<tr><td>' + esc(b.name) + '</td><td class="n">' + (b.n_closes == null ? '—' : b.n_closes) + '</td><td class="n">' + nf(b.gross_profit, 2) + '</td><td class="n">' + (fin(b.gross_loss) && Math.abs(b.gross_loss) > 0 ? '−' : '') + nf(Math.abs(b.gross_loss), 2) + '</td><td class="n">' + tri(b.realized) + sgn(b.realized, 2) + '</td><td class="n">' + (fin(b.win_rate) ? nf(b.win_rate, 0) + '%' : '—') + '</td><td class="n">' + pf(b) + '</td></tr>'; }).join('') +
@@ -436,7 +453,7 @@ function panelTx(d, st, w) {
   out += '<div class="tw"><table><thead><tr><th>Fecha</th><th>Bot</th><th>Plataforma</th><th>Moneda</th><th>Tipo</th><th>Orden</th><th class="n">Cantidad</th><th class="n">Precio</th><th class="n">Monto USDT</th><th class="n">Comisión</th><th class="n">P&amp;L</th><th>Motivo</th></tr></thead><tbody>' +
     shown.map(function (r) {
       var px = r[T.price];
-      return '<tr><td>' + esc(fmtDT(r[T.ts])) + '</td><td>' + esc(nm[r[T.bot]] || r[T.bot]) + '</td><td>' + esc(exn[r[T.ex]] || r[T.ex]) + '</td><td>' + esc(short(r[T.sym])) + '</td><td>' + (r[T.side] === 'buy' ? '▲ Compra' : '▽ Venta') + '</td><td>' + (r[T.kind] === 'limit' ? 'Límite' : 'Mercado') + '</td><td class="n">' + nf(r[T.qty], 6) + '</td><td class="n">' + nf(px, px < 1 ? 5 : 2) + '</td><td class="n">' + nf(r[T.notional], 2) + '</td><td class="n">' + nf(r[T.fee], 3) + '</td><td class="n">' + (r[T.side] === 'sell' ? sgn(r[T.pnl], 2) : '—') + '</td><td>' + esc(reason(r[T.reason])) + '</td></tr>';
+      return '<tr><td>' + esc(fmtDT(r[T.ts])) + '</td><td>' + esc(nm[r[T.bot]] || r[T.bot]) + '</td><td>' + esc(exn[r[T.ex]] || r[T.ex]) + '</td><td>' + esc(short(r[T.sym])) + '</td><td>' + sideLabel(r[T.side], r[T.kind]) + '</td><td>' + kindLabel(r[T.kind]) + '</td><td class="n">' + nf(r[T.qty], 6) + '</td><td class="n">' + nf(px, px < 1 ? 5 : 2) + '</td><td class="n">' + nf(r[T.notional], 2) + '</td><td class="n">' + nf(r[T.fee], 3) + '</td><td class="n">' + (r[T.side] === 'sell' || (SYNTH[r[T.kind]] && r[T.pnl]) ? sgn(r[T.pnl], 2) : '—') + '</td><td>' + esc(reason(r[T.reason])) + '</td></tr>';
     }).join('') + '</tbody></table></div>';
   if (rows.length > shown.length) out += '<div><button class="btn" id="more" type="button">Mostrar más (' + (rows.length - shown.length) + ' restantes)</button></div>';
   var syms = Object.keys(d.prices).filter(function (s) { return R.some(function (r) { return r[T.sym] === s; }); });
