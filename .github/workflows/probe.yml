@@ -1,0 +1,22 @@
+name: probe
+# Sondeo manual de red (solo lectura): guarda el resultado en la rama `probe`.
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/probe.py
+      - name: Guardar resultado en la rama probe
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan probe
+          git rm -rf --quiet . || true
+          git add -f probe_results.json
+          git commit -q -m "probe: resultados de red"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" probe
