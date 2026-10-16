@@ -99,6 +99,17 @@ h2 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
 .st-active i { background: var(--good); border-radius: 50%; }
 .st-paused i { border-left: 3px solid var(--warn); border-right: 3px solid var(--warn); width: 9px; height: 9px; }
 .st-halted i { background: var(--crit); }
+.st-retired i { border: 2px solid var(--crit); width: 9px; height: 9px; box-sizing: border-box; border-radius: 2px; }
+/* medidor de cercanía al límite de drawdown: la marca vertical está en el 80 %, donde empieza el aviso */
+.rk { position: relative; height: 6px; border-radius: 3px; background: var(--line); }
+.rk i { display: block; height: 100%; border-radius: 3px; background: var(--good); }
+.rk.watch i { background: var(--warn); } .rk.near i { background: var(--crit); }
+.rk::after { content: ''; position: absolute; left: 80%; top: -3px; bottom: -3px; width: 1px; background: var(--ink2); opacity: .55; }
+.rkc { display: flex; flex-direction: column; gap: 5px; min-width: 150px; }
+.rkt { font: 400 11.5px var(--mono); color: var(--ink2); font-variant-numeric: tabular-nums; }
+.rkt b { font-weight: 600; }
+.verdict { margin: 0 0 12px; font-size: 13px; color: var(--ink2); line-height: 1.45; }
+.verdict b { color: var(--ink); }
 .reason { font-size: 12px; color: var(--ink2); background: var(--surface2); border-radius: 6px; padding: 6px 8px; }
 .tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
@@ -267,8 +278,9 @@ var sideLabel = function (side, kind) {
   return side === 'buy' ? '▲ Compra' : '▽ Venta';
 };
 var kindLabel = function (kind) { return kind === 'limit' ? 'Límite' : kind === 'perp' ? 'Perpetuo' : kind === 'funding' ? 'Funding' : kind === 'arb' ? 'Arbitraje' : 'Mercado'; };
-var STATUS = { active: 'Activo', paused: 'En pausa', halted: 'Detenido' };
-var ACTIONS = { liquidate_and_halt: 'Liquida y se detiene (revisión manual)', pause_and_resume: 'Liquida y pausa', flag_only: 'Solo alerta de revisión manual' };
+var STATUS = { active: 'Activo', paused: 'En pausa', halted: 'Detenido', retired: 'Retirado' };
+var LEVEL = { ok: 'Holgado', watch: 'Atento', near: 'Cerca del límite' };
+var ACTIONS = { liquidate_and_halt: 'Liquida y se detiene', pause_and_resume: 'Liquida, pausa y reanuda sola', flag_only: 'Solo alerta informativa (el bot sigue; sin stop por diseño)' };
 var T = { ts: 0, bot: 1, ex: 2, sym: 3, side: 4, kind: 5, qty: 6, price: 7, notional: 8, fee: 9, pnl: 10, reason: 11 };
 var short = function (s) { return String(s || '').replace(/USDT~PERP$/, ' perp').replace(/~RAIL$/, '').replace(/USDT$/, ''); };
 
@@ -557,15 +569,91 @@ function growthCard(d, st, w) {
     lineChart({ id: 'c-sm', w: Math.max(260, w - 30), h: 240, xs: xs, series: sp, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Crecimiento porcentual del portafolio, Bitcoin y Ethereum en el periodo ' + per[1], yw: 46 }) + tbl + '</section>';
 }
 
+/* ------------------------------------------------------------------ riesgo: cercanía al límite y mercado vs bots */
+function rkBar(used, level, label) {
+  return '<div class="rk ' + esc(level) + '" role="img" aria-label="' + esc(label) + '"><i style="width:' + Math.max(0, Math.min(100, used * 100)).toFixed(1) + '%"></i></div>';
+}
+/* bots que siguen operando, del más cercano a su límite al más lejano */
+function nearestLimit(d) {
+  return d.bots.filter(function (b) { var r = b.risk_now; return r && r.limit && fin(r.used) && (r.level === 'ok' || r.level === 'watch' || r.level === 'near'); })
+    .sort(function (a, b) { return b.risk_now.used - a.risk_now.used; });
+}
+function actionText(b, d) {
+  var r = b.risk || {}, a = ACTIONS[r.action] || '—';
+  if (r.action === 'pause_and_resume') {
+    var days = Math.round((r.cooldown_bars || 168) * d.bar_ms / DAY_MS), win = Math.round((r.strike_window_bars || 720) * d.bar_ms / DAY_MS);
+    a = 'Liquida, pausa ' + days + ' días y reanuda sola' + (r.max_strikes ? ' · retirado si lo rompe ' + r.max_strikes + ' veces en ' + win + ' días' : '');
+  }
+  return a;
+}
+function riskCell(b) {
+  var r = b.risk_now;
+  if (!r || !r.limit) return '<span class="hint">—</span>';
+  if (r.level === 'paused') return '<span class="rkt">Pausado' + (r.pause_until ? ' · reanuda ' + esc(fmtDT(r.pause_until)) : '') + '</span>';
+  if (r.level === 'retired') return '<span class="rkt">Retirado: no vuelve a operar</span>';
+  if (r.level === 'halted') return '<span class="rkt">Detenido</span>';
+  var txt = nf(r.dd * 100, 1) + '% de ' + nf(r.limit * 100, 0) + '% · <b>' + nf(r.used * 100, 0) + '%</b> del límite';
+  return '<div class="rkc">' + rkBar(r.used, r.level, 'Usa ' + nf(r.used * 100, 0) + '% de su límite de drawdown') + '<span class="rkt">' + txt + ' · ' + esc(LEVEL[r.level] || '') + '</span></div>';
+}
+function periodChoice(d, st) { return PERIODS.filter(function (p) { return p[0] === st.smPer; })[0] || PERIODS[5]; }
+/* cambio del portafolio en el periodo, partido en lo que puso el mercado y lo que pusieron los bots */
+function attribWindow(d, st) {
+  var K = d.kpis, S = d.series; if (!S.market_cum || !S.total.length) return null;
+  var per = periodChoice(d, st), hist = Math.max(0, K.last_ts - K.first_ts), span = periodSpan(per, K), full = !per[2] || hist >= span - d.bar_ms, n = S.total.length - 1;
+  var i0 = per[2] && full ? idxAtOrBefore(S.ts, K.last_ts - span) : -1;
+  var base = i0 > 0 ? S.total[i0] : K.capital, mk0 = i0 > 0 ? S.market_cum[i0] : 0;
+  var delta = S.total[n] - base, mkt = S.market_cum[n] - mk0;
+  return { per: per, full: full, hist: hist, span: span, base: base, delta: delta, mkt: mkt, own: delta - mkt };
+}
+function attribVerdict(a) {
+  var eps = Math.max(0.005, a.base * 0.00005), am = Math.abs(a.mkt), ao = Math.abs(a.own), f = function (v) { return '<b>' + nf(Math.abs(v), 2) + '</b>'; };
+  if (am < eps && ao < eps) return { head: 'Sin cambios', text: 'Todavía no hay movimiento que repartir entre el mercado y los bots.' };
+  var sh = am / (am + ao), head = sh >= 0.7 ? 'Lo mueve el mercado' : sh <= 0.3 ? 'Lo mueven los bots' : 'Mezcla de ambos';
+  var t = 'El portafolio ' + (a.delta < 0 ? 'bajó ' : 'subió ') + f(a.delta) + ' USDT. ';
+  if (a.mkt < 0 && a.own >= 0) t += 'El mercado le quitó ' + f(a.mkt) + ' y los bots recuperaron ' + f(a.own) + '.';
+  else if (a.mkt < 0) t += 'Perdió ' + f(a.mkt) + ' por el mercado y ' + f(a.own) + ' por la operación de los bots.';
+  else if (a.own < 0) t += 'El mercado aportó ' + f(a.mkt) + ', pero los bots restaron ' + f(a.own) + ' (operar, comisiones).';
+  else t += 'Ganó ' + f(a.mkt) + ' por el mercado y ' + f(a.own) + ' por los bots.';
+  return { head: head, text: t };
+}
+function periodSeg(d, st) {
+  var per = periodChoice(d, st);
+  return '<div class="sm-ctrl"><span class="seg" role="group" aria-label="Periodo">' + PERIODS.map(function (p) {
+    return '<button type="button" data-smper="' + p[0] + '" aria-pressed="' + (p === per) + '">' + esc(p[1]) + '</button>';
+  }).join('') + '</span></div>';
+}
+function attribCard(d, st) {
+  var a = attribWindow(d, st);
+  if (!a) return '<section class="sm-card"><h2>¿Mercado o bots?</h2><p class="hint">Disponible tras la próxima corrida del simulador.</p></section>';
+  var v = attribVerdict(a), pc = function (x) { return a.base ? x / a.base * 100 : null; };
+  var note = a.full ? '' : '<p class="hint" style="margin-bottom:8px">El portafolio lleva ' + nf(a.hist / DAY_MS, 1) + ' días y este periodo pide ' + nf(a.span / DAY_MS, 0) + (a.span / DAY_MS === 1 ? ' día' : ' días') + ': se muestra desde el inicio.</p>';
+  return '<section class="sm-card"><h2>¿Mercado o bots? <span class="r">' + esc(v.head) + '</span></h2>' + periodSeg(d, st) + note + '<p class="verdict">' + v.text + '</p>' +
+    hbars([{ name: 'Cambio total', v: pc(a.delta), pnl: a.delta },
+      { name: 'Por el mercado', note: 'precio de lo que ya tenían', v: pc(a.mkt), pnl: a.mkt },
+      { name: 'Por los bots', note: 'operar, comisiones, funding', v: pc(a.own), pnl: a.own }], 'Cambio del portafolio repartido entre mercado y bots') +
+    '<p class="hint" style="margin-top:8px">Mercado = posiciones que tenía cada bot al cierre anterior × cuánto se movió el precio (los cortos de cobertura restan). Bots = el resto: compras y ventas, comisiones, slippage, funding y arbitraje. Es una separación contable, no una causa exacta; con pocas horas de datos es ruido.</p></section>';
+}
+
+function riskTile(d) {
+  var near = nearestLimit(d), top = near[0], PR = d.portfolio_risk;
+  var off = d.bots.filter(function (b) { return b.status === 'paused'; }).length, gone = d.bots.filter(function (b) { return b.status === 'retired'; }).length;
+  var extra = (off ? off + ' en pausa' : '') + (off && gone ? ' · ' : '') + (gone ? gone + ' retirado' + (gone > 1 ? 's' : '') : '');
+  if (PR && PR.status === 'paused') return smTile('Cerca del límite', 'Freno global', 'Todo liquidado · reanuda ' + esc(fmtDT(PR.until)), '');
+  if (!top) return smTile('Cerca del límite', '—', 'Sin bots activos' + (extra ? ' · ' + extra : ''));
+  var r = top.risk_now, gl = PR ? ' · portafolio ' + nf(PR.used * 100, 0) + '% de su freno' : '';
+  return smTile('Cerca del límite', nf(r.used * 100, 0) + '%', esc(top.name) + ' · ' + (LEVEL[r.level] || '').toLowerCase() + gl + (extra ? ' · ' + extra : ''), rkBar(r.used, r.level, 'El bot más cercano usa ' + nf(r.used * 100, 0) + '% de su límite de drawdown').replace('class="rk', 'style="margin-top:8px" class="rk'));
+}
 function panelSummary(d, st, w) {
   var K = d.kpis, cm = colorMap(d), nm = nameMap(d), S = d.series, H = d.holdings, F = d.families, bots = d.bots;
   var alpha = fin(K.btc_ret) ? K.roi - K.btc_ret : null, days = Math.max(0, (K.last_ts - K.first_ts) / 86400000);
   var closes = bots.reduce(function (a, b) { return a + (b.n_closes || 0); }, 0), traded = bots.filter(function (b) { return b.n_trades > 0; }).length;
   var out = '<div class="sm"><div class="sm-hero"><div><div class="l">Valor del portafolio · dinero ficticio</div><div class="big">' + nf(K.equity, 2) + '<small>USDT</small></div></div>' +
-    '<div class="d">' + tri(K.pnl) + sgn(K.pnl, 2) + ' USDT · ' + sgn(K.roi, 2, '%') + '<small>desde el inicio · base ' + nf(K.capital, 0) + ' USDT asignados</small></div></div>';
+    '<div class="d">' + tri(K.pnl) + sgn(K.pnl, 2) + ' USDT · ' + sgn(K.roi, 2, '%') + '<small>desde el inicio · base ' + nf(K.capital, 0) + ' USDT asignados</small>' +
+    (fin(K.market_pnl) ? '<small>mercado ' + sgn(K.market_pnl, 2) + ' · bots ' + sgn(K.own_pnl, 2) + ' USDT</small>' : '') + '</div></div>';
   out += '<div class="sm-tiles">' +
     smTile('Vs Bitcoin', fin(alpha) ? tri(alpha) + sgn(alpha, 2) + ' pp' : '—', fin(alpha) ? 'Portafolio ' + sgn(K.roi, 2, '%') + ' · BTC ' + sgn(K.btc_ret, 2, '%') : 'Sin datos de BTC') +
     smTile('Invertido', H && H.total > 0 ? nf(H.invested / H.total * 100, 1) + '%' : '—', H && H.total > 0 ? 'Efectivo ' + nf(H.cash / H.total * 100, 1) + '%' + (H.hedged > 0 ? ' · cubierto ' + nf(H.hedged / H.total * 100, 1) + '%' : '') : 'Disponible tras la próxima corrida') +
+    riskTile(d) +
     smTile('Máx. drawdown', sgn(K.max_dd, 2, '%'), 'peor caída desde un máximo') +
     smTile('Comisiones', nf(K.fees, 2), nf(K.fees / K.capital * 100, 2) + '% del capital') +
     smTile('Operaciones', K.n_trades, traded + ' de ' + bots.length + ' bots han operado') +
@@ -619,7 +707,7 @@ function panelSummary(d, st, w) {
     }) + '</section>';
   var cardLine = growthCard(d, st, w);
 
-  out += '<div class="sm-grid three">' + cardStrat + cardBots + cardAssets + '</div><div class="sm-grid" style="align-items:start">' + cardFam + cardBotRet + '</div>' + cardLine;
+  out += '<div class="sm-grid">' + attribCard(d, st) + '</div><div class="sm-grid three">' + cardStrat + cardBots + cardAssets + '</div><div class="sm-grid" style="align-items:start">' + cardFam + cardBotRet + '</div>' + cardLine;
   out += '<p class="hint">Rendimiento = valor actual contra el capital asignado (ficticio). Bitcoin y Ethereum se miden sin comisiones, comprando y manteniendo. Con pocos días de datos, nada de esto es concluyente.</p>';
   if (F) out += '<details><summary>Cómo se agrupan las estrategias</summary><pre>' + esc(F.map(function (f) { return f.name + ': ' + f.bots.map(function (id) { return nm[id] || id; }).join(', '); }).join('\n')) + '</pre></details>';
   return out + '</div>';
@@ -715,10 +803,25 @@ function panelRiesgo(d, st, w) {
   ds.push({ key: '_total', name: 'Portafolio', color: 'var(--ink)', width: 3, ys: S.drawdown_total });
   out += '<div><h2>Drawdown desde el máximo de equity (%)</h2>' + legendHtml(ds, st.hidden) +
     lineChart({ id: 'c-dd', w: w, xs: S.ts, series: ds, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return nf(v, 2) + '%'; }, label: 'Drawdown por bot', yw: 50 }) + '</div>';
-  out += '<div><h2>Controles de riesgo</h2><div class="tw"><table><thead><tr><th>Bot</th><th class="n">Límite de drawdown</th><th>Al romperlo</th><th>Estado</th></tr></thead><tbody>' + d.bots.map(function (b) {
-    var r = b.risk || {}, a = r.action === 'pause_and_resume' ? 'Liquida y pausa ' + (r.cooldown_bars || '?') + ' barras' : (ACTIONS[r.action] || '—');
-    return '<tr><td>' + esc(b.name) + '</td><td class="n">' + (r.max_drawdown ? nf(r.max_drawdown * 100, 0) + '%' : '—') + '</td><td>' + esc(a) + '</td><td>' + statusPill(b.status) + '</td></tr>';
-  }).join('') + '</tbody></table></div></div>';
+  var PR = d.portfolio_risk;
+  if (PR) {
+    var gdays = Math.round((PR.cooldown_bars || 168) * d.bar_ms / DAY_MS), lvl = PR.status === 'paused' ? 'paused' : PR.used >= 0.8 ? 'near' : PR.used >= 0.5 ? 'watch' : 'ok';
+    out += '<div><h2>Freno global del portafolio</h2><div class="card"><p class="verdict" style="margin-bottom:10px">Si el valor total cae <b>' + nf(PR.limit * 100, 0) + '%</b> desde su máximo, se liquida todo, se pausa ' + gdays + ' días y los bots reanudan solos. ' +
+      (PR.status === 'paused' ? '<b>Activo ahora:</b> reanuda ' + esc(fmtDT(PR.until)) + '.' : 'Ahora: ' + nf(PR.dd * 100, 2) + '% bajo su máximo (' + nf(PR.used * 100, 0) + '% del freno).') + (PR.trips ? ' Se ha activado ' + PR.trips + (PR.trips === 1 ? ' vez.' : ' veces.') : '') + '</p>' +
+      (PR.status === 'paused' ? '' : rkBar(PR.used, lvl, 'Usa ' + nf(PR.used * 100, 0) + '% del freno global')) + '</div></div>';
+  }
+  out += '<div><h2>Controles de riesgo por bot</h2><div class="tw"><table><thead><tr><th>Bot</th><th>Qué tan cerca está del límite</th><th>Al romperlo</th><th>Estado</th></tr></thead><tbody>' + d.bots.slice().sort(function (a, b) {
+    var ua = a.risk_now && fin(a.risk_now.used) && a.status === 'active' ? a.risk_now.used : -1, ub = b.risk_now && fin(b.risk_now.used) && b.status === 'active' ? b.risk_now.used : -1; return ub - ua;
+  }).map(function (b) {
+    var r = b.risk_now || {};
+    return '<tr><td>' + esc(b.name) + '</td><td>' + riskCell(b) + '</td><td>' + esc(actionText(b, d)) + '</td><td>' + statusPill(b.status) +
+      (r.max_strikes && r.strikes ? '<div class="rkt" style="margin-top:4px">' + r.strikes + ' de ' + r.max_strikes + ' rupturas</div>' : '') + '</td></tr>';
+  }).join('') + '</tbody></table></div><p class="hint" style="margin-top:6px">La marca vertical está en el 80% del límite: ahí se registra un aviso. Todo es automático; el único bot que no frena es DCA (solo alerta, por diseño).</p></div>';
+  if (d.bots.some(function (b) { return fin(b.market); })) {
+    out += '<div><h2>Resultado por bot: mercado y operación</h2><div class="tw"><table><thead><tr><th>Bot</th><th class="n">Resultado</th><th class="n">Por el mercado</th><th class="n">Por el bot</th></tr></thead><tbody>' + d.bots.map(function (b) {
+      return '<tr><td>' + esc(b.name) + '</td><td class="n">' + sgn(b.pnl, 2) + '</td><td class="n">' + sgn(b.market, 2) + '</td><td class="n">' + sgn(b.own, 2) + '</td></tr>';
+    }).join('') + '</tbody></table></div><p class="hint" style="margin-top:6px">USDT desde el inicio. Un bot que casi no tiene posiciones tiene poco efecto de mercado; el carry y el arbitraje están cubiertos y deben quedar cerca de cero.</p></div>';
+  }
   var O = d.overlap;
   out += '<div><h2>Solapamiento entre bots</h2>';
   if (O.matrix.length) {
