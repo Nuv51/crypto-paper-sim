@@ -26,7 +26,7 @@ def main() -> int:
     ap.add_argument("--synthetic-advance", type=int, default=24, help="(solo synthetic) velas nuevas por corrida")
     a = ap.parse_args()
     code, status = run_step(config.BOTS, config.INTERVAL, a.capital, a.state, a.out, a.source,
-                            synthetic_advance=a.synthetic_advance)
+                            synthetic_advance=a.synthetic_advance, portfolio_risk=config.PORTFOLIO_RISK)
     print(("OK" if code == 0 else f"FALLÓ (código {code})") + f": {status['message']}")
     return code
 

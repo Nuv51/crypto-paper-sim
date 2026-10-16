@@ -89,6 +89,11 @@ class Bot:
         """Se llama en CADA barra (incluso si el bot está pausado/detenido), después de las órdenes spot y antes
         de valorar. rows[sym] = (open, high, low, close) de la barra actual."""
 
+    def exposure(self, wallet: PaperWallet) -> dict:
+        """Cantidad neta que el bot tiene expuesta al precio de cada mercado real (largos spot; los cortos restan).
+        Sirve para separar cuánto del cambio de equity lo puso el mercado y cuánto las decisiones del bot."""
+        return {s: wallet.pos(s).qty for s in self.symbols if "~" not in s and wallet.pos(s).qty > 0}
+
     def status_detail(self, wallet: PaperWallet) -> str:
         held = [s.replace("USDT", "") for s in self.symbols if wallet.pos(s).qty > 0]
         return f"En posición: {', '.join(held)}" if held else "Esperando señal"
@@ -543,6 +548,13 @@ class CarryBot(Bot):
             quote = self.affordable_quote(ctx, w.initial_cash * p.size_frac / (1 + 1 / p.leverage))
             if quote > 0 and self.buy_quote(ctx, self.spot, quote, "carry_open"):
                 st.update(open_req=True, phase="opening", note=f"Abriendo carry: funding {apr:.1%} anual")
+
+    def exposure(self, wallet: PaperWallet) -> dict:
+        e = super().exposure(wallet)
+        q = float(self.st.get("perp_qty") or 0.0)
+        if q > 0:                                   # el corto en el perpetuo cancela la exposición del spot
+            e[self.spot] = e.get(self.spot, 0.0) - q
+        return e
 
     def on_halt(self, ctx: Ctx) -> None:
         super().on_halt(ctx)

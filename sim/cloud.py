@@ -60,9 +60,12 @@ def benchmarks_from_feed(feed) -> Optional[dict]:
     return out
 
 
-def config_signature(bots_cfg: list[dict], capital: float) -> str:
+def config_signature(bots_cfg: list[dict], capital: float, portfolio_risk: Optional[dict] = None) -> str:
     """Huella de la configuración. Si cambia a mitad de una simulación, no se mezclan resultados de reglas distintas."""
-    blob = json.dumps({"capital": capital, "bots": bots_cfg}, sort_keys=True, default=str)
+    body = {"capital": capital, "bots": bots_cfg}
+    if portfolio_risk:                     # el freno global también es una regla: cambiarlo reinicia la prueba
+        body["portfolio_risk"] = portfolio_risk
+    blob = json.dumps(body, sort_keys=True, default=str)
     return hashlib.sha256(blob.encode()).hexdigest()[:16]
 
 
@@ -89,7 +92,8 @@ def _frames(feed, source: str, symbols: list[str], interval: str, ledger: Ledger
 
 
 def run_step(bots_cfg: list[dict], interval: str, capital: float, state_path: Optional[str], out_dir: str,
-             source: str = "binance", feed=None, synthetic_advance: int = 24, seed: int = 7) -> tuple[int, dict]:
+             source: str = "binance", feed=None, synthetic_advance: int = 24, seed: int = 7,
+             portfolio_risk: Optional[dict] = None) -> tuple[int, dict]:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     now_ms = int(time.time() * 1000)
@@ -109,14 +113,14 @@ def run_step(bots_cfg: list[dict], interval: str, capital: float, state_path: Op
             prev = ledger.get_meta("source")
             if prev and prev != label:
                 raise ValueError(f"El estado guardado viene de '{prev}' y esta corrida usa '{label}': no se mezclan fuentes")
-        sig = config_signature(bots_cfg, capital)
+        sig = config_signature(bots_cfg, capital, portfolio_risk)
         if resumed:
             prev_sig = ledger.get_meta("config_sig")
             if prev_sig and prev_sig != sig:
                 raise ValueError(f"La configuración de los bots cambió desde que empezó esta simulación ({prev_sig} → {sig}). "
                                  "Para no mezclar resultados de reglas distintas, reinicia con fresh=true")
         ledger.set_meta("config_sig", sig)
-        eng = Engine(ledger, bots_cfg, capital, interval)
+        eng = Engine(ledger, bots_cfg, capital, interval, portfolio_risk=portfolio_risk)
         if resumed:
             if not eng.has_saved_state():
                 raise ValueError("El estado guardado está incompleto")

@@ -109,8 +109,9 @@ def cmd_trades(a) -> int:
                            f"{sym_short(r[T['sym']])} @ {money(r[T['price']], 4 if r[T['price']] < 10 else 2)} "
                            f"({reason(r[T['reason']])}){pnl}")
         last = old["kpis"]["last_ts"]
-        alerts = [e for e in new["events"] if e[2] == "alert" and e[0] > last]
-        out += [f"⚠ {names.get(e[1], e[1])}: {e[3]}" for e in reversed(alerts)]
+        # alertas (rupturas, retiros, freno global) y avisos de cercanía al límite; todo informativo, nada requiere acción
+        alerts = [e for e in new["events"] if e[0] > last and (e[2] == "alert" or (e[2] == "warn" and e[3].startswith("Cerca de su límite")))]
+        out += [f"⚠ {names[e[1]] + ': ' if e[1] in names else ''}{e[3]}" for e in reversed(alerts)]
     if not out:
         return 0
     if len(out) > 12:
@@ -145,9 +146,18 @@ def cmd_digest(a) -> int:
               f"24 h: {money(d24, 0, True)} · Peor caída: {k['max_dd']:.1f}% · Operaciones: {k['n_trades']}"]
     if k.get("btc_ret") is not None:
         lines.append(f"BTC en el mismo periodo: {pct(k['btc_ret'])}")
+    if k.get("market_pnl") is not None:
+        lines.append(f"Del P&L: mercado {money(k['market_pnl'], 0, True)} · bots {money(k['own_pnl'], 0, True)}")
+    pr = d.get("portfolio_risk")
+    if pr:
+        lines.append("Freno global ACTIVO: todo liquidado, reanuda solo" if pr["status"] == "paused"
+                     else f"Freno global: {pr['used']:.0%} usado ({pct(-pr['dd'] * 100, 1)} desde su máximo, límite {pr['limit']:.0%})")
     lines.append("")
     for b in sorted(bots, key=lambda b: -(b["pnl"] or 0)):
-        flag = {"paused": " ⏸", "halted": " ⛔"}.get(b["status"], "")
+        flag = {"paused": " ⏸ (reanuda sola)", "halted": " ⛔", "retired": " 🚫 retirado"}.get(b["status"], "")
+        rn = b.get("risk_now") or {}
+        if b["status"] == "active" and rn.get("level") == "near":
+            flag = f" ⚠ {rn['used']:.0%} de su límite"
         lines.append(f"{b['name']}: {money(b['pnl'], 1, True)} ({pct(b['roi'], 2)}) · {b['n_trades']} ops{flag}")
     lines += ["", "Simulación con dinero ficticio; resultados pasados no garantizan resultados futuros."]
     print("\n".join(lines))

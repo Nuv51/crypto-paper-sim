@@ -87,6 +87,35 @@ def _bot_positions(bot_state: pd.DataFrame, px: dict) -> tuple[dict, dict]:
     return pos, hedged
 
 
+def _risk_proximity(b: dict, st: dict, last_ts: int, bar_ms: int) -> dict:
+    """Qué tan cerca está un bot de su límite de drawdown, medido igual que el control de riesgo del motor
+    (caída del equity actual contra su máximo vigente, que se reinicia al reanudar tras una pausa)."""
+    rk = b.get("risk") or {}
+    limit = rk.get("max_drawdown")
+    peak = float(st.get("peak") or 0.0)
+    eq = b["equity"]
+    status = b["status"]
+    dd = max(0.0, 1 - float(eq) / peak) if (peak > 0 and eq is not None) else 0.0
+    used = dd / limit if limit else None
+    warn_at = float(rk.get("warn_at", 0.8))
+    if status != "active":
+        level = status                                   # paused | retired | halted
+    elif used is None:
+        level = "ok"
+    elif used >= warn_at:
+        level = "near"
+    elif used >= 0.5:
+        level = "watch"
+    else:
+        level = "ok"
+    window = int(rk.get("strike_window_bars", 720)) * bar_ms
+    strikes = [t for t in (st.get("strikes") or []) if last_ts - t < window]
+    return {"limit": limit, "action": rk.get("action", "liquidate_and_halt"), "dd": dd, "used": used,
+            "level": level, "peak": peak, "warn_at": warn_at, "strikes": len(strikes),
+            "max_strikes": rk.get("max_strikes"), "pause_until": st.get("pause_until") if status == "paused" else None,
+            "flagged": bool(st.get("flagged"))}
+
+
 def _sample_idx(n: int, max_points: int) -> np.ndarray:
     if n <= max_points:
         return np.arange(n)
@@ -179,6 +208,44 @@ def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars:
                          "equity": fam_eq, "pnl": fam_eq - capital, "roi": (fam_eq / capital - 1) * 100 if capital else None,
                          "n_trades": sum(b["n_trades"] or 0 for b in members)})
 
+    # ---- cercanía al límite de riesgo (por bot y del portafolio entero)
+    states = {}
+    bs = data.get("bot_state")
+    if bs is not None and not bs.empty:
+        for _, r in bs.iterrows():
+            try:
+                states[r["bot_id"]] = json.loads(r["state"] or "{}")
+            except Exception:
+                states[r["bot_id"]] = {}
+    last_ts = int(wide.index[-1])
+    for b in bot_rows:
+        b["risk_now"] = _risk_proximity(b, states.get(b["id"], {}), last_ts, bar_ms)
+    portfolio_risk = None
+    try:
+        g = json.loads(meta.get("portfolio_risk") or "null")
+    except Exception:
+        g = None
+    if g and g.get("limit"):
+        peak = float(g["peak"])
+        dd = max(0.0, 1 - float(total.iloc[-1]) / peak) if peak > 0 else 0.0
+        portfolio_risk = {"limit": g["limit"], "dd": dd, "used": dd / g["limit"], "peak": peak, "status": g["status"],
+                          "until": g["until"] if g["status"] == "paused" else None, "trips": g["trips"],
+                          "cooldown_bars": g.get("cooldown_bars"), "bar_ms": bar_ms}
+
+    # ---- atribución: cuánto del resultado lo puso el mercado y cuánto los propios bots
+    attrib = data.get("attrib")
+    mkt_cum = own_cum = None
+    if attrib is not None and not attrib.empty:
+        mk = attrib.pivot_table(index="ts", columns="bot_id", values="market", aggfunc="sum").reindex(wide.index).fillna(0.0)
+        mk = mk[[c for c in mk.columns if c in wide.columns]].reindex(columns=wide.columns, fill_value=0.0)
+        mk_cum = mk.cumsum()
+        mkt_cum = mk_cum.sum(axis=1)
+        own_cum = (total - total_cap) - mkt_cum
+        for b in bot_rows:
+            if b["id"] in mk_cum.columns and b["pnl"] is not None:
+                b["market"] = float(mk_cum[b["id"]].iloc[-1])
+                b["own"] = float(b["pnl"]) - b["market"]
+
     # ---- KPIs
     port_ret =(float(total.iloc[-1]) / total_cap - 1) * 100
     kpis = {
@@ -190,6 +257,8 @@ def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars:
         "first_ts": int(wide.index[0]), "last_ts": int(wide.index[-1]), "n_trades": int(len(trades)),
         "reserve": None,
     }
+    if mkt_cum is not None:
+        kpis["market_pnl"], kpis["own_pnl"] = float(mkt_cum.iloc[-1]), float(own_cum.iloc[-1])
     pc = meta.get("portfolio_capital")
     if pc:
         kpis["reserve"] = float(pc) - total_cap
@@ -204,6 +273,9 @@ def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars:
         "drawdown": {c: dd_full[c].to_numpy()[idx].round(4) for c in wide.columns},
         "drawdown_total": dd_total.to_numpy()[idx].round(4),
     }
+    if mkt_cum is not None:                   # acumulados desde el inicio; la página los resta entre dos fechas
+        series["market_cum"] = mkt_cum.to_numpy()[idx].round(4)
+        series["own_cum"] = own_cum.to_numpy()[idx].round(4)
 
     # ---- operaciones y eventos
     tcols = ["ts", "bot_id", "exchange", "symbol", "side", "kind", "qty", "price", "notional", "fee", "realized_pnl", "reason"]
@@ -243,7 +315,7 @@ def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars:
         "generated_at": now_ms, "bar_ms": bar_ms, "interval": interval,
         "source": meta.get("source", "?"), "mode": meta.get("mode", "?"),
         "synthetic": "SINT" in meta.get("source", "").upper(),
-        "disclaimer": DISCLAIMER, "kpis": kpis, "bots": bot_rows, "holdings": holdings, "families": families, "series": series,
+        "disclaimer": DISCLAIMER, "kpis": kpis, "portfolio_risk": portfolio_risk, "bots": bot_rows, "holdings": holdings, "families": families, "series": series,
         "trades": {"cols": tcols, "rows": t_out.to_numpy(dtype=object).tolist(), "total": int(len(trades))},
         "events": ev[["ts", "bot_id", "level", "message"]].to_numpy(dtype=object).tolist(),
         "overlap": overlap, "prices": prices, "forecasts": forecasts,

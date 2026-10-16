@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS bars(
 CREATE TABLE IF NOT EXISTS events(
     id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER, bot_id TEXT, level TEXT, message TEXT);
 CREATE TABLE IF NOT EXISTS bot_state(bot_id TEXT PRIMARY KEY, state TEXT);
+CREATE TABLE IF NOT EXISTS attrib(ts INTEGER, bot_id TEXT, market REAL, PRIMARY KEY(ts, bot_id));
 """
 
 
@@ -87,6 +88,10 @@ class Ledger:
         self.con.executemany(
             "INSERT OR REPLACE INTO bars(symbol,ts,open,high,low,close,volume) VALUES(?,?,?,?,?,?,?)", rows)
 
+    def add_attrib(self, rows: Iterable[tuple]) -> None:
+        """(ts, bot_id, market): parte del cambio de equity de la barra que se debe al movimiento de precios."""
+        self.con.executemany("INSERT OR REPLACE INTO attrib(ts,bot_id,market) VALUES(?,?,?)", rows)
+
     def add_events(self, rows: Iterable[tuple]) -> None:
         self.con.executemany("INSERT INTO events(ts,bot_id,level,message) VALUES(?,?,?,?)", rows)
 
@@ -100,7 +105,7 @@ class Ledger:
         return json.loads(r[0]) if r else None
 
     # ---------------------------------------------------------------- snapshot (modo nube)
-    TABLES = ("meta", "bots", "trades", "equity", "bars", "events", "bot_state")
+    TABLES = ("meta", "bots", "trades", "equity", "bars", "events", "bot_state", "attrib")
 
     def dump(self) -> dict:
         """Serializa toda la base a un dict JSON-able (el modo nube no tiene disco entre corridas)."""

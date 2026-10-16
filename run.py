@@ -37,7 +37,7 @@ def cmd_replay(a) -> int:
         for ext in ("", "-wal", "-shm"):
             Path(str(db) + ext).unlink(missing_ok=True)
     ledger = Ledger(db)
-    eng = Engine(ledger, config.BOTS, a.capital, config.INTERVAL, only=_only(a.only))
+    eng = Engine(ledger, config.BOTS, a.capital, config.INTERVAL, only=_only(a.only), portfolio_risk=config.PORTFOLIO_RISK)
     feed = SyntheticFeed(seed=a.seed) if a.source == "synthetic" else BinanceFeed()
     bar_ms = INTERVAL_MS[config.INTERVAL]
     extra = math.ceil(eng.max_warmup * bar_ms / 86_400_000) + 1
@@ -60,7 +60,7 @@ def cmd_replay(a) -> int:
 
 def cmd_live(a) -> int:
     ledger = Ledger(a.db)
-    eng = Engine(ledger, config.BOTS, a.capital, config.INTERVAL, only=_only(a.only))
+    eng = Engine(ledger, config.BOTS, a.capital, config.INTERVAL, only=_only(a.only), portfolio_risk=config.PORTFOLIO_RISK)
     if eng.has_saved_state():
         eng.load_state()
         print("Reanudando simulación guardada.")

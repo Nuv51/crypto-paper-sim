@@ -33,12 +33,12 @@ línea por bot.
 |---|-----|---------|-----------|-----:|-------------------|
 | 1 | Carry spot-perpetuo | BTC | KuCoin | 15% | entra solo si el funding cubre costos; sale con 3 funding negativos; DD máx. 5% |
 | 2 | Stablecoins · peg | USDC, FDUSD | Binance | 15% | solo desvíos ≥ 0.30%; sale ante de-peg real; DD máx. 2% |
-| 3 | DCA | BTC, ETH | Bitso | 8% | alerta de revisión manual a −45% |
+| 3 | DCA | BTC, ETH | Bitso | 8% | solo alerta informativa a −45% (no tiene stop por diseño; el bot sigue) |
 | 4 | Grid | ETH | Binance | 12% | rango ±10%, 16 niveles; liquida si rompe el rango; DD máx. 10% |
 | 5 | Reversión a la media | BNB, ADA | KuCoin | 10% | stop 2–3% (ATR), TP 4%, DD máx. 10% |
 | 6 | Market making | BTC | Binance | 8% | inventario 50% ± 20 pts; rebalancea a ±30; retira cotizaciones si la volatilidad sube; DD máx. 12% |
 | 7 | Tendencia / Momentum | SOL, AVAX | Binance | 8% | stop 4%, trailing desde +5%, DD máx. 15% |
-| 8 | Breakout dinámico | DOGE, LINK | Binance | 7% | riesgo 0.75%/operación, stop 1.75×ATR, pausa 7 días a −17% |
+| 8 | Breakout dinámico | DOGE, LINK | Binance | 7% | riesgo 0.75%/operación, stop 1.75×ATR, DD máx. 17% |
 | 9 | Señales ML | BTC, ETH, XRP | Binance | 5% | opera solo con P ≥ 0.60, stop 3%, reentrena cada 14 días; DD máx. 12% |
 | 10 | Arbitraje XRP (Bitso ↔ Binance/KuCoin) | XRP | Bitso + Binance + KuCoin | 10% | umbral neto ≥ 0.30%, máx. 35% de desbalance de inventario |
 
@@ -70,6 +70,19 @@ ruta, el spread bruto y el neto de comisiones (Bitso USDT 0.36% taker, Binance y
 superior optimista** (fondos pre-posicionados, ejecución instantánea, tamaño limitado a la punta del libro); solo ve una
 foto por hora, no el flujo continuo, así que estima *cuántas veces* aparece una oportunidad. Con estas comisiones el spread
 bruto necesario ronda 0.6–0.9%: si casi nunca aparece, la idea no se sostiene tal como está planteada.
+
+## Riesgo automático (sin pasos manuales)
+
+- **Por bot:** si un bot toca su límite de drawdown (columna de arriba) se **liquida, pausa 7 días y reanuda solo** con su
+  máximo reiniciado. Si lo rompe **3 veces en 30 días** queda **retirado** (no vuelve a operar; se registra como resultado,
+  no como pendiente). Al llegar al 80% del límite se registra un aviso. DCA (#3) solo emite una alerta informativa.
+- **Global:** si el valor total del portafolio cae **10%** desde su máximo, se liquida todo, se pausa 7 días y todos reanudan
+  solos (`PORTFOLIO_RISK` en `config.py`; forma parte de la huella de configuración).
+- **Tablero:** la pestaña *Riesgo* muestra qué tan cerca está cada bot de su límite (marca al 80%), el freno global y el
+  resultado por bot partido en *mercado* y *operación*; Summary tiene una ficha "Cerca del límite" y la tarjeta
+  "¿Mercado o bots?" (por periodo). Mercado = posiciones del cierre anterior × movimiento del precio (los cortos de
+  cobertura restan); bots = el resto (operar, comisiones, slippage, funding, arbitraje). Es una separación contable, no causal.
+- Lo único que sigue siendo manual por naturaleza es la etapa de dinero real: depositar fondos, crear llaves API y mover capital entre exchanges.
 
 **Solapamiento:** #7 y #8 son ambos "comprar fuerza"; #3, #6, #9 y #1 comparten BTC; #3, #4 y #9 comparten ETH. La pestaña
 *Riesgo y solapamiento* mide la correlación real entre bots; si dos bots se mueven juntos, no diversifican.

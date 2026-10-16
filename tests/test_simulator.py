@@ -238,22 +238,29 @@ def _engine_with(tmp_path, bot_id):
     return eng, rt, Ctx(2 * H, 2, rt.wallet, arrays, H)
 
 
-def test_risk_guard_liquidate_and_halt(tmp_path):
+def test_risk_guard_default_policy_pauses_and_resumes_alone(tmp_path):
     eng, rt, ctx = _engine_with(tmp_path, "b07_trend")
     w = rt.wallet
     w.submit(0, "SOLUSDT", "buy", "market", 1.0)
     w.process_bar(H, "SOLUSDT", 100, 100, 100, 100)
     eng._risk_check(rt, ctx, rt.peak * (1 - 0.20))            # drawdown 20% > límite 15%
-    assert rt.status == "halted"
+    assert rt.status == "paused" and rt.pause_until == ctx.ts + 168 * H
     assert any(o.side == "sell" and o.kind == "market" for o in w.orders)   # liquidación enviada
-    assert eng._events[-1][2] == "alert"
+    assert eng._events[-1][2] == "alert" and "manual" not in eng._events[-1][3].lower()
+
+
+def test_risk_guard_liquidate_and_halt_still_available(tmp_path):
+    eng, rt, ctx = _engine_with(tmp_path, "b07_trend")
+    rt.bot.risk = dict(max_drawdown=0.15, action="liquidate_and_halt")
+    eng._risk_check(rt, ctx, rt.peak * (1 - 0.20))
+    assert rt.status == "halted" and "manual" not in rt.reason.lower()
 
 
 def test_risk_guard_flag_only_keeps_trading(tmp_path):
     eng, rt, ctx = _engine_with(tmp_path, "b03_dca")
     eng._risk_check(rt, ctx, rt.peak * (1 - 0.50))            # drawdown 50% > 45%
-    assert rt.status == "active" and rt.flagged and "REVISIÓN MANUAL" in rt.reason
-    assert rt.wallet.orders == []                              # no liquida: el DCA no tiene stop-loss
+    assert rt.status == "active" and rt.flagged and "informativa" in rt.reason and "manual" not in rt.reason.lower()
+    assert rt.wallet.orders == [] and rt.strikes == []        # no liquida y nunca se retira: el DCA no tiene stop-loss
 
 
 def test_risk_guard_pause_then_resume(tmp_path):
@@ -263,6 +270,104 @@ def test_risk_guard_pause_then_resume(tmp_path):
     later = Ctx(rt.pause_until, 2, rt.wallet, ctx.arrays, H)
     eng._risk_check(rt, later, rt.wallet.initial_cash * 0.75)
     assert rt.status == "active" and rt.peak == pytest.approx(rt.wallet.initial_cash * 0.75)
+
+
+def test_three_breaches_in_the_window_retire_the_bot(tmp_path):
+    eng, rt, ctx = _engine_with(tmp_path, "b07_trend")
+    ts = ctx.ts
+    for k in range(3):
+        c = Ctx(ts, 2, rt.wallet, ctx.arrays, H)
+        eng._risk_check(rt, c, rt.peak * 0.80)                # rompe el límite
+        if k < 2:
+            assert rt.status == "paused"
+            ts = rt.pause_until                               # espera la pausa y reanuda sola
+            eng._risk_check(rt, Ctx(ts, 2, rt.wallet, ctx.arrays, H), rt.wallet.initial_cash)
+            assert rt.status == "active"
+    assert rt.status == "retired" and "retirado" in rt.reason and len(rt.strikes) == 3
+    eng._risk_check(rt, Ctx(ts + 10_000 * H, 2, rt.wallet, ctx.arrays, H), rt.wallet.initial_cash)
+    assert rt.status == "retired"                             # un retiro no se revierte solo
+
+
+def test_old_breaches_expire_and_do_not_retire_the_bot(tmp_path):
+    eng, rt, ctx = _engine_with(tmp_path, "b07_trend")
+    rt.strikes = [ctx.ts - 800 * H, ctx.ts - 790 * H]         # fuera de la ventana de 30 días (720 barras)
+    eng._risk_check(rt, ctx, rt.peak * 0.80)
+    assert rt.status == "paused" and len(rt.strikes) == 1
+
+
+def test_warning_near_the_limit_fires_once_and_rearms(tmp_path):
+    eng, rt, ctx = _engine_with(tmp_path, "b07_trend")        # límite 15%
+    eng._risk_check(rt, ctx, rt.peak * (1 - 0.13))            # 87% del límite
+    eng._risk_check(rt, ctx, rt.peak * (1 - 0.135))
+    warns = [e for e in eng._events if e[2] == "warn"]
+    assert rt.status == "active" and len(warns) == 1
+    eng._risk_check(rt, ctx, rt.peak * (1 - 0.05))            # se recupera por debajo del 60% del límite
+    assert rt.warned is False
+
+
+def test_global_breaker_liquidates_everything_and_resumes_alone(tmp_path):
+    ledger = Ledger(tmp_path / "g.db")
+    eng = Engine(ledger, config.BOTS, 10_000, "1h", only=["b07_trend", "b04_grid"], portfolio_risk=dict(max_drawdown=0.05, cooldown_bars=24))
+    arrays = {bid: {s: {"close": np.array([100.0] * 3)} for s in rt.bot.symbols} for bid, rt in eng.runtimes.items()}
+    ctxs = {bid: Ctx(2 * H, 2, rt.wallet, arrays[bid], H) for bid, rt in eng.runtimes.items()}
+    peak = sum(rt.wallet.initial_cash for rt in eng.runtimes.values())
+    eqs = {bid: rt.wallet.initial_cash * 0.90 for bid, rt in eng.runtimes.items()}     # -10% total > 5%
+    eng.g["peak"] = peak
+    eng._portfolio_check(2 * H, ctxs, eqs)
+    assert eng.g["status"] == "paused" and eng.g["trips"] == 1
+    assert all(rt.status == "paused" and rt.pause_until == 2 * H + 24 * H for rt in eng.runtimes.values())
+    assert eng._events[-1][2] == "alert" and "GLOBAL" in eng._events[-1][3]
+    eng._portfolio_check(3 * H, ctxs, eqs)                    # sigue pausado y no vuelve a disparar
+    assert eng.g["trips"] == 1
+    eng._portfolio_check(2 * H + 24 * H, ctxs, eqs)           # termina la pausa: reanuda con el peak reiniciado
+    assert eng.g["status"] == "active" and eng.g["peak"] == pytest.approx(sum(eqs.values()))
+
+
+def test_global_breaker_skips_retired_bots_and_keeps_longer_pauses(tmp_path):
+    eng = Engine(Ledger(tmp_path / "g2.db"), config.BOTS, 10_000, "1h", only=["b07_trend", "b04_grid"],
+                 portfolio_risk=dict(max_drawdown=0.05, cooldown_bars=24))
+    ctxs = {bid: Ctx(2 * H, 2, rt.wallet, {s: {"close": np.array([100.0] * 3)} for s in rt.bot.symbols}, H)
+            for bid, rt in eng.runtimes.items()}
+    eng.runtimes["b07_trend"].status = "retired"
+    eng.runtimes["b04_grid"].status, eng.runtimes["b04_grid"].pause_until = "paused", 2 * H + 500 * H
+    eng.g["peak"] = sum(rt.wallet.initial_cash for rt in eng.runtimes.values())
+    eng._portfolio_check(2 * H, ctxs, {b: rt.wallet.initial_cash * 0.8 for b, rt in eng.runtimes.items()})
+    assert eng.runtimes["b07_trend"].status == "retired"
+    assert eng.runtimes["b04_grid"].pause_until == 2 * H + 500 * H
+
+
+def test_risk_state_survives_a_resume(tmp_path):
+    ledger = Ledger(tmp_path / "s.db")
+    eng = Engine(ledger, config.BOTS, 10_000, "1h", only=["b07_trend"])
+    rt = eng.runtimes["b07_trend"]
+    rt.strikes, rt.warned, rt.status, rt.pause_until = [5, 9], True, "paused", 777
+    rt.expo, rt.last_marks = {"SOLUSDT": 2.0}, {"SOLUSDT": 90.0}
+    eng.g.update(status="paused", until=999, trips=2)
+    eng.save_state()
+    eng2 = Engine(ledger, config.BOTS, 10_000, "1h", only=["b07_trend"])
+    eng2.load_state()
+    r2 = eng2.runtimes["b07_trend"]
+    assert (r2.strikes, r2.warned, r2.status, r2.pause_until) == ([5, 9], True, "paused", 777)
+    assert r2.expo == {"SOLUSDT": 2.0} and r2.last_marks == {"SOLUSDT": 90.0}
+    assert eng2.g["status"] == "paused" and eng2.g["until"] == 999 and eng2.g["trips"] == 2
+
+
+def test_attribution_splits_market_from_own_effect(tmp_path):
+    eng, rt, ctx = _engine_with(tmp_path, "b07_trend")
+    rt.expo, rt.last_marks = {"SOLUSDT": 2.0}, {"SOLUSDT": 100.0}
+    eng._attribute(rt, 3 * H, {"SOLUSDT": 90.0, "AVAXUSDT": 10.0})
+    assert eng._attrib[-1] == (3 * H, "b07_trend", pytest.approx(-20.0))     # 2 monedas x -10
+    assert rt.last_marks["SOLUSDT"] == 90.0
+    eng._attribute(rt, 4 * H, {"SOLUSDT": 95.0, "AVAXUSDT": 10.0})          # ya sin posición: el mercado no pesa
+    assert eng._attrib[-1][2] == 0.0
+
+
+def test_carry_short_cancels_spot_market_exposure(tmp_path):
+    eng, rt, ctx = _engine_with(tmp_path, "b01_carry")
+    rt.wallet.submit(0, "BTCUSDT", "buy", "market", 0.1)
+    rt.wallet.process_bar(H, "BTCUSDT", 100, 100, 100, 100)
+    rt.bot.st["perp_qty"] = 0.1
+    assert rt.bot.exposure(rt.wallet).get("BTCUSDT", 0.0) == pytest.approx(0.0)    # cubierto: neutral al mercado
 
 
 def test_ctx_blocks_future_access(tmp_path):

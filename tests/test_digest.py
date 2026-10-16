@@ -88,3 +88,19 @@ def test_table_has_one_row_per_bot(tmp_path):
     _, b = two_runs(tmp_path)
     rows = capture(digest.cmd_table, dashboard=str(b / "dashboard.json")).strip().splitlines()
     assert len(rows) == 2 + len(config.BOTS) and rows[0].startswith("| Bot")
+
+
+def test_digest_flags_near_limit_retired_and_global_brake(tmp_path):
+    a = tmp_path / "a"
+    code, _ = run_step(config.BOTS, "1h", config.PORTFOLIO_CAPITAL, None, str(a), "synthetic", synthetic_advance=24)
+    assert code == 0
+    d = json.loads((a / "dashboard.json").read_text(encoding="utf-8"))
+    d["bots"][0]["risk_now"].update(level="near", used=0.86)
+    d["bots"][1]["status"] = "retired"
+    d["bots"][2]["status"] = "paused"
+    d["portfolio_risk"].update(status="paused")
+    f = tmp_path / "d.json"
+    f.write_text(json.dumps(d), encoding="utf-8")
+    out = capture(digest.cmd_digest, dashboard=str(f), status=None)
+    assert "86% de su límite" in out and "retirado" in out and "reanuda sola" in out and "Freno global ACTIVO" in out
+    assert "revisión manual" not in out.lower()
