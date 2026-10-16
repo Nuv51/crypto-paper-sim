@@ -178,7 +178,7 @@ sim/cloud.py         paso de nube, huella de configuración
 sim/forecast.py      estimación de tendencia (con cono de incertidumbre)
 sim/metrics.py       métricas y solapamiento
 sim/ledger.py        SQLite
-tests/               57 pruebas
+tests/               80 pruebas
 ```
 
 ## Pruebas
