@@ -18,6 +18,7 @@ def load_all(con: sqlite3.Connection) -> dict:
         "equity": read_df(con, "SELECT * FROM equity ORDER BY ts"),
         "bars": read_df(con, "SELECT * FROM bars ORDER BY symbol, ts"),
         "events": read_df(con, "SELECT * FROM events ORDER BY id DESC LIMIT 500"),
+        "bot_state": read_df(con, "SELECT bot_id, state FROM bot_state"),
     }
 
 

@@ -31,6 +31,58 @@ def _j(x):
     return x
 
 
+# Familias de estrategia para la pestaña Summary. Se deducen del tipo de bot (sufijo del id, p.ej. "b04_grid" -> "grid")
+# y viven aquí, no en config.py: así agrupar de otra forma no cambia la huella de configuración ni reinicia la simulación.
+FAMILIES = [
+    ("neutral", "Neutral al mercado", ("carry", "stable", "xrp")),        # ganan por funding, peg o spread, no por dirección
+    ("rango", "Rango y reversión", ("grid", "meanrev", "mm")),            # ganan si el precio oscila
+    ("tendencia", "Tendencia y señales", ("trend", "breakout", "ml")),    # ganan si el precio sigue una dirección
+    ("acumulacion", "Acumulación", ("dca",)),                             # compra periódica, sin señal
+]
+
+
+def family_of(bot_id: str) -> str:
+    kind = str(bot_id).split("_", 1)[-1]
+    for key, _name, kinds in FAMILIES:
+        if kind in kinds:
+            return key
+    return "otros"
+
+
+def _last_prices(bars: pd.DataFrame) -> dict:
+    """Último cierre por símbolo de mercado (los símbolos con '~' son fuentes especiales, no se valúan)."""
+    px = {}
+    if bars is None or bars.empty:
+        return px
+    last = bars.sort_values("ts").groupby("symbol").close.last()
+    for sym, v in last.items():
+        if "~" not in sym and math.isfinite(float(v)):
+            px[sym] = float(v)
+    return px
+
+
+def _bot_positions(bot_state: pd.DataFrame, px: dict) -> tuple[dict, dict]:
+    """Posiciones spot largas por bot (cantidad y valor al último cierre) y valor cubierto con cortos de perpetuo."""
+    pos, hedged = {}, {}
+    if bot_state is None or bot_state.empty:
+        return pos, hedged
+    for _, r in bot_state.iterrows():
+        try:
+            st = json.loads(r["state"] or "{}")
+        except Exception:
+            continue
+        rows = []
+        for sym, qa in (st.get("wallet", {}).get("positions") or {}).items():
+            qty = float(qa[0])
+            if qty > 1e-12 and sym in px:
+                rows.append({"symbol": sym, "qty": qty, "value": qty * px[sym]})
+        pos[r["bot_id"]] = rows
+        perp = float((st.get("strategy") or {}).get("perp_qty") or 0.0)
+        if perp > 0:                                   # carry: corto en el perpetuo de la misma moneda
+            hedged[r["bot_id"]] = perp
+    return pos, hedged
+
+
 def _sample_idx(n: int, max_points: int) -> np.ndarray:
     if n <= max_points:
         return np.arange(n)
@@ -90,8 +142,41 @@ def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars:
             "profit_factor": None if s is None else s["Profit factor"],
         })
 
+    # ---- posiciones por activo y familias de estrategia (pestaña Summary)
+    px = _last_prices(bars)
+    pos, perp_qty = _bot_positions(data.get("bot_state"), px)
+    by_asset, hedged = {}, {}
+    for b in bot_rows:
+        b["family"] = family_of(b["id"])
+        b["positions"] = [dict(p) for p in pos.get(b["id"], [])]
+        invested = sum(p["value"] for p in b["positions"])
+        b["cash"] = None if b["equity"] is None else float(b["equity"]) - invested
+        for p in b["positions"]:
+            a = by_asset.setdefault(p["symbol"], {"symbol": p["symbol"], "value": 0.0, "bots": []})
+            a["value"] += p["value"]
+            a["bots"].append(b["id"])
+        for s in b["symbols"]:
+            if s.endswith("~PERP") and b["id"] in perp_qty and s.split("~")[0] in px:
+                base = s.split("~")[0]
+                hedged[base] = hedged.get(base, 0.0) + perp_qty[b["id"]] * px[base]
+    eq_total = sum(float(b["equity"]) for b in bot_rows if b["equity"] is not None)
+    invested_total = sum(a["value"] for a in by_asset.values())
+    holdings = {"total": eq_total, "invested": invested_total, "cash": eq_total - invested_total,
+                "hedged": sum(hedged.values()),
+                "by_asset": sorted(by_asset.values(), key=lambda a: -a["value"])}
+    families = []
+    for key, name, _kinds in FAMILIES + [("otros", "Otros", ())]:
+        members = [b for b in bot_rows if b["family"] == key]
+        if not members:
+            continue
+        capital = sum(b["capital"] for b in members)
+        fam_eq = sum(float(b["equity"]) for b in members if b["equity"] is not None)
+        families.append({"key": key, "name": name, "bots": [b["id"] for b in members], "capital": capital,
+                         "equity": fam_eq, "pnl": fam_eq - capital, "roi": (fam_eq / capital - 1) * 100 if capital else None,
+                         "n_trades": sum(b["n_trades"] or 0 for b in members)})
+
     # ---- KPIs
-    port_ret = (float(total.iloc[-1]) / total_cap - 1) * 100
+    port_ret =(float(total.iloc[-1]) / total_cap - 1) * 100
     kpis = {
         "equity": float(total.iloc[-1]), "capital": total_cap, "pnl": float(total.iloc[-1]) - total_cap,
         "roi": port_ret, "gross_profit": float(summary["Ganancia bruta"].sum()),
@@ -154,7 +239,7 @@ def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars:
         "generated_at": now_ms, "bar_ms": bar_ms, "interval": interval,
         "source": meta.get("source", "?"), "mode": meta.get("mode", "?"),
         "synthetic": "SINT" in meta.get("source", "").upper(),
-        "disclaimer": DISCLAIMER, "kpis": kpis, "bots": bot_rows, "series": series,
+        "disclaimer": DISCLAIMER, "kpis": kpis, "bots": bot_rows, "holdings": holdings, "families": families, "series": series,
         "trades": {"cols": tcols, "rows": t_out.to_numpy(dtype=object).tolist(), "total": int(len(trades))},
         "events": ev[["ts", "bot_id", "level", "message"]].to_numpy(dtype=object).tolist(),
         "overlap": overlap, "prices": prices, "forecasts": forecasts,

@@ -116,6 +116,11 @@ Guarda en la rama **`sim-data`**: `binance/state/ledger.json` (estado), `binance
   de CDMX (`digest.yml`; para cambiar las horas edita su `cron`, que va en UTC). En un reloj, activa el reenvío de
   notificaciones de la app del celular.
 - **Tablero web:** Settings → Pages → Branch `sim-data` → `/ (root)`; queda en `https://<usuario>.github.io/crypto-paper-sim/binance/`.
+  La pestaña **Summary** (la primera) es la vista minimalista: valor del portafolio, dona por bot, dona por activo
+  (solo posiciones largas spot; con opción de incluir efectivo), rendimiento por estrategia y por bot, y crecimiento
+  contra Bitcoin, más seis métricas de resumen. Las demás pestañas (Resumen, P&L, Transacciones, Riesgo, Tendencias, Bots)
+  siguen igual. Las familias de estrategia están en `sim/export.py` (`FAMILIES`), no en `config.py`, para que reagrupar
+  no cambie la huella de configuración ni reinicie la simulación.
 - **Historial de la rama de datos:** se compacta solo cada ~300 corridas (el estado completo va en `ledger.json`).
 - Los repos públicos pierden los flujos programados tras 60 días sin actividad. El flujo intenta mantenerse activo (mejor
   esfuerzo); si pasa, se reactivan desde la pestaña Actions. El resumen diario avisa si el simulador lleva más de 3 h sin correr.

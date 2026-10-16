@@ -10,6 +10,7 @@
   --good: #0ca30c; --warn: #fab219; --serious: #ec835a; --crit: #d03b3b;
   --div-blue: #2a78d6; --div-red: #e34948; --div-mid: #f0efec;
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --cash: #cdd2d9; --other: #8f97a3;
   --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
@@ -20,6 +21,7 @@
     --accent: #3987e5; --accent-ink: #0b0d10;
     --div-blue: #3987e5; --div-red: #e66767; --div-mid: #383835;
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --cash: #3a4048; --other: #6b7380;
     color-scheme: dark;
   }
 }
@@ -29,6 +31,7 @@
   --accent: #3987e5; --accent-ink: #0b0d10;
   --div-blue: #3987e5; --div-red: #e66767; --div-mid: #383835;
   --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --cash: #3a4048; --other: #6b7380;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -128,6 +131,54 @@ details pre { margin: 6px 0 2px; font: 400 11.5px var(--mono); white-space: pre-
 .ev div:last-child { border-bottom: 0; }
 .ev .when { font: 400 11.5px var(--mono); color: var(--muted); }
 @media (max-width: 560px) { .ev div { grid-template-columns: 1fr; gap: 2px; } }
+/* ---- pestaña Summary: minimalista, una idea por tarjeta */
+.sm { display: flex; flex-direction: column; gap: 14px; }
+.sm-hero { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 6px 24px; padding: 4px 2px 0; }
+.sm-hero .l { font-size: 11.5px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }
+.sm-hero .big { font: 600 clamp(30px, 8vw, 40px)/1.05 var(--font); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.sm-hero .big small { font: 500 14px var(--font); color: var(--muted); letter-spacing: 0; margin-left: 6px; }
+.sm-hero .d { font: 500 13px var(--mono); color: var(--ink2); font-variant-numeric: tabular-nums; line-height: 1.5; }
+.sm-hero .d small { display: block; font: 400 11.5px var(--font); color: var(--muted); }
+.sm-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 10px; }
+.sm-tile { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.sm-tile .l { font-size: 11px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
+.sm-tile .v { font: 500 17px var(--mono); margin-top: 3px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.sm-tile .d { font: 400 11.5px var(--font); color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+.meter { height: 4px; border-radius: 2px; background: var(--line); margin-top: 8px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+.sm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 12px; }
+.sm-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0; }
+.sm-card > h2 { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; font: 500 11.5px var(--font); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin: 0 0 12px; }
+.sm-card > h2 .r { text-transform: none; letter-spacing: 0; font: 400 12px var(--mono); color: var(--ink2); }
+.sm-card .seg button { padding: 4px 9px; font-size: 12px; }
+.dn { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; }
+.dn svg { flex: none; width: 168px; height: 168px; max-width: 100%; }
+.dn .slice { fill: none; transition: opacity .12s; }
+.dn svg:has(.slice:hover) .slice:not(:hover) { opacity: .4; }
+.dn .ctr { fill: var(--ink); text-anchor: middle; }
+.dn .tip { top: 0; }
+.lg { list-style: none; margin: 0; padding: 0; flex: 1 1 180px; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.lg li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; gap: 4px 8px; align-items: center; font-size: 12.5px; }
+.lg .nm { color: var(--ink2); overflow-wrap: anywhere; line-height: 1.25; }
+.lg .pc { font: 500 12px var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.lg .vl { font: 400 11.5px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; min-width: 48px; }
+.hb { display: flex; flex-direction: column; gap: 4px; }
+.hb-r { display: grid; grid-template-columns: minmax(92px, 36%) minmax(60px, 1fr) minmax(74px, auto); gap: 10px; align-items: center; min-height: 32px; font-size: 12.5px; }
+.hb-n { color: var(--ink2); min-width: 0; overflow-wrap: anywhere; line-height: 1.25; }
+.hb-n small { display: block; font-size: 11px; color: var(--muted); }
+.hb-t { position: relative; height: 10px; }
+.hb-t::before { content: ''; position: absolute; left: 50%; top: -6px; bottom: -6px; width: 1px; background: var(--ink2); opacity: .35; }
+.hb-b { position: absolute; top: 0; height: 100%; }
+.hb-b.pos { left: 50%; background: var(--div-blue); border-radius: 0 4px 4px 0; }
+.hb-b.neg { right: 50%; background: var(--div-red); border-radius: 4px 0 0 4px; }
+.hb-b.zero { left: calc(50% - 1px); width: 2px; background: var(--muted); }
+.hb-v { text-align: right; font: 500 12px var(--mono); font-variant-numeric: tabular-nums; line-height: 1.25; }
+.hb-v small { display: block; font: 400 10.5px var(--mono); color: var(--muted); }
+@media (max-width: 560px) {      /* en móvil: nombre y valor arriba, la barra completa debajo */
+  .hb { gap: 6px; }
+  .hb-r { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "n v" "t t"; gap: 5px 10px; min-height: 0; }
+  .hb-n { grid-area: n; } .hb-v { grid-area: v; } .hb-t { grid-area: t; height: 8px; }
+}
 @media (prefers-reduced-motion: no-preference) { .tabs button { transition: color .12s; } }
 </style>
 
@@ -141,7 +192,8 @@ details pre { margin: 6px 0 2px; font: 400 11.5px var(--mono); white-space: pre-
   </div>
   <div id="banners"></div>
   <div class="tabs" role="tablist" id="tabs">
-    <button role="tab" data-tab="resumen" aria-selected="true">Resumen</button>
+    <button role="tab" data-tab="summary" aria-selected="true">Summary</button>
+    <button role="tab" data-tab="resumen" aria-selected="false">Resumen</button>
     <button role="tab" data-tab="pnl" aria-selected="false">P&amp;L</button>
     <button role="tab" data-tab="tx" aria-selected="false">Transacciones</button>
     <button role="tab" data-tab="riesgo" aria-selected="false">Riesgo</button>
@@ -383,6 +435,108 @@ function kpi(l, v, dl) { return '<div class="kpi"><div class="l">' + esc(l) + '<
 function statusPill(s) { return '<span class="pill st-' + esc(s) + '"><i aria-hidden="true"></i>' + esc(STATUS[s] || s) + '</span>'; }
 function pf(b) { return fin(b.profit_factor) ? nf(b.profit_factor, 2) : (b.gross_profit > 0 && b.gross_loss === 0 ? '∞' : '—'); }
 
+/* ------------------------------------------------------------------ Summary (minimalista) */
+var ASSET_COLOR = { BTCUSDT: 'var(--s2)', ETHUSDT: 'var(--s1)', XRPUSDT: 'var(--s3)', SOLUSDT: 'var(--s7)', BNBUSDT: 'var(--s4)', ADAUSDT: 'var(--s5)', DOGEUSDT: 'var(--s6)' };
+function tipRows(title, pairs) {
+  return '<div class="t">' + esc(title) + '</div>' + pairs.map(function (p) { return '<div class="r"><span>' + esc(p[0]) + '</span><b>' + esc(p[1]) + '</b></div>'; }).join('');
+}
+/* Dona: cada porción lleva nombre, % y valor también en la lista (la lista es la vista en tabla; el hover es un extra). */
+function donut(o) {
+  var R = 70, C = 2 * Math.PI * R, GAP = 2, rows = o.rows.filter(function (r) { return r.value > 0; });
+  var tot = rows.reduce(function (a, r) { return a + r.value; }, 0), cum = 0;
+  var s = '<svg viewBox="0 0 168 168" role="img" aria-label="' + esc(o.label) + '"><circle cx="84" cy="84" r="' + R + '" fill="none" style="stroke:var(--line)" stroke-width="16"/>';
+  rows.forEach(function (r) {
+    var frac = r.value / tot, len = rows.length === 1 ? C : Math.max(0.6, frac * C - GAP);
+    s += '<circle class="slice" cx="84" cy="84" r="' + R + '" transform="rotate(-90 84 84)" style="stroke:' + r.color + '" stroke-width="16" stroke-dasharray="' + len.toFixed(2) + ' ' + (C - len).toFixed(2) + '" stroke-dashoffset="' + (-cum).toFixed(2) + '" data-tip="' + esc(o.tip(r, frac)) + '"/>';
+    cum += frac * C;
+  });
+  s += '<text class="ctr" x="84" y="' + (o.sub ? 82 : 90) + '" style="font:600 21px var(--font)">' + esc(o.main) + '</text>';
+  if (o.sub) s += '<text class="ctr" x="84" y="100" style="font:400 11px var(--font);fill:var(--muted)">' + esc(o.sub) + '</text>';
+  s += '</svg>';
+  var lg = rows.length ? '<ul class="lg">' + rows.map(function (r) {
+    return '<li><span class="sw" style="background:' + r.color + '"></span><span class="nm">' + esc(r.name) + '</span><span class="pc">' + nf(r.value / tot * 100, 1) + '%</span><span class="vl">' + nf(r.value, 0) + '</span></li>';
+  }).join('') + '</ul>' : '<p class="hint" style="flex:1 1 180px">' + esc(o.empty || 'Sin datos todavía.') + '</p>';
+  return '<div class="dn">' + s + lg + '<div class="tip" hidden></div></div>';
+}
+/* Barras horizontales de rendimiento: azul = ganancia, rojo = pérdida; el signo siempre va también en el texto. */
+function hbars(rows, label) {
+  var mx = Math.max(0.05, Math.max.apply(null, rows.map(function (r) { return fin(r.v) ? Math.abs(r.v) : 0; })));
+  return '<div class="hb" role="list" aria-label="' + esc(label) + '">' + rows.map(function (r) {
+    var ok = fin(r.v), v = ok && Math.abs(r.v) >= 0.005 ? r.v : 0, cls = v === 0 ? 'zero' : v > 0 ? 'pos' : 'neg', wd = Math.min(50, Math.abs(v) / mx * 50);
+    var pn = fin(r.pnl) ? (Math.abs(r.pnl) >= 0.005 ? r.pnl : 0) : null;       /* −0.00 se muestra como 0.00, sin signo */
+    return '<div class="hb-r" role="listitem"><span class="hb-n">' + esc(r.name) + (r.note ? '<small>' + esc(r.note) + '</small>' : '') + '</span>' +
+      '<span class="hb-t"><i class="hb-b ' + cls + '"' + (cls === 'zero' ? '' : ' style="width:' + wd.toFixed(1) + '%"') + '></i></span>' +
+      '<span class="hb-v">' + (ok ? sgn(v, 2, '%') : '—') + '<small>' + (pn != null ? sgn(pn, 2) + ' USDT' : '') + '</small></span></div>';
+  }).join('') + '</div>';
+}
+function byRoi(a, b) { return (fin(b.v) ? b.v : -1e9) - (fin(a.v) ? a.v : -1e9) || (b.pnl || 0) - (a.pnl || 0); }
+function smTile(l, v, dl, extra) { return '<div class="sm-tile"><div class="l">' + esc(l) + '</div><div class="v">' + v + '</div>' + (dl ? '<div class="d">' + dl + '</div>' : '') + (extra || '') + '</div>'; }
+
+function panelSummary(d, st, w) {
+  var K = d.kpis, cm = colorMap(d), nm = nameMap(d), S = d.series, H = d.holdings, F = d.families, bots = d.bots;
+  var alpha = fin(K.btc_ret) ? K.roi - K.btc_ret : null, days = Math.max(0, (K.last_ts - K.first_ts) / 86400000);
+  var closes = bots.reduce(function (a, b) { return a + (b.n_closes || 0); }, 0), traded = bots.filter(function (b) { return b.n_trades > 0; }).length;
+  var out = '<div class="sm"><div class="sm-hero"><div><div class="l">Valor del portafolio · dinero ficticio</div><div class="big">' + nf(K.equity, 2) + '<small>USDT</small></div></div>' +
+    '<div class="d">' + tri(K.pnl) + sgn(K.pnl, 2) + ' USDT · ' + sgn(K.roi, 2, '%') + '<small>desde el inicio · base ' + nf(K.capital, 0) + ' USDT asignados</small></div></div>';
+  out += '<div class="sm-tiles">' +
+    smTile('Vs Bitcoin', fin(alpha) ? tri(alpha) + sgn(alpha, 2) + ' pp' : '—', fin(alpha) ? 'Portafolio ' + sgn(K.roi, 2, '%') + ' · BTC ' + sgn(K.btc_ret, 2, '%') : 'Sin datos de BTC') +
+    smTile('Invertido', H && H.total > 0 ? nf(H.invested / H.total * 100, 1) + '%' : '—', H && H.total > 0 ? 'Efectivo ' + nf(H.cash / H.total * 100, 1) + '%' + (H.hedged > 0 ? ' · cubierto ' + nf(H.hedged / H.total * 100, 1) + '%' : '') : 'Disponible tras la próxima corrida') +
+    smTile('Máx. drawdown', sgn(K.max_dd, 2, '%'), 'peor caída desde un máximo') +
+    smTile('Comisiones', nf(K.fees, 2), nf(K.fees / K.capital * 100, 2) + '% del capital') +
+    smTile('Operaciones', K.n_trades, traded + ' de ' + bots.length + ' bots han operado') +
+    smTile('Días de prueba', nf(days, 1) + ' / 30', 'mínimo para juzgar · ' + closes + ' ventas cerradas', '<div class="meter" role="img" aria-label="Avance hacia 30 días"><i style="width:' + Math.min(100, days / 30 * 100).toFixed(1) + '%"></i></div>') + '</div>';
+
+  /* 1) participación de cada bot en el valor total */
+  var rowsBot = bots.map(function (b) { return { name: b.name, value: fin(b.equity) ? b.equity : 0, color: cm[b.id], roi: b.roi }; });
+  var totBot = rowsBot.reduce(function (a, r) { return a + r.value; }, 0);
+  var cardBots = '<section class="sm-card"><h2>Por bot <span class="r">% del valor total</span></h2>' + donut({
+    rows: rowsBot, label: 'Participación de cada bot en el valor total del portafolio', main: nf(totBot, 0), sub: 'USDT en bots',
+    tip: function (r, f) { return tipRows(r.name, [['Participación', nf(f * 100, 1) + '%'], ['Valor', nf(r.value, 2) + ' USDT'], ['ROI', sgn(r.roi, 2, '%')]]); }
+  }) + '</section>';
+
+  /* 2) en qué activos hay posiciones (largas, spot) */
+  var cardAssets;
+  if (!H) cardAssets = '<section class="sm-card"><h2>Por activo</h2><p class="hint">Disponible tras la próxima corrida del simulador.</p></section>';
+  else {
+    var groups = {}, order = [];
+    H.by_asset.forEach(function (a) {
+      var key = ASSET_COLOR[a.symbol] ? a.symbol : '_otros';
+      if (!groups[key]) { groups[key] = { name: key === '_otros' ? 'Otros' : short(a.symbol), value: 0, color: key === '_otros' ? 'var(--other)' : ASSET_COLOR[key], members: [], bots: {} }; order.push(key); }
+      var g = groups[key]; g.value += a.value; g.members.push(short(a.symbol)); a.bots.forEach(function (id) { g.bots[nm[id] || id] = 1; });
+    });
+    var rowsA = order.map(function (k) { return groups[k]; });
+    if (st.smCash && H.cash > 0) rowsA.push({ name: 'Efectivo (USDT)', value: H.cash, color: 'var(--cash)', members: [], bots: {} });
+    cardAssets = '<section class="sm-card"><h2>Por activo <span class="seg" role="group" aria-label="Incluir efectivo"><button type="button" data-smcash="0" aria-pressed="' + !st.smCash + '">Invertido</button><button type="button" data-smcash="1" aria-pressed="' + !!st.smCash + '">+ Efectivo</button></span></h2>' + donut({
+      rows: rowsA, label: 'Composición del portafolio por activo', main: H.total > 0 ? nf(H.invested / H.total * 100, 1) + '%' : '—', sub: 'invertido', empty: 'Todo el portafolio está en efectivo (USDT): ningún bot tiene posiciones abiertas.',
+      tip: function (r, f) {
+        var p = [['Participación', nf(f * 100, 1) + '%'], ['Valor', nf(r.value, 2) + ' USDT']];
+        if (r.members.length > 1) p.push(['Incluye', r.members.join(', ')]);
+        var bl = Object.keys(r.bots); if (bl.length) p.push(['Bots', bl.join(', ')]);
+        return tipRows(r.name, p);
+      }
+    }) + (H.hedged > 0 ? '<p class="hint" style="margin-top:8px">Incluye ' + nf(H.hedged, 0) + ' USDT cubiertos con corto en perpetuo: la exposición neta es menor.</p>' : '') +
+      (H.invested > 0 && !st.smCash ? '<p class="hint" style="margin-top:8px">Porcentajes sobre lo invertido (' + nf(H.invested, 0) + ' USDT de ' + nf(H.total, 0) + '). Solo posiciones largas spot.</p>' : '') + '</section>';
+  }
+
+  /* 3) y 4) rendimiento por estrategia (familia) y por bot: equity actual contra capital asignado */
+  var cardFam = !F ? '<section class="sm-card"><h2>Por estrategia</h2><p class="hint">Disponible tras la próxima corrida del simulador.</p></section>' :
+    '<section class="sm-card"><h2>Rendimiento por estrategia <span class="r">ROI</span></h2>' + hbars(F.map(function (f) { return { name: f.name, note: f.bots.length + (f.bots.length === 1 ? ' bot' : ' bots'), v: f.roi, pnl: f.pnl }; }).sort(byRoi), 'Rendimiento por familia de estrategia') + '</section>';
+  var cardBotRet = '<section class="sm-card"><h2>Rendimiento por bot <span class="r">ROI</span></h2>' + hbars(bots.map(function (b) {
+    return { name: b.name, note: b.n_trades ? '' : 'sin operar', v: b.roi, pnl: b.pnl };
+  }).sort(byRoi), 'Rendimiento por bot') + '</section>';
+
+  /* 5) crecimiento porcentual: portafolio contra comprar y mantener BTC */
+  var base = K.capital, sp = [{ key: 'sm_port', name: 'Portafolio', color: 'var(--s1)', width: 2.5, ys: S.total.map(function (v) { return (v / base - 1) * 100; }) }];
+  if (S.btc && fin(S.btc[0])) sp.push({ key: 'sm_btc', name: 'Bitcoin (comprar y mantener)', color: 'var(--s2)', dash: true, ys: S.btc.map(function (v) { return (v / S.btc[0] - 1) * 100; }) });
+  var cardLine = '<section class="sm-card"><h2>Crecimiento: portafolio vs Bitcoin <span class="r">' + sgn(K.roi, 2, '%') + (fin(K.btc_ret) ? ' · BTC ' + sgn(K.btc_ret, 2, '%') : '') + '</span></h2>' + legendHtml(sp, st.hidden) +
+    lineChart({ id: 'c-sm', w: Math.max(260, w - 30), h: 230, xs: S.ts, series: sp, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Crecimiento porcentual del portafolio y de Bitcoin', yw: 46 }) + '</section>';
+
+  out += '<div class="sm-grid">' + cardBots + cardAssets + '</div><div class="sm-grid" style="align-items:start">' + cardFam + cardBotRet + '</div>' + cardLine;
+  out += '<p class="hint">Rendimiento = valor actual contra el capital asignado (ficticio). Bitcoin se mide sin comisiones desde la primera vela. Con pocos días de datos, nada de esto es concluyente.</p>';
+  if (F) out += '<details><summary>Cómo se agrupan las estrategias</summary><pre>' + esc(F.map(function (f) { return f.name + ': ' + f.bots.map(function (id) { return nm[id] || id; }).join(', '); }).join('\n')) + '</pre></details>';
+  return out + '</div>';
+}
+
 function panelResumen(d, st, w) {
   var K = d.kpis, cm = colorMap(d), S = d.series, cap = {};
   d.bots.forEach(function (b) { cap[b.id] = b.capital; });
@@ -523,7 +677,7 @@ function panelBots(d) {
 }
 
 function buildPanels(d, status, st, w) {
-  return { resumen: panelResumen(d, st, w), pnl: panelPnl(d, st, w), tx: panelTx(d, st, w), riesgo: panelRiesgo(d, st, w), tendencias: panelTend(d, st, w), bots: panelBots(d) };
+  return { summary: panelSummary(d, st, w), resumen: panelResumen(d, st, w), pnl: panelPnl(d, st, w), tx: panelTx(d, st, w), riesgo: panelRiesgo(d, st, w), tendencias: panelTend(d, st, w), bots: panelBots(d) };
 }
 function bannersHtml(d, status) {
   var s = '';
@@ -545,7 +699,7 @@ if (TEST) { globalThis.__dashApi = api; return; }
 
 /* ------------------------------------------------------------------ DOM */
 var $ = function (s, r) { return (r || document).querySelector(s); };
-var state = { tab: 'resumen', hidden: {}, tx: { bot: '', ex: '', sym: '', side: '' }, txLimit: 100, sym: '', hz: '24' };
+var state = { tab: 'summary', smCash: false, hidden: {}, tx: { bot: '', ex: '', sym: '', side: '' }, txLimit: 100, sym: '', hz: '24' };
 var D = null, S = null, pending = null;
 
 function width() { var p = $('#panel'); return Math.max(280, (p && p.clientWidth) || 640) - 2; }
@@ -567,6 +721,19 @@ function wire() {
     }
     el.addEventListener('pointermove', move); el.addEventListener('pointerdown', move); el.addEventListener('pointerleave', hide);
   });
+  panel.querySelectorAll('.dn').forEach(function (box) {          /* hover/toque en las dos donas */
+    var tip = box.querySelector('.tip');
+    box.querySelectorAll('[data-tip]').forEach(function (el) {
+      function show(e) {
+        var r = box.getBoundingClientRect(); tip.innerHTML = el.getAttribute('data-tip'); tip.hidden = false;
+        var x = e.clientX - r.left + 12, y = e.clientY - r.top + 12;
+        if (x + tip.offsetWidth > r.width) x = e.clientX - r.left - tip.offsetWidth - 12;
+        tip.style.left = Math.max(0, x) + 'px'; tip.style.top = Math.max(0, y) + 'px';
+      }
+      el.addEventListener('pointermove', show); el.addEventListener('pointerdown', show); el.addEventListener('pointerleave', function () { tip.hidden = true; });
+    });
+  });
+  panel.querySelectorAll('[data-smcash]').forEach(function (b) { b.addEventListener('click', function () { state.smCash = b.dataset.smcash === '1'; render(); }); });
   var bind = function (id, fn) { var e = $('#' + id); if (e) e.addEventListener('change', function () { fn(e.value); render(); }); };
   bind('f-bot', function (v) { state.tx.bot = v; state.txLimit = 100; }); bind('f-ex', function (v) { state.tx.ex = v; state.txLimit = 100; });
   bind('f-sym', function (v) { state.tx.sym = v; state.txLimit = 100; }); bind('f-side', function (v) { state.tx.side = v; state.txLimit = 100; });
@@ -599,7 +766,7 @@ function load() {
 }
 document.querySelectorAll('#tabs button').forEach(function (b) { b.addEventListener('click', function () { setTab(b.dataset.tab, true); }); });
 var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(render, 150); });
-var h = (location.hash || '').replace('#', ''); if (/^(resumen|pnl|tx|riesgo|tendencias|bots)$/.test(h)) state.tab = h;
+var h = (location.hash || '').replace('#', ''); if (/^(summary|resumen|pnl|tx|riesgo|tendencias|bots)$/.test(h)) state.tab = h;
 setTab(state.tab, false);
 load();
 })();
