@@ -34,16 +34,20 @@ def _j(x):
 # Familias de estrategia para la pestaña Summary. Se deducen del tipo de bot (sufijo del id, p.ej. "b04_grid" -> "grid")
 # y viven aquí, no en config.py: así agrupar de otra forma no cambia la huella de configuración ni reinicia la simulación.
 FAMILIES = [
-    ("neutral", "Neutral al mercado", ("carry", "stable", "xrp")),        # ganan por funding, peg o spread, no por dirección
-    ("rango", "Rango y reversión", ("grid", "meanrev", "mm")),            # ganan si el precio oscila
-    ("tendencia", "Tendencia y señales", ("trend", "breakout", "ml")),    # ganan si el precio sigue una dirección
-    ("acumulacion", "Acumulación", ("dca",)),                             # compra periódica, sin señal
+    ("neutral", "Neutral al mercado", ("carry", "stable", "xrp"),
+     "Ganan por funding, desvío del peg o diferencia de precio entre plataformas, no por la dirección del mercado."),
+    ("rango", "Rango y reversión", ("grid", "meanrev", "mm"),
+     "Ganan si el precio oscila: venden caro y compran barato dentro de un rango. Sufren cuando hay tendencia fuerte."),
+    ("tendencia", "Tendencia y señales", ("trend", "breakout", "ml"),
+     "Ganan si el precio sigue una dirección. Compran fuerza o siguen una señal; pierden en mercados laterales."),
+    ("acumulacion", "Acumulación", ("dca",),
+     "Compra periódica de monto fijo, sin señales ni stop. Es acumulación, no una ventaja estadística."),
 ]
 
 
 def family_of(bot_id: str) -> str:
     kind = str(bot_id).split("_", 1)[-1]
-    for key, _name, kinds in FAMILIES:
+    for key, _name, kinds, _desc in FAMILIES:
         if kind in kinds:
             return key
     return "otros"
@@ -91,7 +95,7 @@ def _sample_idx(n: int, max_points: int) -> np.ndarray:
 
 
 def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars: int = 336,
-                    trade_limit: int = 2000, event_limit: int = 80) -> dict:
+                    trade_limit: int = 2000, event_limit: int = 80, benchmarks: dict | None = None) -> dict:
     meta, bots, trades, equity, bars, events = (data[k] for k in ("meta", "bots", "trades", "equity", "bars", "events"))
     interval = meta.get("interval", "1h")
     bar_ms = INTERVAL_MS.get(interval, 3_600_000)
@@ -165,13 +169,13 @@ def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars:
                 "hedged": sum(hedged.values()),
                 "by_asset": sorted(by_asset.values(), key=lambda a: -a["value"])}
     families = []
-    for key, name, _kinds in FAMILIES + [("otros", "Otros", ())]:
+    for key, name, _kinds, desc in FAMILIES + [("otros", "Otros", (), "Bots sin clasificar.")]:
         members = [b for b in bot_rows if b["family"] == key]
         if not members:
             continue
         capital = sum(b["capital"] for b in members)
         fam_eq = sum(float(b["equity"]) for b in members if b["equity"] is not None)
-        families.append({"key": key, "name": name, "bots": [b["id"] for b in members], "capital": capital,
+        families.append({"key": key, "name": name, "desc": desc, "bots": [b["id"] for b in members], "capital": capital,
                          "equity": fam_eq, "pnl": fam_eq - capital, "roi": (fam_eq / capital - 1) * 100 if capital else None,
                          "n_trades": sum(b["n_trades"] or 0 for b in members)})
 
@@ -244,4 +248,6 @@ def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars:
         "events": ev[["ts", "bot_id", "level", "message"]].to_numpy(dtype=object).tolist(),
         "overlap": overlap, "prices": prices, "forecasts": forecasts,
     }
+    if benchmarks:                       # historia de BTC y ETH para comparar en periodos largos (opcional)
+        out["benchmarks"] = benchmarks
     return _j(out)

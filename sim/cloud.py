@@ -27,6 +27,39 @@ class DataUnavailable(Exception):
     pass
 
 
+BENCH_SYMBOLS = ("BTCUSDT", "ETHUSDT")
+
+
+def benchmarks_from_feed(feed) -> Optional[dict]:
+    """Historia de BTC y ETH para comparar el portafolio en periodos largos (día, semana, mes, 3 meses, año).
+
+    Velas horarias de ~32 días y diarias de 365. A la serie diaria se le agrega el último cierre horario para que el
+    rendimiento llegue "hasta ahora" y no hasta el cierre de ayer. Es OPCIONAL: si algo falla devuelve None y el
+    tablero simplemente no ofrece los periodos largos; nunca hace fallar la corrida.
+    """
+    if not hasattr(feed, "latest_closed"):
+        return None
+    out: dict = {}
+    try:
+        for sym in BENCH_SYMBOLS:
+            h = feed.latest_closed(sym, "1h", 768)
+            time.sleep(getattr(feed, "pause", 0))
+            d = feed.latest_closed(sym, "1d", 365)
+            time.sleep(getattr(feed, "pause", 0))
+            if h.empty or d.empty:
+                return None
+            dts = [int(t) for t in d.index]
+            dcl = [float(v) for v in d["close"]]
+            if int(h.index[-1]) > dts[-1]:
+                dts.append(int(h.index[-1]))
+                dcl.append(float(h["close"].iloc[-1]))
+            out[sym] = {"h": {"ts": [int(t) for t in h.index], "close": [round(float(v), 4) for v in h["close"]]},
+                        "d": {"ts": dts, "close": [round(v, 4) for v in dcl]}}
+    except Exception:
+        return None
+    return out
+
+
 def config_signature(bots_cfg: list[dict], capital: float) -> str:
     """Huella de la configuración. Si cambia a mitad de una simulación, no se mezclan resultados de reglas distintas."""
     blob = json.dumps({"capital": capital, "bots": bots_cfg}, sort_keys=True, default=str)
@@ -99,7 +132,8 @@ def run_step(bots_cfg: list[dict], interval: str, capital: float, state_path: Op
                             for s_, df in frames.items() for r in df.reset_index().itertuples(index=False)])
         ledger.prune_bars(800)
         _write(out / "ledger.json", ledger.dump())
-        _write(out / "dashboard.json", build_dashboard(metrics.load_all(ledger.con), now_ms))
+        bench = benchmarks_from_feed(feed) if source != "synthetic" else None
+        _write(out / "dashboard.json", build_dashboard(metrics.load_all(ledger.con), now_ms, benchmarks=bench))
         status.update(ok=True, bars_processed=n, resumed=resumed, source=label,
                       message=f"{n} barra(s) nueva(s) procesada(s)" if n else "Sin barras nuevas desde la última corrida")
         code = 0

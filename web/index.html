@@ -151,7 +151,7 @@ details pre { margin: 6px 0 2px; font: 400 11.5px var(--mono); white-space: pre-
 .sm-card > h2 { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; font: 500 11.5px var(--font); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin: 0 0 12px; }
 .sm-card > h2 .r { text-transform: none; letter-spacing: 0; font: 400 12px var(--mono); color: var(--ink2); }
 .sm-card .seg button { padding: 4px 9px; font-size: 12px; }
-.dn { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; }
+.dn { position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 20px; }
 .dn svg { flex: none; width: 168px; height: 168px; max-width: 100%; }
 .dn .slice { fill: none; transition: opacity .12s; }
 .dn svg:has(.slice:hover) .slice:not(:hover) { opacity: .4; }
@@ -162,6 +162,17 @@ details pre { margin: 6px 0 2px; font: 400 11.5px var(--mono); white-space: pre-
 .lg .nm { color: var(--ink2); overflow-wrap: anywhere; line-height: 1.25; }
 .lg .pc { font: 500 12px var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
 .lg .vl { font: 400 11.5px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; min-width: 48px; }
+.sm-grid.three { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.sm-ctrl { margin-bottom: 8px; max-width: 100%; overflow-x: auto; }
+.sm-ctrl .seg button { padding: 5px 10px; white-space: nowrap; }
+.sm-ctrl .seg button:disabled { opacity: .4; cursor: not-allowed; }
+.cmp { font-size: 12.5px; } .cmp th, .cmp td { padding: 6px 10px; }
+@media (max-width: 560px) { .cmp { font-size: 12px; } .cmp th, .cmp td { padding: 6px 6px; } .cmp th { font-size: 10px; letter-spacing: 0; } }
+.cmp tr.cur td { background: var(--surface2); font-weight: 600; }
+.fam { display: flex; flex-direction: column; gap: 10px; }
+.fam-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.fam-h h2 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.fam-s { font: 400 12px var(--mono); color: var(--ink2); }
 .hb { display: flex; flex-direction: column; gap: 4px; }
 .hb-r { display: grid; grid-template-columns: minmax(92px, 36%) minmax(60px, 1fr) minmax(74px, auto); gap: 10px; align-items: center; min-height: 32px; font-size: 12.5px; }
 .hb-n { color: var(--ink2); min-width: 0; overflow-wrap: anywhere; line-height: 1.25; }
@@ -225,6 +236,7 @@ try {
   dayf = new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short' });
   hmf = new Intl.DateTimeFormat('es-MX', { day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
 }
+var monf; try { monf = new Intl.DateTimeFormat('es-MX', { timeZone: TZ, month: 'short', year: '2-digit' }); } catch (e) { monf = new Intl.DateTimeFormat('es-MX', { month: 'short', year: '2-digit' }); }
 var fmtDT = function (ms) { return fin(ms) ? dtf.format(new Date(ms)).replace(',', '') : '—'; };
 var ago = function (ms) {
   var m = Math.max(0, Math.round((Date.now() - ms) / 60000));
@@ -297,7 +309,7 @@ function axes(f, tk, x0, x1, yfmt, zero) {
   for (var i = 0; i < nt; i++) {
     var t = x0 + span * (nt === 1 ? 0 : i / (nt - 1)), x = f.m.l + (nt === 1 ? 0 : i / (nt - 1)) * f.iw;
     var a = i === 0 ? 'start' : i === nt - 1 ? 'end' : 'middle';
-    s += '<text x="' + x.toFixed(1) + '" y="' + (f.h - 6) + '" text-anchor="' + a + '">' + esc((long ? dayf : hmf).format(new Date(t))) + '</text>';
+    s += '<text x="' + x.toFixed(1) + '" y="' + (f.h - 6) + '" text-anchor="' + a + '">' + esc((span > 200 * 86400000 ? monf : long ? dayf : hmf).format(new Date(t))) + '</text>';
   }
   return { svg: s + '</g>', Y: Y };
 }
@@ -338,7 +350,7 @@ function lineChart(o) {
   series.forEach(function (s) {
     var p = pathOf(xp, s.ys, ax.Y, o.step || s.step);
     if (!p.d) return;
-    svg += '<path d="' + p.d + '" fill="none" style="stroke:' + s.color + '" stroke-width="' + (s.width || 2) + '" stroke-linejoin="round" stroke-linecap="round"' + (s.dash ? ' stroke-dasharray="5 4"' : '') + '/>';
+    svg += '<path d="' + p.d + '" fill="none" style="stroke:' + s.color + '" stroke-width="' + (s.width || 2) + '" stroke-linejoin="round" stroke-linecap="round"' + (s.dash ? ' stroke-dasharray="' + (s.dash === true ? '5 4' : s.dash) + '"' : '') + '/>';
     if (fin(p.ex)) svg += '<circle cx="' + p.ex.toFixed(1) + '" cy="' + p.ey.toFixed(1) + '" r="3.5" style="fill:' + s.color + ';stroke:var(--surface)" stroke-width="2"/>';
   });
   svg += '<line class="xh" y1="' + f.m.t + '" y2="' + (f.h - f.m.b) + '" style="display:none"/></svg>';
@@ -472,6 +484,79 @@ function hbars(rows, label) {
 function byRoi(a, b) { return (fin(b.v) ? b.v : -1e9) - (fin(a.v) ? a.v : -1e9) || (b.pnl || 0) - (a.pnl || 0); }
 function smTile(l, v, dl, extra) { return '<div class="sm-tile"><div class="l">' + esc(l) + '</div><div class="v">' + v + '</div>' + (dl ? '<div class="d">' + dl + '</div>' : '') + (extra || '') + '</div>'; }
 
+/* ------------------------------------------------------------------ crecimiento: portafolio vs BTC y ETH por periodo */
+var PERIODS = [['1d', 'Día', 1], ['7d', 'Semana', 7], ['30d', 'Mes', 30], ['90d', '3 meses', 90], ['365d', 'Año', 365], ['all', 'Inicio', 0]];
+var HOUR_MS = 3600000, DAY_MS = 86400000;
+var FAMILY_COLOR = { neutral: 'var(--s3)', rango: 'var(--s4)', tendencia: 'var(--s7)', acumulacion: 'var(--s1)' };
+function idxAtOrBefore(ts, t) { var lo = 0, hi = ts.length - 1, r = -1; while (lo <= hi) { var m = (lo + hi) >> 1; if (ts[m] <= t) { r = m; lo = m + 1; } else hi = m - 1; } return r; }
+/* velas por hora para ventanas de hasta 30 días y por día para las más largas */
+function benchFor(B, sym, spanMs) {
+  var b = B && B[sym]; if (!b) return null;
+  var h = spanMs <= 30 * DAY_MS, s = h ? b.h : b.d;
+  return s && s.ts && s.ts.length ? { ts: s.ts, px: s.close, step: h ? HOUR_MS : DAY_MS } : null;
+}
+function periodSpan(p, K) { return p[2] ? p[2] * DAY_MS : Math.max(0, K.last_ts - K.first_ts); }
+/* % de un benchmark en la ventana que termina en la última vela; null si la historia no alcanza */
+function benchRet(B, sym, p, K) {
+  var span = periodSpan(p, K), s = benchFor(B, sym, span); if (!s) return null;
+  var t0 = K.last_ts - span, i0 = idxAtOrBefore(s.ts, t0);
+  if (i0 < 0) { if (s.ts[0] - t0 > 1.5 * s.step) return null; i0 = 0; }
+  var i1 = s.px.length - 1; return i1 > i0 ? (s.px[i1] / s.px[i0] - 1) * 100 : null;
+}
+/* % del portafolio en el periodo; null si todavía no lleva ese tiempo corriendo */
+function portRet(d, p) {
+  var K = d.kpis, S = d.series, n = S.total.length, span = periodSpan(p, K);
+  if (!n) return null;
+  if (!p[2]) return (S.total[n - 1] / K.capital - 1) * 100;
+  if (K.last_ts - K.first_ts < span - d.bar_ms) return null;
+  var i0 = idxAtOrBefore(S.ts, K.last_ts - span), base = i0 > 0 ? S.total[i0] : K.capital;
+  return (S.total[n - 1] / base - 1) * 100;
+}
+function growthCard(d, st, w) {
+  var K = d.kpis, S = d.series, B = d.benchmarks && d.benchmarks.BTCUSDT ? d.benchmarks : null, hist = Math.max(0, K.last_ts - K.first_ts);
+  var per = PERIODS.filter(function (p) { return p[0] === st.smPer; })[0] || PERIODS[5];
+  if (!B && per[2]) per = PERIODS[5];                       /* sin historia de mercado solo existe "Inicio" */
+  var span = periodSpan(per, K), havePort = !per[2] || hist >= span - d.bar_ms, xs, btc = null, eth = null, port = null;
+  if (B) {
+    var ref = benchFor(B, 'BTCUSDT', span), i0 = idxAtOrBefore(ref.ts, per[2] ? K.last_ts - span : K.first_ts);
+    if (i0 < 0) i0 = 0;
+    xs = ref.ts.slice(i0);
+    var b0 = ref.px[i0]; btc = ref.px.slice(i0).map(function (v) { return (v / b0 - 1) * 100; });
+    var es = benchFor(B, 'ETHUSDT', span);
+    if (es) {
+      var e0i = idxAtOrBefore(es.ts, xs[0]), e0 = es.px[e0i < 0 ? 0 : e0i];
+      eth = xs.map(function (g) { var k = idxAtOrBefore(es.ts, g); return k < 0 ? null : (es.px[k] / e0 - 1) * 100; });
+    }
+  } else {
+    xs = S.ts;
+    if (S.btc && fin(S.btc[0])) btc = S.btc.map(function (v) { return (v / S.btc[0] - 1) * 100; });
+  }
+  if (havePort) {
+    var k0 = idxAtOrBefore(S.ts, xs[0]), base = per[2] && k0 > 0 ? S.total[k0] : K.capital;
+    port = xs.map(function (g) { var k = idxAtOrBefore(S.ts, g); return k < 0 ? null : (S.total[k] / base - 1) * 100; });
+  }
+  var sp = [];
+  if (port) sp.push({ key: 'sm_port', name: 'Portafolio', color: 'var(--s1)', width: 2.5, ys: port });
+  if (btc) sp.push({ key: 'sm_btc', name: 'Bitcoin', color: 'var(--s2)', dash: '5 4', ys: btc });
+  if (eth) sp.push({ key: 'sm_eth', name: 'Ethereum', color: 'var(--s3)', dash: '1.5 3.5', ys: eth });
+  var rows = PERIODS.map(function (p) { return { p: p, port: portRet(d, p), btc: B ? benchRet(B, 'BTCUSDT', p, K) : (p[2] ? null : K.btc_ret), eth: B ? benchRet(B, 'ETHUSDT', p, K) : null }; });
+  var cur = rows.filter(function (r) { return r.p === per; })[0];
+  var head = [port ? 'Portafolio ' + sgn(cur.port, 2, '%') : null, btc ? 'BTC ' + sgn(cur.btc, 2, '%') : null, eth ? 'ETH ' + sgn(cur.eth, 2, '%') : null].filter(Boolean).join(' · ');
+  var seg = '<div class="sm-ctrl"><span class="seg" role="group" aria-label="Periodo">' + PERIODS.map(function (p) {
+    var off = !B && p[2];
+    return '<button type="button" data-smper="' + p[0] + '" aria-pressed="' + (p === per) + '"' + (off ? ' disabled title="Disponible tras la próxima corrida"' : '') + '>' + esc(p[1]) + '</button>';
+  }).join('') + '</span></div>';
+  var note = '';
+  if (!havePort) note = '<p class="hint" style="margin-bottom:6px">El portafolio lleva ' + nf(hist / DAY_MS, 1) + ' días corriendo y este periodo pide ' + nf(span / DAY_MS, 0) + (span / DAY_MS === 1 ? ' día' : ' días') + ': por ahora solo se muestran Bitcoin y Ethereum. El portafolio aparece cuando tenga ese historial.</p>';
+  else if (!B) note = '<p class="hint" style="margin-bottom:6px">Los periodos Día a Año y la línea de Ethereum aparecen tras la próxima corrida del simulador (necesitan historia de mercado).</p>';
+  var cell = function (v) { return v == null ? '<td class="n" title="Sin historial suficiente">—</td>' : '<td class="n">' + sgn(v, 2, '%') + '</td>'; };
+  var tbl = '<div class="tw" style="margin-top:10px"><table class="cmp"><thead><tr><th>Periodo</th><th class="n">Portafolio</th><th class="n">Bitcoin</th><th class="n">Ethereum</th></tr></thead><tbody>' + rows.map(function (r) {
+    return '<tr' + (r.p === per ? ' class="cur"' : '') + '><td>' + esc(r.p[2] ? r.p[1] : 'Inicio (' + nf(hist / DAY_MS, 1) + ' d)') + '</td>' + cell(r.port) + cell(r.btc) + cell(r.eth) + '</tr>';
+  }).join('') + '</tbody></table></div><p class="hint" style="margin-top:6px">— = el portafolio aún no lleva ese tiempo corriendo (no se inventa historial). Bitcoin y Ethereum: comprar y mantener, sin comisiones.</p>';
+  return '<section class="sm-card"><h2>Crecimiento: portafolio vs Bitcoin y Ethereum <span class="r">' + esc(head) + '</span></h2>' + seg + note + legendHtml(sp, st.hidden) +
+    lineChart({ id: 'c-sm', w: Math.max(260, w - 30), h: 240, xs: xs, series: sp, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Crecimiento porcentual del portafolio, Bitcoin y Ethereum en el periodo ' + per[1], yw: 46 }) + tbl + '</section>';
+}
+
 function panelSummary(d, st, w) {
   var K = d.kpis, cm = colorMap(d), nm = nameMap(d), S = d.series, H = d.holdings, F = d.families, bots = d.bots;
   var alpha = fin(K.btc_ret) ? K.roi - K.btc_ret : null, days = Math.max(0, (K.last_ts - K.first_ts) / 86400000);
@@ -525,14 +610,17 @@ function panelSummary(d, st, w) {
     return { name: b.name, note: b.n_trades ? '' : 'sin operar', v: b.roi, pnl: b.pnl };
   }).sort(byRoi), 'Rendimiento por bot') + '</section>';
 
-  /* 5) crecimiento porcentual: portafolio contra comprar y mantener BTC */
-  var base = K.capital, sp = [{ key: 'sm_port', name: 'Portafolio', color: 'var(--s1)', width: 2.5, ys: S.total.map(function (v) { return (v / base - 1) * 100; }) }];
-  if (S.btc && fin(S.btc[0])) sp.push({ key: 'sm_btc', name: 'Bitcoin (comprar y mantener)', color: 'var(--s2)', dash: true, ys: S.btc.map(function (v) { return (v / S.btc[0] - 1) * 100; }) });
-  var cardLine = '<section class="sm-card"><h2>Crecimiento: portafolio vs Bitcoin <span class="r">' + sgn(K.roi, 2, '%') + (fin(K.btc_ret) ? ' · BTC ' + sgn(K.btc_ret, 2, '%') : '') + '</span></h2>' + legendHtml(sp, st.hidden) +
-    lineChart({ id: 'c-sm', w: Math.max(260, w - 30), h: 230, xs: S.ts, series: sp, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Crecimiento porcentual del portafolio y de Bitcoin', yw: 46 }) + '</section>';
+  /* 0) participación de cada estrategia (familia) en el valor total */
+  var cardStrat = !F ? '<section class="sm-card"><h2>Por estrategia</h2><p class="hint">Disponible tras la próxima corrida del simulador.</p></section>' :
+    '<section class="sm-card"><h2>Por estrategia <span class="r">% del valor total</span></h2>' + donut({
+      rows: F.map(function (f) { return { name: f.name, value: f.equity, color: FAMILY_COLOR[f.key] || 'var(--other)', roi: f.roi, bots: f.bots.map(function (id) { return nm[id] || id; }) }; }),
+      label: 'Participación de cada tipo de estrategia en el valor total del portafolio', main: nf(totBot, 0), sub: 'USDT por estrategia',
+      tip: function (r, f) { return tipRows(r.name, [['Participación', nf(f * 100, 1) + '%'], ['Valor', nf(r.value, 2) + ' USDT'], ['ROI', sgn(r.roi, 2, '%')], ['Bots', r.bots.join(', ')]]); }
+    }) + '</section>';
+  var cardLine = growthCard(d, st, w);
 
-  out += '<div class="sm-grid">' + cardBots + cardAssets + '</div><div class="sm-grid" style="align-items:start">' + cardFam + cardBotRet + '</div>' + cardLine;
-  out += '<p class="hint">Rendimiento = valor actual contra el capital asignado (ficticio). Bitcoin se mide sin comisiones desde la primera vela. Con pocos días de datos, nada de esto es concluyente.</p>';
+  out += '<div class="sm-grid three">' + cardStrat + cardBots + cardAssets + '</div><div class="sm-grid" style="align-items:start">' + cardFam + cardBotRet + '</div>' + cardLine;
+  out += '<p class="hint">Rendimiento = valor actual contra el capital asignado (ficticio). Bitcoin y Ethereum se miden sin comisiones, comprando y manteniendo. Con pocos días de datos, nada de esto es concluyente.</p>';
   if (F) out += '<details><summary>Cómo se agrupan las estrategias</summary><pre>' + esc(F.map(function (f) { return f.name + ': ' + f.bots.map(function (id) { return nm[id] || id; }).join(', '); }).join('\n')) + '</pre></details>';
   return out + '</div>';
 }
@@ -664,16 +752,24 @@ function panelTend(d, st, w) {
   return out;
 }
 
+function botCard(b, cm) {
+  var pr = JSON.stringify(b.params || {}, null, 1).replace(/[{}]/g, '').trim();
+  return '<article class="card doc"><h3 style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14.5px"><span class="sw" style="background:' + cm[b.id] + '"></span>' + esc(b.name) + '</h3><dl>' +
+    '<dt>Monedas</dt><dd>' + esc(b.symbols.map(short).join(', ')) + '</dd><dt>Estrategia</dt><dd>' + esc(b.strategy) + '</dd>' +
+    '<dt>Plataforma</dt><dd>' + esc(b.exchange_name) + (fin(b.maker) ? ' · comisión maker/taker ' + nf(b.maker * 100, 3) + '% / ' + nf(b.taker * 100, 3) + '%' : '') + '</dd>' +
+    '<dt>Volatilidad</dt><dd>' + esc(b.vol_profile) + '</dd><dt>Riesgo</dt><dd>' + esc(b.risk_level) + '</dd><dt>Capital</dt><dd>' + nf(b.capital, 0) + ' USDT ficticios</dd>' +
+    '<dt>En qué se diferencia</dt><dd>' + esc(b.differentiator) + '</dd></dl><details style="margin-top:10px"><summary>Parámetros</summary><pre>' + esc(pr) + '</pre></details></article>';
+}
 function panelBots(d) {
-  var cm = colorMap(d);
-  return '<p class="hint">Documentación de cada bot: qué opera, con qué estrategia, dónde corre y en qué se diferencia de los demás.</p><div class="docgrid">' + d.bots.map(function (b) {
-    var pr = JSON.stringify(b.params || {}, null, 1).replace(/[{}]/g, '').trim();
-    return '<article class="card doc"><h3 style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14.5px"><span class="sw" style="background:' + cm[b.id] + '"></span>' + esc(b.name) + '</h3><dl>' +
-      '<dt>Monedas</dt><dd>' + esc(b.symbols.map(short).join(', ')) + '</dd><dt>Estrategia</dt><dd>' + esc(b.strategy) + '</dd>' +
-      '<dt>Plataforma</dt><dd>' + esc(b.exchange_name) + (fin(b.maker) ? ' · comisión maker/taker ' + nf(b.maker * 100, 3) + '% / ' + nf(b.taker * 100, 3) + '%' : '') + '</dd>' +
-      '<dt>Volatilidad</dt><dd>' + esc(b.vol_profile) + '</dd><dt>Riesgo</dt><dd>' + esc(b.risk_level) + '</dd><dt>Capital</dt><dd>' + nf(b.capital, 0) + ' USDT ficticios</dd>' +
-      '<dt>En qué se diferencia</dt><dd>' + esc(b.differentiator) + '</dd></dl><details style="margin-top:10px"><summary>Parámetros</summary><pre>' + esc(pr) + '</pre></details></article>';
-  }).join('') + '</div>';
+  var cm = colorMap(d), F = d.families, byId = {}, intro = '<p class="hint">Documentación de cada bot: qué opera, con qué estrategia, dónde corre y en qué se diferencia de los demás. Agrupados por tipo de estrategia.</p>';
+  d.bots.forEach(function (b) { byId[b.id] = b; });
+  if (!F) return intro + '<div class="docgrid">' + d.bots.map(function (b) { return botCard(b, cm); }).join('') + '</div>';
+  var tot = F.reduce(function (a, f) { return a + (fin(f.equity) ? f.equity : 0); }, 0);
+  return intro + F.map(function (f) {
+    return '<section class="fam"><header class="fam-h"><h2><span class="sw" style="background:' + (FAMILY_COLOR[f.key] || 'var(--other)') + '"></span>' + esc(f.name) + '</h2>' +
+      '<span class="fam-s">' + f.bots.length + (f.bots.length === 1 ? ' bot' : ' bots') + ' · ' + nf(tot > 0 ? f.equity / tot * 100 : 0, 1) + '% del portafolio · ROI ' + sgn(f.roi, 2, '%') + '</span></header>' +
+      '<p class="hint">' + esc(f.desc || '') + '</p><div class="docgrid">' + f.bots.filter(function (id) { return byId[id]; }).map(function (id) { return botCard(byId[id], cm); }).join('') + '</div></section>';
+  }).join('');
 }
 
 function buildPanels(d, status, st, w) {
@@ -699,7 +795,7 @@ if (TEST) { globalThis.__dashApi = api; return; }
 
 /* ------------------------------------------------------------------ DOM */
 var $ = function (s, r) { return (r || document).querySelector(s); };
-var state = { tab: 'summary', smCash: false, hidden: {}, tx: { bot: '', ex: '', sym: '', side: '' }, txLimit: 100, sym: '', hz: '24' };
+var state = { tab: 'summary', smCash: false, smPer: 'all', hidden: {}, tx: { bot: '', ex: '', sym: '', side: '' }, txLimit: 100, sym: '', hz: '24' };
 var D = null, S = null, pending = null;
 
 function width() { var p = $('#panel'); return Math.max(280, (p && p.clientWidth) || 640) - 2; }
@@ -733,6 +829,7 @@ function wire() {
       el.addEventListener('pointermove', show); el.addEventListener('pointerdown', show); el.addEventListener('pointerleave', function () { tip.hidden = true; });
     });
   });
+  panel.querySelectorAll('[data-smper]').forEach(function (b) { b.addEventListener('click', function () { state.smPer = b.dataset.smper; render(); }); });
   panel.querySelectorAll('[data-smcash]').forEach(function (b) { b.addEventListener('click', function () { state.smCash = b.dataset.smcash === '1'; render(); }); });
   var bind = function (id, fn) { var e = $('#' + id); if (e) e.addEventListener('change', function () { fn(e.value); render(); }); };
   bind('f-bot', function (v) { state.tx.bot = v; state.txLimit = 100; }); bind('f-ex', function (v) { state.tx.ex = v; state.txLimit = 100; });

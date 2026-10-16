@@ -118,8 +118,10 @@ Guarda en la rama **`sim-data`**: `binance/state/ledger.json` (estado), `binance
 - **Tablero web:** Settings → Pages → Branch `sim-data` → `/ (root)`; queda en `https://<usuario>.github.io/crypto-paper-sim/binance/`.
   La pestaña **Summary** (la primera) es la vista minimalista: valor del portafolio, dona por bot, dona por activo
   (solo posiciones largas spot; con opción de incluir efectivo), rendimiento por estrategia y por bot, y crecimiento
-  contra Bitcoin, más seis métricas de resumen. Las demás pestañas (Resumen, P&L, Transacciones, Riesgo, Tendencias, Bots)
-  siguen igual. Las familias de estrategia están en `sim/export.py` (`FAMILIES`), no en `config.py`, para que reagrupar
+  contra Bitcoin y Ethereum con selector de periodo (Día, Semana, Mes, 3 meses, Año, Inicio) y tabla comparativa, más seis
+  métricas de resumen. Los periodos largos usan velas de BTC y ETH que cada corrida trae de Binance (horarias de ~32 días y
+  diarias de 365); el portafolio solo se muestra en un periodo cuando ya lleva ese tiempo corriendo (no se inventa historial).
+  La pestaña Bots agrupa los bots por tipo de estrategia. Las demás pestañas siguen igual. Las familias de estrategia están en `sim/export.py` (`FAMILIES`), no en `config.py`, para que reagrupar
   no cambie la huella de configuración ni reinicie la simulación.
 - **Historial de la rama de datos:** se compacta solo cada ~300 corridas (el estado completo va en `ledger.json`).
 - Los repos públicos pierden los flujos programados tras 60 días sin actividad. El flujo intenta mantenerse activo (mejor
