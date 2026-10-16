@@ -1,10 +1,12 @@
-"""Bots de estrategia (v1). Numeración = glosario del proyecto:
-    #3 DCA · #4 Grid · #5 Reversión a la media · #7 Tendencia/Momentum · #8 Breakout
+"""Bots de estrategia. Numeración = glosario del proyecto:
+    #1 Carry spot-perpetuo · #2 Stablecoins · #3 DCA · #4 Grid · #5 Reversión a la media · #6 Market making
+    #7 Tendencia/Momentum · #8 Breakout · #9 ML · #10 Arbitraje cross-exchange vía XRP
 
 Contrato de cada bot:
   * prepare(sym, df)  -> agrega columnas de indicadores CAUSALES (sin mirar al futuro).
   * on_bar(ctx)       -> se llama al CIERRE de cada barra; envía órdenes que se llenan desde la barra siguiente.
   * on_fill(fill,ctx) -> se llama cuando una de sus órdenes se ejecuta.
+  * mark(ctx,rows)    -> (opcional) patas fuera de la cartera spot, antes de valorar la barra (perpetuo, funding).
   * Todo el estado dinámico vive en self.st (JSON) para poder pausar/reanudar la simulación.
 
 Todos son spot long-only. Ninguno garantiza rentabilidad: son punto de partida para simular y medir.
@@ -82,6 +84,10 @@ class Bot:
 
     def on_fill(self, fill: Fill, ctx: Ctx) -> None:
         pass
+
+    def mark(self, ctx: Ctx, rows: dict) -> None:
+        """Se llama en CADA barra (incluso si el bot está pausado/detenido), después de las órdenes spot y antes
+        de valorar. rows[sym] = (open, high, low, close) de la barra actual."""
 
     def status_detail(self, wallet: PaperWallet) -> str:
         held = [s.replace("USDT", "") for s in self.symbols if wallet.pos(s).qty > 0]
@@ -419,8 +425,516 @@ class BreakoutBot(Bot):
                     w.submit(ctx.ts, s, "buy", "market", qty, reason="donchian_breakout")
 
 
-BOT_CLASSES = {"dca": DcaBot, "grid": GridBot, "meanrev": MeanReversionBot,
-               "trend": TrendBot, "breakout": BreakoutBot}
+# ======================================================================================
+# #1 Carry spot-perpetuo (cash & carry / funding rate)
+# ======================================================================================
+class CarryBot(Bot):
+    """Largo spot + corto del perpetuo del mismo activo (delta-neutral): cobra el funding cuando es positivo.
+
+    Qué se simula: la pata spot pasa por el wallet (comisión taker + slippage). La pata corta del perpetuo se
+    registra con `wallet.book` (comisión taker del perp + slippage), se valora cada barra con el precio del
+    perpetuo y cobra el funding en cada liquidación SOLO si estaba abierta desde una barra anterior
+    (si abre o cierra justo en la barra de liquidación no cobra: criterio conservador).
+    La garantía (margen) no se descuenta del efectivo: es dinero propio que sigue en la cuenta; solo se limita
+    el tamaño de la posición para que quede margen de sobra.
+    """
+    kind = "carry"
+    strategy_label = "Carry · largo spot + corto perpetuo (delta-neutral), cobra funding"
+    DEFAULTS = dict(perp_taker=0.0006, perp_slip_bps=2.0, leverage=2.0, avg_n=3, min_apr=0.05,
+                    min_hold_days=10, neg_periods_exit=3, margin_stress=0.8, size_frac=0.95)
+
+    def __init__(self, spec: dict, bar_ms: int):
+        super().__init__(spec, bar_ms)
+        spot = [s for s in self.symbols if "~" not in s]
+        perp = [s for s in self.symbols if s.endswith("~PERP")]
+        if len(spot) != 1 or len(perp) != 1:
+            raise ValueError("CarryBot necesita exactamente un símbolo spot y uno ~PERP")
+        self.spot, self.perp = spot[0], perp[0]
+
+    def _warmup(self) -> int:
+        return 60
+
+    def init_state(self) -> dict:
+        return {"phase": "flat", "open_req": False, "close_req": False, "close_reason": "",
+                "perp_qty": 0.0, "perp_entry": 0.0, "perp_ts": 0, "entered_ts": 0,
+                "funding_total": 0.0, "n_funding": 0, "note": "Sin datos de funding todavía"}
+
+    # --- helpers -----------------------------------------------------------------------
+    def _recent_rates(self, ctx: Ctx, n: int) -> list:
+        arr = ctx.arrays[self.perp]["funding"][max(0, ctx.i - 60): ctx.i + 1]
+        vals = arr[~np.isnan(arr)]
+        return [float(x) for x in vals[-n:]]
+
+    def _cost_roundtrip(self, ctx: Ctx) -> float:
+        spot = ctx.wallet.profile.taker + self.slippage_bps / 1e4
+        perp = self.p.perp_taker + self.p.perp_slip_bps / 1e4
+        return 2 * spot + 2 * perp
+
+    def _request_close(self, ctx: Ctx, reason: str) -> None:
+        self.sell_all(ctx, self.spot, reason)
+        self.st.update(close_req=True, close_reason=reason, phase="closing", open_req=False)
+
+    # --- patas fuera de spot -----------------------------------------------------------
+    def mark(self, ctx: Ctx, rows: dict) -> None:
+        st, w, p, ts = self.st, ctx.wallet, self.p, ctx.ts
+        o, _, _, c = rows[self.perp]
+        rate = float(ctx.arrays[self.perp]["funding"][ctx.i])
+        slip = p.perp_slip_bps / 1e4
+        held_before = st["perp_qty"] > 0 and st["perp_ts"] < ts
+
+        if st["close_req"]:                                   # 1) cierre del corto (compra a mercado)
+            q = st["perp_qty"]
+            if q > 0:
+                px = o * (1 + slip)
+                fee = q * px * p.perp_taker
+                gross = q * (st["perp_entry"] - px)
+                w.book(ts, self.perp, "sell", "perp", q, px, fee=fee, realized=gross - fee,
+                       reason=st["close_reason"] or "carry_close")
+                st.update(perp_qty=0.0, perp_entry=0.0)
+            st.update(close_req=False, phase="flat", note="Cerrado; esperando funding atractivo")
+            held_before = False
+
+        if held_before and not math.isnan(rate):              # 2) funding (el corto cobra si rate > 0)
+            q = st["perp_qty"]
+            pay = q * o * rate
+            w.book(ts, self.perp, "sell", "funding", q, o, fee=0.0, realized=pay, reason="funding")
+            st["funding_total"] += pay
+            st["n_funding"] += 1
+
+        if st["open_req"]:                                    # 3) apertura del corto = lo que se compró en spot
+            st["open_req"] = False
+            q = floor_qty(w.pos(self.spot).qty)
+            if q > 0 and st["perp_qty"] == 0:
+                px = o * (1 - slip)
+                fee = q * px * p.perp_taker
+                w.book(ts, self.perp, "buy", "perp", q, px, fee=fee, realized=-fee, reason="carry_open")
+                st.update(perp_qty=q, perp_entry=px, perp_ts=ts, entered_ts=ts, phase="open")
+            elif st["perp_qty"] == 0:
+                st["phase"] = "flat"
+
+        q = st["perp_qty"]                                    # 4) P&L no realizado del corto
+        w.extra_value = q * (st["perp_entry"] - c) if q > 0 else 0.0
+
+    # --- decisiones ----------------------------------------------------------------------
+    def on_bar(self, ctx: Ctx) -> None:
+        st, p, w = self.st, self.p, ctx.wallet
+        if st["open_req"] or st["close_req"] or st["phase"] in ("opening", "closing"):
+            return
+        rates = self._recent_rates(ctx, max(p.avg_n, p.neg_periods_exit))
+        if st["perp_qty"] > 0:
+            margin = st["perp_qty"] * st["perp_entry"] / p.leverage
+            loss = st["perp_qty"] * (ctx.price(self.perp) - st["perp_entry"])
+            last = rates[-p.neg_periods_exit:]
+            if loss >= p.margin_stress * margin:
+                self._request_close(ctx, "margin_stress")
+            elif len(last) == p.neg_periods_exit and all(r < 0 for r in last):
+                self._request_close(ctx, "funding_negative")
+            return
+        if len(rates) < p.avg_n:
+            st["note"] = "Esperando historial de funding"
+            return
+        avg = sum(rates[-p.avg_n:]) / p.avg_n
+        cost = self._cost_roundtrip(ctx)
+        hurdle = max(p.min_apr / (3 * 365), cost / (3 * p.min_hold_days))
+        apr = avg * 3 * 365
+        st["note"] = (f"Esperando: funding {apr:.1%} anual < umbral {hurdle * 3 * 365:.1%} "
+                      f"(cubrir costos {cost:.2%} en {p.min_hold_days} días)")
+        if avg >= hurdle and all(r > 0 for r in rates[-p.avg_n:]):
+            quote = self.affordable_quote(ctx, w.initial_cash * p.size_frac / (1 + 1 / p.leverage))
+            if quote > 0 and self.buy_quote(ctx, self.spot, quote, "carry_open"):
+                st.update(open_req=True, phase="opening", note=f"Abriendo carry: funding {apr:.1%} anual")
+
+    def on_halt(self, ctx: Ctx) -> None:
+        super().on_halt(ctx)
+        if self.st["perp_qty"] > 0 or self.st["open_req"]:
+            self.st.update(close_req=True, close_reason="risk_halt", phase="closing", open_req=False)
+
+    def status_detail(self, wallet: PaperWallet) -> str:
+        st = self.st
+        if st["perp_qty"] > 0:
+            return (f"Carry abierto: {st['perp_qty']:.5f} {self.spot[:-4]} · funding cobrado "
+                    f"{st['funding_total']:+,.2f} USDT en {st['n_funding']} liquidaciones")
+        if st["n_funding"]:
+            return f"{st['note']} · funding acumulado {st['funding_total']:+,.2f} USDT"
+        return st["note"]
+
+
+# ======================================================================================
+# #2 Stablecoins / "forex cripto"
+# ======================================================================================
+class StableBot(Bot):
+    """Compra una stablecoin cuando se desvía por DEBAJO de 1.00 USDT y vende al volver al peg.
+    Spot long-only: no puede aprovechar desvíos por ENCIMA del peg (haría falta inventario o vender corto)."""
+    kind = "stable"
+    strategy_label = "Stablecoins · reversión del peg (compra desvíos bajo 1.00, vende al volver)"
+    DEFAULTS = dict(entry_dev=0.0030, exit_dev=0.0005, stop_pct=0.010, guard_dev=0.015, depeg=0.020,
+                    depeg_bars=6, max_hold_bars=72, cooldown_bars=6, depeg_cooldown_bars=168, size_frac=0.95)
+
+    def init_state(self) -> dict:
+        return {s: {"entry": 0.0, "bars": 0, "below": 0, "cooldown_until": 0, "last": 1.0}
+                for s in self.symbols}
+
+    def on_fill(self, fill: Fill, ctx: Ctx) -> None:
+        st = self.st[fill.symbol]
+        if fill.side == "buy":
+            st.update(entry=fill.price, bars=0)
+        elif ctx.wallet.pos(fill.symbol).qty <= 0:
+            wait = self.p.depeg_cooldown_bars if fill.reason == "depeg_exit" else self.p.cooldown_bars
+            st["cooldown_until"] = fill.ts + int(wait) * self.bar_ms
+
+    def on_bar(self, ctx: Ctx) -> None:
+        p, w = self.p, ctx.wallet
+        for s in self.symbols:
+            st, close = self.st[s], ctx.price(s)
+            dev = 1.0 - close
+            st["last"] = close
+            st["below"] = st["below"] + 1 if dev >= p.depeg else 0
+            if w.pos(s).qty > 0:
+                st["bars"] += 1
+                reason = None
+                if st["below"] >= p.depeg_bars:
+                    reason = "depeg_exit"                       # parece un de-peg real: salir, no promediar
+                elif close <= st["entry"] * (1 - p.stop_pct):
+                    reason = "stop"
+                elif close >= 1.0 - p.exit_dev:
+                    reason = "peg_restored"
+                elif st["bars"] >= p.max_hold_bars:
+                    reason = "time_stop"
+                if reason:
+                    self.sell_all(ctx, s, reason)
+            elif ctx.ts >= st["cooldown_until"] and p.entry_dev <= dev < p.guard_dev:
+                q = self.affordable_quote(ctx, w.initial_cash * p.size_frac / len(self.symbols))
+                if q > 0:
+                    self.buy_quote(ctx, s, q, "peg_deviation")
+
+    def status_detail(self, wallet: PaperWallet) -> str:
+        held = [s.replace("USDT", "") for s in self.symbols if wallet.pos(s).qty > 0]
+        devs = " · ".join(f"{s.replace('USDT', '')} {self.st[s]['last'] - 1:+.3%}" for s in self.symbols)
+        return (f"En posición: {', '.join(held)} ({devs})" if held
+                else f"Esperando desvío ≥ {self.p.entry_dev:.2%} bajo el peg ({devs})")
+
+
+# ======================================================================================
+# #6 Market making
+# ======================================================================================
+class MarketMakerBot(Bot):
+    """Cotiza compra y venta límite alrededor del precio cada barra, con control de inventario.
+
+    LÍMITE IMPORTANTE: con velas de 1 h no hay libro de órdenes ni prioridad en la cola; un límite se llena si
+    el precio lo cruza estrictamente. Es una aproximación que NO sirve para validar un market maker real
+    (latencia, selección adversa y cola dominan su resultado)."""
+    kind = "mm"
+    strategy_label = "Market making · cotiza ±spread/2 con control de inventario"
+    DEFAULTS = dict(half_spread=0.0015, quote_frac=0.10, target_inv=0.50, quote_stop_dev=0.20,
+                    rebalance_dev=0.30, atr_n=14, vol_guard=0.012)
+
+    def __init__(self, spec: dict, bar_ms: int):
+        super().__init__(spec, bar_ms)
+        if len(self.symbols) != 1:
+            raise ValueError("MarketMakerBot opera una sola moneda")
+        self.sym = self.symbols[0]
+
+    def _warmup(self) -> int:
+        return int(self.p.atr_n * 5) + 5
+
+    def init_state(self) -> dict:
+        return {"init": False, "ratio": 0.5, "buys": 0, "sells": 0, "note": "Sin cotizar aún"}
+
+    def prepare(self, sym: str, df: pd.DataFrame) -> pd.DataFrame:
+        out = df.copy()
+        out["atr"] = ind.atr(df, self.p.atr_n)
+        return out
+
+    def on_fill(self, fill: Fill, ctx: Ctx) -> None:
+        if fill.kind == "limit":
+            self.st["buys" if fill.side == "buy" else "sells"] += 1
+
+    def on_bar(self, ctx: Ctx) -> None:
+        p, st, w, s = self.p, self.st, ctx.wallet, self.sym
+        w.cancel_all(kind="limit")
+        px = ctx.price(s)
+        if not st["init"]:                                      # inventario inicial: target_inv del capital
+            q = self.affordable_quote(ctx, w.initial_cash * p.target_inv)
+            if q > 0 and self.buy_quote(ctx, s, q, "mm_init"):
+                st["init"], st["note"] = True, "Inventario inicial enviado"
+            return
+        eq = ctx.equity()
+        ratio = w.pos(s).qty * px / eq if eq > 0 else p.target_inv
+        dev = ratio - p.target_inv
+        st["ratio"] = ratio
+        if abs(dev) > p.rebalance_dev:                          # inventario muy desbalanceado: rebalancea a mercado
+            excess = (abs(dev) - p.rebalance_dev / 2) * eq
+            if dev > 0:
+                qty = floor_qty(min(excess / px, w.free_qty(s)))
+                if qty > 0:
+                    w.submit(ctx.ts, s, "sell", "market", qty, reason="mm_rebalance")
+            else:
+                q = self.affordable_quote(ctx, excess)
+                if q > 0:
+                    self.buy_quote(ctx, s, q, "mm_rebalance")
+            st["note"] = "Rebalanceando inventario a mercado"
+            return
+        a = ctx.v(s, "atr")
+        if not _ok(a) or a / px > p.vol_guard:
+            st["note"] = "Cotización retirada: volatilidad alta"
+            return
+        hs = p.half_spread
+        shift = max(-1.0, min(1.0, dev / 0.5)) * hs * 0.5      # largo -> baja ambas cotizaciones (vende más barato)
+        bid, ask = px * (1 - hs - shift), px * (1 + hs - shift)
+        qty = floor_qty(p.quote_frac * w.initial_cash / px)
+        if dev < p.quote_stop_dev:
+            w.submit(ctx.ts, s, "buy", "limit", qty, price=bid, reason="mm_bid", tag="bid")
+        if dev > -p.quote_stop_dev:
+            sq = floor_qty(min(qty, w.free_qty(s)))
+            if sq > 0:
+                w.submit(ctx.ts, s, "sell", "limit", sq, price=ask, reason="mm_ask", tag="ask")
+        st["note"] = f"Cotizando ±{hs:.2%} alrededor del precio"
+
+    def status_detail(self, wallet: PaperWallet) -> str:
+        st = self.st
+        return f"{st['note']} · inventario {st['ratio']:.0%} · {st['sells']} ventas / {st['buys']} compras"
+
+
+# ======================================================================================
+# #9 Señales por Machine Learning
+# ======================================================================================
+def _sigmoid(z):
+    return 1.0 / (1.0 + np.exp(-np.clip(z, -30, 30)))
+
+
+def fit_logreg(X: np.ndarray, y: np.ndarray, l2: float = 5.0, iters: int = 30) -> np.ndarray:
+    """Regresión logística con L2 por Newton (IRLS). Solo numpy: determinista y sin dependencias."""
+    n, d = X.shape
+    Xb = np.hstack([X, np.ones((n, 1))])
+    R = np.eye(d + 1) * l2
+    R[-1, -1] = 0.0
+    w = np.zeros(d + 1)
+    for _ in range(iters):
+        p = _sigmoid(Xb @ w)
+        g = Xb.T @ (p - y) + R @ w
+        H = (Xb * (p * (1 - p) + 1e-6)[:, None]).T @ Xb + R
+        step = np.linalg.solve(H, g)
+        w -= step
+        if np.abs(step).max() < 1e-8:
+            break
+    return w
+
+
+class MLBot(Bot):
+    """Regresión logística (walk-forward) que estima P(el precio sube en `horizon` horas).
+
+    Se reentrena cada `retrain_bars` con las últimas `train_bars` barras ya CONOCIDAS (la etiqueta de la barra t
+    solo se usa cuando t+horizon ya ocurrió). Entra solo si P >= umbral. Registra su acierto FUERA de muestra
+    para saber si el modelo sirve o solo parece servir.
+
+    Expectativa honesta: con velas de 1 h el edge predictivo suele ser mínimo; un modelo bien hecho puede pasar
+    semanas sin confianza suficiente para operar. Eso también es un resultado válido."""
+    kind = "ml"
+    strategy_label = "ML · regresión logística walk-forward (P de subida a 6 h)"
+    FEATS = ["f_r1", "f_r3", "f_r6", "f_r12", "f_r24", "f_vol24", "f_vratio", "f_rsi", "f_emad", "f_volz", "f_range"]
+    DEFAULTS = dict(horizon=6, train_bars=480, retrain_bars=336, thr=0.60, stop_pct=0.03, l2=5.0,
+                    min_train=300, cooldown_bars=6, size_frac=0.95)
+
+    def _warmup(self) -> int:
+        return int(self.p.train_bars + self.p.horizon + 60)
+
+    def init_state(self) -> dict:
+        d = {"w": [], "mu": [], "sd": [], "last_train_ts": 0, "n_train": 0, "n_models": 0,
+             "oos_n": 0, "oos_hit": 0, "pend": [], "pmax": 0.0, "n_signals": 0, "last_p": {}}
+        for s in self.symbols:
+            d[s] = {"entry": 0.0, "bars": 0, "cooldown_until": 0}
+        return d
+
+    def prepare(self, sym: str, df: pd.DataFrame) -> pd.DataFrame:
+        out, c = df.copy(), df["close"]
+        r1 = np.log(c / c.shift(1))
+        for n in (1, 3, 6, 12, 24):
+            out[f"f_r{n}"] = np.log(c / c.shift(n))
+        v24, v6 = r1.rolling(24, min_periods=24).std(), r1.rolling(6, min_periods=6).std()
+        out["f_vol24"] = v24
+        out["f_vratio"] = v6 / v24.replace(0, np.nan)
+        out["f_rsi"] = ind.rsi(c, 14) / 100.0 - 0.5
+        out["f_emad"] = c / ind.ema(c, 24) - 1.0
+        vol = df["volume"]
+        out["f_volz"] = (vol - vol.rolling(48, min_periods=48).mean()) / vol.rolling(48, min_periods=48).std().replace(0, np.nan)
+        out["f_range"] = (df["high"] - df["low"]) / c
+        return out
+
+    # --- entrenamiento (solo con información conocida hasta la barra actual) ---------------------------------
+    def _train(self, ctx: Ctx) -> bool:
+        p, h, i = self.p, int(self.p.horizon), ctx.i
+        Xs, ys = [], []
+        for s in self.symbols:
+            a = ctx.arrays[s]
+            lo, hi = max(0, i - h - int(p.train_bars) + 1), i - h        # t + h <= i  => etiqueta ya conocida
+            if hi <= lo:
+                continue
+            F = np.column_stack([a[f][lo:hi + 1] for f in self.FEATS])
+            fut = a["close"][lo + h:hi + h + 1] / a["close"][lo:hi + 1] - 1.0
+            ok = np.isfinite(F).all(axis=1) & np.isfinite(fut)
+            Xs.append(F[ok])
+            ys.append((fut[ok] > 0).astype(float))
+        if not Xs:
+            return False
+        X, y = np.vstack(Xs), np.concatenate(ys)
+        if len(y) < p.min_train or y.min() == y.max():
+            return False
+        mu, sd = X.mean(axis=0), X.std(axis=0)
+        sd[sd == 0] = 1.0
+        w = fit_logreg((X - mu) / sd, y, p.l2)
+        self.st.update(w=[float(v) for v in w], mu=[float(v) for v in mu], sd=[float(v) for v in sd],
+                       last_train_ts=ctx.ts, n_train=int(len(y)), n_models=self.st["n_models"] + 1)
+        return True
+
+    def _predict(self, feats: list) -> float:
+        st = self.st
+        z = (np.array(feats) - np.array(st["mu"])) / np.array(st["sd"])
+        return float(_sigmoid(np.dot(z, np.array(st["w"][:-1])) + st["w"][-1]))
+
+    def on_fill(self, fill: Fill, ctx: Ctx) -> None:
+        st = self.st[fill.symbol]
+        if fill.side == "buy":
+            st.update(entry=fill.price, bars=0)
+        elif ctx.wallet.pos(fill.symbol).qty <= 0:
+            st["cooldown_until"] = fill.ts + int(self.p.cooldown_bars) * self.bar_ms
+
+    def on_bar(self, ctx: Ctx) -> None:
+        p, st, w = self.p, self.st, ctx.wallet
+        h = int(p.horizon)
+        if not st["w"] or ctx.ts - st["last_train_ts"] >= int(p.retrain_bars) * self.bar_ms:
+            self._train(ctx)
+        keep = []                                                # acierto fuera de muestra de predicciones ya vencidas
+        for due, s, pr, px0 in st["pend"]:
+            if ctx.ts >= due:
+                st["oos_n"] += 1
+                st["oos_hit"] += int((pr > 0.5) == (ctx.price(s) / px0 - 1.0 > 0))
+            else:
+                keep.append([due, s, pr, px0])
+        st["pend"] = keep
+        if not st["w"]:
+            return
+        for s in self.symbols:
+            feats = [ctx.v(s, f) for f in self.FEATS]
+            if not _ok(*feats):
+                continue
+            pr, close, ss = self._predict(feats), ctx.price(s), st[s]
+            st["last_p"][s] = pr
+            st["pmax"] = max(st["pmax"], pr)
+            st["pend"].append([ctx.ts + h * self.bar_ms, s, pr, close])
+            if w.pos(s).qty > 0:
+                ss["bars"] += 1
+                reason = None
+                if close <= ss["entry"] * (1 - p.stop_pct):
+                    reason = "stop"
+                elif ss["bars"] >= h:
+                    reason = "time_stop"
+                elif pr < 0.5:
+                    reason = "signal_flip"
+                if reason:
+                    self.sell_all(ctx, s, reason)
+            elif pr >= p.thr and ctx.ts >= ss["cooldown_until"]:
+                q = self.affordable_quote(ctx, w.initial_cash * p.size_frac / len(self.symbols))
+                if q > 0:
+                    st["n_signals"] += 1
+                    self.buy_quote(ctx, s, q, "ml_signal")
+
+    def status_detail(self, wallet: PaperWallet) -> str:
+        st = self.st
+        if not st["w"]:
+            return "Sin modelo entrenado todavía"
+        acc = f"{st['oos_hit'] / st['oos_n']:.0%} ({st['oos_n']} pred.)" if st["oos_n"] else "sin datos aún"
+        held = [s.replace("USDT", "") for s in self.symbols if wallet.pos(s).qty > 0]
+        return (f"{'En posición: ' + ', '.join(held) + ' · ' if held else ''}Acierto fuera de muestra {acc} · "
+                f"P máx {st['pmax']:.2f} (umbral {self.p.thr:.2f}) · {st['n_signals']} señales")
+
+
+# ======================================================================================
+# #10 Arbitraje cross-exchange vía riel XRP (Bitso <-> Binance / KuCoin)
+# ======================================================================================
+class XrpRailBot(Bot):
+    """Mide si el spread entre Bitso y Binance/KuCoin supera de verdad los costos, y simula la captura.
+
+    Es una COTA SUPERIOR optimista: asume fondos pre-posicionados en cada exchange (sin transferir en la ruta
+    crítica), ejecución instantánea al mejor precio y el tamaño disponible en la punta del libro. Solo ve una
+    foto del mercado por corrida (no un flujo continuo): estima CUÁNTAS VECES aparece una oportunidad, no
+    reproduce la carrera de latencia con bots profesionales. Si ni así hay oportunidades netas, la idea no se
+    sostiene con estas comisiones."""
+    kind = "xrp_rail"
+    strategy_label = "Arbitraje XRP · Bitso ↔ Binance/KuCoin con fondos pre-posicionados (cota superior)"
+    DEFAULTS = dict(threshold=0.003, trade_frac=0.30, slip_bps=5.0, max_imbalance=0.35, rebalance_cost=0.0005,
+                    fees={"bitso": 0.0036, "binance": 0.0010, "kucoin": 0.0010})
+    COLS = ("bid", "ask", "bq", "aq")
+
+    def init_state(self) -> dict:
+        return {"samples": 0, "opps": 0, "best_net": None, "sum_net": 0.0, "best_gross": None,
+                "mxn_gap_max": 0.0, "inv": {}, "rebalances": 0, "note": "Sin muestras aún"}
+
+    def _quotes(self, ctx: Ctx) -> dict:
+        out = {}
+        for v in self.p.fees:
+            vals = [ctx.v(self.symbols[0], f"{v}_{c}") for c in self.COLS]
+            if _ok(*vals[:2]) and vals[0] > 0 and vals[1] > 0:
+                out[v] = vals
+        return out
+
+    def on_bar(self, ctx: Ctx) -> None:
+        p, st, w = self.p, self.st, ctx.wallet
+        q = self._quotes(ctx)
+        if "bitso" not in q or len(q) < 2:
+            return                                               # barra sin foto del mercado (o Bitso no respondió)
+        gap = ctx.v(self.symbols[0], "bitso_mxn_gap")
+        if _ok(gap):
+            st["mxn_gap_max"] = max(st["mxn_gap_max"], abs(gap))
+        slip = p.slip_bps / 1e4
+        best = None
+        for a in q:                                              # compra en `a` (ask), vende en `b` (bid)
+            for b in q:
+                if a == b or "bitso" not in (a, b):
+                    continue
+                gross = q[b][0] / q[a][1] - 1.0
+                net = gross - p.fees[a] - p.fees[b] - 2 * slip
+                if best is None or net > best[0]:
+                    best = (net, gross, a, b)
+        net, gross, a, b = best
+        st["samples"] += 1
+        st["sum_net"] += net
+        st["best_net"] = net if st["best_net"] is None else max(st["best_net"], net)
+        st["best_gross"] = gross if st["best_gross"] is None else max(st["best_gross"], gross)
+        st["note"] = f"Mejor ruta ahora: {a}→{b}, bruto {gross:+.2%}, neto {net:+.2%}"
+        if net < p.threshold:
+            return
+        depth = [x for x in (q[a][3] * q[a][1], q[b][2] * q[b][0]) if math.isfinite(x) and x > 0]
+        size = min([p.trade_frac * w.initial_cash] + depth)
+        if size < w.profile.min_notional * 2:
+            return
+        inv = st["inv"]
+        inv[a] = inv.get(a, 0.0) + size                          # en `a` se acumuló XRP; en `b` se agotó
+        inv[b] = inv.get(b, 0.0) - size
+        pnl = size * net
+        fee = size * (p.fees[a] + p.fees[b])
+        w.book(ctx.ts, "XRPUSDT", "sell", "arb", size / q[a][1], q[b][0], fee=fee, realized=pnl,
+               reason=f"{a}->{b}")
+        st["opps"] += 1
+        w._event("info", f"Oportunidad {a}→{b}: bruto {gross:+.2%}, neto {net:+.2%} sobre {size:,.0f} USDT")
+        if max(abs(v) for v in inv.values()) > p.max_imbalance * w.initial_cash:   # rebalanceo por el riel XRP
+            moved = sum(abs(v) for v in inv.values()) / 2
+            cost = moved * p.rebalance_cost
+            w.book(ctx.ts, "XRPUSDT", "buy", "arb", moved / q[a][1], q[a][1], fee=cost, realized=-cost,
+                   reason="rebalance_xrp_rail")
+            st["inv"], st["rebalances"] = {}, st["rebalances"] + 1
+
+    def status_detail(self, wallet: PaperWallet) -> str:
+        st = self.st
+        if not st["samples"]:
+            return st["note"]
+        mean = st["sum_net"] / st["samples"]
+        return (f"{st['samples']} muestras · neto medio {mean:+.2%} · mejor {st['best_net']:+.2%} · "
+                f"{st['opps']} oportunidades ≥ {self.p.threshold:.2%}")
+
+
+BOT_CLASSES = {"carry": CarryBot, "stable": StableBot, "dca": DcaBot, "grid": GridBot,
+               "meanrev": MeanReversionBot, "mm": MarketMakerBot, "trend": TrendBot,
+               "breakout": BreakoutBot, "ml": MLBot, "xrp_rail": XrpRailBot}
 
 
 def build_bot(spec: dict, bar_ms: int) -> Bot:

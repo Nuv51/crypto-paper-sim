@@ -132,6 +132,8 @@ def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars:
     per_day = 86_400_000 / bar_ms
     prices, forecasts = {}, {}
     for sym, g in bars.groupby("symbol"):
+        if "~" in sym:                       # fuentes especiales (perpetuo, foto XRP): no son un mercado para graficar
+            continue
         g = g.drop_duplicates("ts").sort_values("ts")
         cl = g.set_index("ts").close
         tail = g.tail(price_bars)

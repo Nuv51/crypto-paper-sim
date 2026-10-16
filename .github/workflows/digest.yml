@@ -1,0 +1,49 @@
+name: digest
+
+# Resumen del portafolio y de cada bot a horas fijas (dinero FICTICIO).
+# Horas por defecto: 08:00, 14:00 y 20:00 de Ciudad de México / Monterrey (UTC-6) = 14:00, 20:00 y 02:00 UTC.
+# Para cambiarlas, edita la línea `cron` (siempre en UTC).
+on:
+  schedule:
+    - cron: "0 14,20,2 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Carpeta de datos: binance (mercado real) o synthetic"
+        default: "binance"
+        type: choice
+        options: [binance, synthetic]
+
+permissions:
+  contents: read
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SOURCE: ${{ github.event.inputs.source || 'binance' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Leer los datos publicados (rama sim-data)
+        run: |
+          git clone --quiet --depth 1 --branch sim-data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" store
+
+      - name: Armar el resumen
+        run: |
+          python scripts/digest.py digest --dashboard "store/${SOURCE}/data/dashboard.json" --status "store/${SOURCE}/data/status.json" > "$RUNNER_TEMP/digest.txt"
+          { echo "### Resumen del portafolio (${SOURCE})"; echo; echo '```'; cat "$RUNNER_TEMP/digest.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/digest.txt"
+
+      - name: Aviso al celular (ntfy)
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          [ -z "$NTFY_TOPIC" ] && { echo "NTFY_TOPIC no está configurado: el resumen solo queda en el resumen del job."; exit 0; }
+          PAGES="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/${SOURCE}/"
+          curl -fsS -H "Title: Portafolio simulado - resumen (dinero ficticio)" -H "Tags: bar_chart" \
+               -H "Click: ${PAGES}" -d "$(cat "$RUNNER_TEMP/digest.txt")" "https://ntfy.sh/${NTFY_TOPIC}"

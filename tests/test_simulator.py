@@ -186,11 +186,13 @@ def test_replay_accounting_invariants(tmp_path):
         resid = e.equity - (w.initial_cash + e.realized_pnl + e.unrealized_pnl)
         assert resid.abs().max() < 1e-6, bid
         # el efectivo final se reconstruye desde las operaciones
-        flow = np.where(t.side == "sell", t.notional - t.fee, -(t.notional + t.fee)).sum()
-        assert w.cash == pytest.approx(w.initial_cash + flow, abs=1e-6), bid
+        spot = t[t.kind.isin(["market", "limit"])]
+        syn = t[~t.kind.isin(["market", "limit"])]            # perp / funding / arb: el efectivo se mueve por su P&L realizado
+        flow = np.where(spot.side == "sell", spot.notional - spot.fee, -(spot.notional + spot.fee)).sum()
+        assert w.cash == pytest.approx(w.initial_cash + flow + syn.realized_pnl.sum(), abs=1e-6), bid
         assert t.realized_pnl.sum() == pytest.approx(w.realized_pnl, abs=1e-6), bid
         assert t.fee.sum() == pytest.approx(w.fees_paid, abs=1e-6), bid
-        assert last.equity == pytest.approx(w.cash + sum(
+        assert last.equity == pytest.approx(w.cash + w.extra_value + sum(
             p.qty * data["bars"][(data["bars"].symbol == s) & (data["bars"].ts == last.ts)].close.iloc[0]
             for s, p in w.positions.items() if p.qty > 0), abs=1e-6), bid
         # spot long-only

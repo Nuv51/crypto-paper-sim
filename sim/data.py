@@ -1,5 +1,10 @@
-"""Fuentes de datos: velas reales de Binance (API pública, sin llaves), feed sintético para pruebas
-y cotizaciones de CoinMarketCap como verificación cruzada.
+"""Fuentes de datos: velas reales de Binance (API pública, sin llaves), funding y velas del perpetuo de KuCoin,
+fotos del libro de Bitso/Binance/KuCoin para el bot de arbitraje, feed sintético para pruebas y cotizaciones
+de CoinMarketCap como verificación cruzada.
+
+Símbolos especiales (los resuelve MarketFeed):
+  BTCUSDT~PERP  velas del perpetuo de KuCoin (XBTUSDTM) + columna `funding` en las barras de liquidación (cada 8 h)
+  XRP~RAIL      velas de XRPUSDT + (solo en la última barra) la foto del mercado de Bitso, Binance y KuCoin
 
 POR QUÉ BINANCE PÚBLICO COMO FUENTE PRINCIPAL
   CoinMarketCap entrega cotizaciones puntuales; el historial OHLCV está en planes de pago. Para
@@ -140,21 +145,201 @@ class BinanceFeed:
 
 
 # ======================================================================================
+# KuCoin futuros (perpetuo + funding), Bitso y KuCoin spot (fotos del libro) — todo público, sin llaves
+# ======================================================================================
+HOUR = 3_600_000
+KUCOIN_FUT = "https://api-futures.kucoin.com"
+KUCOIN_SPOT = "https://api.kucoin.com"
+BITSO = "https://api.bitso.com"
+RAIL_VENUES = ("bitso", "binance", "kucoin")
+
+
+def kucoin_contract(symbol: str) -> str:
+    """'BTCUSDT~PERP' -> 'XBTUSDTM' (KuCoin llama XBT al bitcoin)."""
+    base = symbol.split("~")[0]
+    base = base[:-4] if base.endswith("USDT") else base
+    return f"{'XBT' if base == 'BTC' else base}USDTM"
+
+
+def _http_json(session: requests.Session, url: str, params: Optional[dict] = None, retries: int = 3,
+               timeout: float = 15.0):
+    last: Optional[Exception] = None
+    for attempt in range(retries):
+        try:
+            r = session.get(url, params=params, timeout=timeout)
+            if r.status_code == 429:
+                time.sleep(min(float(r.headers.get("Retry-After", 2 ** attempt)), 30))
+                continue
+            r.raise_for_status()
+            return r.json()
+        except (requests.RequestException, ValueError) as e:
+            last = e
+            time.sleep(0.5 * (attempt + 1))
+    raise RuntimeError(f"No pude leer {url}: {last}")
+
+
+def parse_kucoin_futures_klines(payload: dict) -> pd.DataFrame:
+    """data: [[ms, open, high, low, close, volume, turnover], ...] (verificado contra la API real el 2026-10-16)."""
+    rows = payload.get("data") or []
+    if not rows:
+        return _empty()
+    df = pd.DataFrame(rows).iloc[:, :6]
+    df.columns = ["ts", "open", "high", "low", "close", "volume"]
+    df["ts"] = df["ts"].astype("int64")
+    df[COLS] = df[COLS].astype(float)
+    return df.set_index("ts")[COLS]
+
+
+def parse_kucoin_funding(payload: dict) -> dict[int, float]:
+    """data: [{symbol, fundingRate, timepoint(ms)}, ...] -> {ms de la hora de liquidación: tasa por periodo}."""
+    out: dict[int, float] = {}
+    for r in payload.get("data") or []:
+        out[int(r["timepoint"]) // HOUR * HOUR] = float(r["fundingRate"])
+    return out
+
+
+def rail_snapshot_columns() -> list[str]:
+    cols = [f"{v}_{c}" for v in RAIL_VENUES for c in ("bid", "ask", "bq", "aq")]
+    return cols + ["bitso_mxn_gap"]
+
+
+class MarketFeed(BinanceFeed):
+    """Binance spot (velas) + los símbolos especiales de arriba. Las fuentes auxiliares fallan en voz alta
+    (el perpetuo es indispensable para el bot de carry) salvo la foto de Bitso/KuCoin, que es opcional:
+    si no responde, esa barra queda sin foto y el bot de arbitraje simplemente no mide nada."""
+    name = "market"
+    label = "Mercado real (Binance · KuCoin · Bitso, APIs públicas)"
+
+    # ----------------------------------------------------------------------------- perpetuo
+    def _perp_frame(self, symbol: str, interval: str, bars: int) -> pd.DataFrame:
+        if interval != "1h":
+            raise ValueError("El perpetuo de KuCoin solo está implementado para velas de 1h")
+        contract, now_ms = kucoin_contract(symbol), int(time.time() * 1000)
+        start = (now_ms // HOUR - bars - 2) * HOUR
+        frames, cursor = [], start
+        while cursor < now_ms:
+            end = min(cursor + 190 * HOUR, now_ms)
+            payload = _http_json(self.session, KUCOIN_FUT + "/api/v1/kline/query",
+                                 {"symbol": contract, "granularity": 60, "from": cursor, "to": end}, timeout=self.timeout)
+            frames.append(parse_kucoin_futures_klines(payload))
+            cursor = end + HOUR
+            time.sleep(self.pause)
+        df = pd.concat(frames) if frames else _empty()
+        df = df[~df.index.duplicated(keep="last")].sort_index()
+        df = df[df.index + HOUR <= now_ms]                         # solo velas cerradas
+        if df.empty:
+            raise RuntimeError(f"KuCoin no devolvió velas de {contract}")
+        fund: dict[int, float] = {}
+        cur = start
+        while cur < now_ms:
+            end = min(cur + 30 * 86_400_000, now_ms)
+            fund.update(parse_kucoin_funding(_http_json(
+                self.session, KUCOIN_FUT + "/api/v1/contract/funding-rates",
+                {"symbol": contract, "from": cur, "to": end}, timeout=self.timeout)))
+            cur = end + 1
+        if not fund:
+            raise RuntimeError(f"KuCoin no devolvió funding de {contract}")
+        df = df.copy()
+        df["funding"] = [fund.get(int(t), np.nan) for t in df.index]
+        return df
+
+    # ----------------------------------------------------------------------------- foto del mercado XRP
+    def rail_snapshot(self) -> dict[str, float]:
+        out = {c: float("nan") for c in rail_snapshot_columns()}
+
+        def quote(venue, fn):
+            try:
+                bid, ask, bq, aq = fn()
+                out.update({f"{venue}_bid": bid, f"{venue}_ask": ask, f"{venue}_bq": bq, f"{venue}_aq": aq})
+            except Exception:
+                pass                                              # foto opcional: esa casa queda sin dato
+
+        def bitso():
+            t = _http_json(self.session, BITSO + "/v3/ticker/", {"book": "xrp_usdt"}, 2, self.timeout)["payload"]
+            bid, ask, bq, aq = float(t["bid"]), float(t["ask"]), float("nan"), float("nan")
+            try:                                                  # tamaños de la punta del libro (opcional)
+                ob = _http_json(self.session, BITSO + "/v3/order_book/", {"book": "xrp_usdt", "aggregate": "true"},
+                                2, self.timeout)["payload"]
+                bq, aq = float(ob["bids"][0]["amount"]), float(ob["asks"][0]["amount"])
+            except Exception:
+                pass
+            return bid, ask, bq, aq
+
+        def binance():
+            t = self._get("/api/v3/ticker/bookTicker", {"symbol": "XRPUSDT"})
+            return float(t["bidPrice"]), float(t["askPrice"]), float(t["bidQty"]), float(t["askQty"])
+
+        def kucoin():
+            d = _http_json(self.session, KUCOIN_SPOT + "/api/v1/market/orderbook/level1", {"symbol": "XRP-USDT"},
+                           2, self.timeout)["data"]
+            return float(d["bestBid"]), float(d["bestAsk"]), float(d["bestBidSize"]), float(d["bestAskSize"])
+
+        quote("bitso", bitso)
+        quote("binance", binance)
+        quote("kucoin", kucoin)
+        try:                                                      # ruta MXN: xrp_mxn / usdt_mxn frente al precio en USDT
+            x = _http_json(self.session, BITSO + "/v3/ticker/", {"book": "xrp_mxn"}, 2, self.timeout)["payload"]
+            u = _http_json(self.session, BITSO + "/v3/ticker/", {"book": "usdt_mxn"}, 2, self.timeout)["payload"]
+            implied = (float(x["bid"]) + float(x["ask"])) / 2 / ((float(u["bid"]) + float(u["ask"])) / 2)
+            ref = (out["binance_bid"] + out["binance_ask"]) / 2
+            out["bitso_mxn_gap"] = implied / ref - 1.0
+        except Exception:
+            pass
+        return out
+
+    def _rail_frame(self, base: pd.DataFrame) -> pd.DataFrame:
+        df = base.copy()
+        for c in rail_snapshot_columns():
+            df[c] = np.nan
+        snap = self.rail_snapshot()
+        for c, v in snap.items():
+            df.iloc[-1, df.columns.get_loc(c)] = v
+        return df
+
+    # ----------------------------------------------------------------------------- API
+    def latest_closed(self, symbol: str, interval: str = "1h", n: int = 600) -> pd.DataFrame:
+        if symbol.endswith("~PERP"):
+            return self._perp_frame(symbol, interval, n)
+        if symbol.endswith("~RAIL"):
+            return self._rail_frame(super().latest_closed("XRPUSDT", interval, n))
+        return super().latest_closed(symbol, interval, n)
+
+    def history(self, symbol: str, interval: str = "1h", days: int = 120) -> pd.DataFrame:
+        if symbol.endswith("~PERP"):
+            return self._perp_frame(symbol, interval, days * 24)
+        if symbol.endswith("~RAIL"):
+            base = super().history("XRPUSDT", interval, days)
+            df = base.copy()
+            for c in rail_snapshot_columns():
+                df[c] = np.nan                                    # no hay foto histórica del libro: el replay no mide nada
+            return df
+        return super().history(symbol, interval, days)
+
+
+# ======================================================================================
 # Feed sintético (SOLO para probar el código; no representa ningún mercado real)
 # ======================================================================================
 class SyntheticFeed:
     name = "synthetic"
     label = "SINTÉTICO (datos inventados, solo para pruebas)"
     BASE_PRICE = {"BTCUSDT": 65000.0, "ETHUSDT": 3200.0, "BNBUSDT": 580.0, "ADAUSDT": 0.45,
-                  "SOLUSDT": 150.0, "AVAXUSDT": 35.0, "DOGEUSDT": 0.15, "LINKUSDT": 14.0}
+                  "SOLUSDT": 150.0, "AVAXUSDT": 35.0, "DOGEUSDT": 0.15, "LINKUSDT": 14.0, "XRPUSDT": 1.34}
     BASE_VOL = {"BTCUSDT": 0.0045, "ETHUSDT": 0.0060, "BNBUSDT": 0.0055, "ADAUSDT": 0.0075,
-                "SOLUSDT": 0.0095, "AVAXUSDT": 0.0095, "DOGEUSDT": 0.0120, "LINKUSDT": 0.0090}
+                "SOLUSDT": 0.0095, "AVAXUSDT": 0.0095, "DOGEUSDT": 0.0120, "LINKUSDT": 0.0090, "XRPUSDT": 0.0085}
     END_MS = int(pd.Timestamp("2026-10-01", tz="UTC").timestamp() * 1000)
 
     def __init__(self, seed: int = 7):
         self.seed = seed
 
+    STABLES = ("USDCUSDT", "FDUSDUSDT")
+
     def history(self, symbol: str, interval: str = "1h", days: int = 120) -> pd.DataFrame:
+        if symbol in self.STABLES:
+            return self._stable(symbol, interval, days)
+        if symbol.endswith("~PERP"):
+            return self._perp(symbol, interval, days)
+        if symbol.endswith("~RAIL"):
+            return self._rail(symbol, interval, days)
         step = INTERVAL_MS[interval]
         n = int(days * 86_400_000 // step)
         rng = np.random.default_rng(zlib.crc32(symbol.encode()) ^ self.seed)
@@ -187,6 +372,68 @@ class SyntheticFeed:
         idx = (self.END_MS - step * (n - np.arange(n))).astype("int64")
         return pd.DataFrame({"open": open_, "high": high, "low": low, "close": close, "volume": volume},
                             index=pd.Index(idx, name="ts"))
+
+
+    # ---- extensiones sintéticas (solo para pruebas) -------------------------------------------------
+    def _index(self, interval: str, days: int):
+        step = INTERVAL_MS[interval]
+        n = int(days * 86_400_000 // step)
+        return n, (self.END_MS - step * (n - np.arange(n))).astype("int64")
+
+    def _stable(self, symbol: str, interval: str, days: int) -> pd.DataFrame:
+        n, idx = self._index(interval, days)
+        rng = np.random.default_rng(zlib.crc32(symbol.encode()) ^ self.seed)
+        x, close = 0.0, np.empty(n)
+        for t in range(n):
+            x = 0.92 * x + 0.0003 * rng.standard_normal()
+            if rng.random() < 0.0025:                         # choque puntual de peg que luego revierte
+                x -= rng.uniform(0.003, 0.012)
+            close[t] = 1.0 + x
+        open_ = np.concatenate([[1.0], close[:-1]])
+        wick = np.abs(rng.standard_normal(n)) * 0.0002
+        return pd.DataFrame({"open": open_, "high": np.maximum(open_, close) + wick,
+                             "low": np.minimum(open_, close) - wick, "close": close,
+                             "volume": np.exp(rng.normal(12, 0.4, n))}, index=pd.Index(idx, name="ts"))
+
+    def _perp(self, symbol: str, interval: str, days: int) -> pd.DataFrame:
+        spot = self.history(symbol.split("~")[0], interval, days)
+        rng = np.random.default_rng(zlib.crc32(symbol.encode()) ^ self.seed)
+        n = len(spot)
+        basis, level = 0.0003, 0.0001
+        b = np.empty(n)
+        fund = np.full(n, np.nan)
+        for t in range(n):
+            basis = 0.9 * basis + 0.1 * 0.0003 + 0.0002 * rng.standard_normal()
+            b[t] = basis
+            if (int(spot.index[t]) // 3_600_000) % 8 == 0:    # liquidación cada 8 h (00, 08, 16 UTC)
+                level = 0.97 * level + 0.03 * 0.0001 + 0.00005 * rng.standard_normal()
+                if rng.random() < 0.01:                       # regímenes de funding alto / negativo
+                    level += rng.choice([0.0004, -0.0003])
+                fund[t] = float(np.clip(level + 0.3 * basis, -0.0005, 0.0010))
+        mult = 1.0 + b
+        out = spot.copy()
+        for c in ("open", "high", "low", "close"):
+            out[c] = spot[c].to_numpy() * mult
+        out["funding"] = fund
+        return out
+
+    RAIL_VENUES = {"bitso": 0.0006, "binance": 0.00005, "kucoin": 0.0002}
+
+    def _rail(self, symbol: str, interval: str, days: int) -> pd.DataFrame:
+        base = self.history("XRPUSDT", interval, days)
+        rng = np.random.default_rng(zlib.crc32(symbol.encode()) ^ self.seed)
+        n, px = len(base), base["close"].to_numpy()
+        out = base.copy()
+        for v, half in self.RAIL_VENUES.items():
+            off = 0.0002 * rng.standard_normal(n)
+            if v == "bitso":                                  # Bitso a veces se desalinea (raro): oportunidades escasas
+                shock = (rng.random(n) < 0.01) * rng.choice([-1, 1], n) * rng.uniform(0.004, 0.012, n)
+                off = off + shock
+            mid = px * (1 + off)
+            out[f"{v}_bid"], out[f"{v}_ask"] = mid * (1 - half), mid * (1 + half)
+            out[f"{v}_bq"], out[f"{v}_aq"] = 20_000.0 + 0 * mid, 20_000.0 + 0 * mid
+        out["bitso_mxn_gap"] = 0.0015 * rng.standard_normal(n)
+        return out
 
 
 # ======================================================================================

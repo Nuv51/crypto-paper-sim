@@ -8,13 +8,14 @@ Códigos de salida de run_step: 0 ok · 1 error inesperado · 2 sin datos/red (e
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from pathlib import Path
 from typing import Optional
 
 from . import metrics
-from .data import BinanceFeed, SyntheticFeed, INTERVAL_MS
+from .data import MarketFeed, SyntheticFeed, INTERVAL_MS
 from .engine import Engine
 from .export import build_dashboard
 from .ledger import Ledger
@@ -24,6 +25,12 @@ WINDOW = 700
 
 class DataUnavailable(Exception):
     pass
+
+
+def config_signature(bots_cfg: list[dict], capital: float) -> str:
+    """Huella de la configuración. Si cambia a mitad de una simulación, no se mezclan resultados de reglas distintas."""
+    blob = json.dumps({"capital": capital, "bots": bots_cfg}, sort_keys=True, default=str)
+    return hashlib.sha256(blob.encode()).hexdigest()[:16]
 
 
 def _write(path: Path, obj) -> None:
@@ -45,7 +52,7 @@ def _frames(feed, source: str, symbols: list[str], interval: str, ledger: Ledger
             time.sleep(getattr(feed, "pause", 0))
         return frames
     except Exception as e:
-        raise DataUnavailable(f"No pude leer velas de Binance: {type(e).__name__}: {e}") from e
+        raise DataUnavailable(f"No pude leer datos de mercado: {type(e).__name__}: {e}") from e
 
 
 def run_step(bots_cfg: list[dict], interval: str, capital: float, state_path: Optional[str], out_dir: str,
@@ -59,7 +66,7 @@ def run_step(bots_cfg: list[dict], interval: str, capital: float, state_path: Op
         Path(str(db) + ext).unlink(missing_ok=True)
     ledger, code = None, 1
     try:
-        feed = feed or (SyntheticFeed(seed=seed) if source == "synthetic" else BinanceFeed(cache_dir=out / "cache"))
+        feed = feed or (SyntheticFeed(seed=seed) if source == "synthetic" else MarketFeed(cache_dir=out / "cache"))
         label = feed.label
         ledger = Ledger(db)
         sp = Path(state_path) if state_path else None
@@ -69,6 +76,13 @@ def run_step(bots_cfg: list[dict], interval: str, capital: float, state_path: Op
             prev = ledger.get_meta("source")
             if prev and prev != label:
                 raise ValueError(f"El estado guardado viene de '{prev}' y esta corrida usa '{label}': no se mezclan fuentes")
+        sig = config_signature(bots_cfg, capital)
+        if resumed:
+            prev_sig = ledger.get_meta("config_sig")
+            if prev_sig and prev_sig != sig:
+                raise ValueError(f"La configuración de los bots cambió desde que empezó esta simulación ({prev_sig} → {sig}). "
+                                 "Para no mezclar resultados de reglas distintas, reinicia con fresh=true")
+        ledger.set_meta("config_sig", sig)
         eng = Engine(ledger, bots_cfg, capital, interval)
         if resumed:
             if not eng.has_saved_state():

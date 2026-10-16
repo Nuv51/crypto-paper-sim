@@ -34,7 +34,7 @@ DARK = dict(text="#f0efec", text2="#c3c2b7", grid="rgba(195,194,183,0.18)", neut
 
 STATUS_LABEL = {"active": "Activo", "paused": "En pausa", "halted": "Detenido (revisión manual)"}
 SIDE_LABEL = {"buy": "Compra", "sell": "Venta"}
-KIND_LABEL = {"market": "Mercado", "limit": "Límite"}
+KIND_LABEL = {"market": "Mercado", "limit": "Límite", "perp": "Perpetuo", "funding": "Funding", "arb": "Arbitraje"}
 
 
 # ----------------------------------------------------------------------------------------- utilidades
@@ -334,7 +334,7 @@ def render(db_path: str) -> None:
     # ====================================================================== Tendencias
     with tabs[4]:
         st.warning(DISCLAIMER)
-        syms = sorted(bars.symbol.unique())
+        syms = sorted(s_ for s_ in bars.symbol.unique() if "~" not in s_)    # las fuentes "~" no son un mercado para graficar
         c1, c2, c3 = st.columns(3)
         sym = c1.selectbox("Moneda", syms)
         horizon = c2.selectbox("Horizonte (barras)", [12, 24, 48, 72], index=1)

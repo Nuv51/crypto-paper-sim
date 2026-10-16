@@ -6,6 +6,7 @@ Cifras verificadas el 2026-10-14 en las páginas oficiales (usuario regular, sin
            (las monedas Clase B/C pagan más: 0.16% / 0.24% en el nivel base)
   Bitso    mercado MXN,  tier < 20,000 : maker 0.600% / taker 0.780%
   Bitso    mercado USDT, tier < 1,000  : maker 0.300% / taker 0.360%
+  KuCoin   futuros USDT-M (perpetuo)   : taker 0.060% / maker 0.020% (nivel base; se usa en el bot de carry)
 
 Las comisiones bajan con el volumen a 30 días y cambian con el tiempo: revísalas antes de sacar
 conclusiones. Un edge de 0.3% por operación desaparece con un taker de 0.78%.
@@ -41,6 +42,9 @@ EXCHANGES: dict[str, ExchangeProfile] = {
     "bitso_usdt": ExchangeProfile(
         "bitso_usdt", "Bitso (mercado USDT)", 0.0030, 0.0036, 5.0,
         "Tier < 1,000 USDT"),
+    "cross": ExchangeProfile(
+        "cross", "Bitso ↔ Binance/KuCoin", 0.0030, 0.0036, 5.0,
+        "Arbitraje entre exchanges: las comisiones de cada pata están en los parámetros del bot (Bitso USDT / Binance / KuCoin)"),
 }
 
 

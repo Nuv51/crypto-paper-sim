@@ -1,19 +1,26 @@
 name: simulate
 
-# Corre el simulador (dinero FICTICIO) en horario y guarda estado + tablero en la rama `sim-data`.
+# Corre el simulador (dinero FICTICIO) cada hora y guarda estado + tablero en la rama `sim-data`.
+# Los bots deciden al CIERRE de cada vela de 1 h; si una corrida se retrasa o falla, la siguiente procesa
+# todas las velas pendientes en orden, así que el resultado no depende de cuándo corre.
 on:
   schedule:
-    - cron: "17 */6 * * *"        # cada 6 horas (UTC), al minuto 17
+    - cron: "7 * * * *"           # cada hora (UTC), al minuto 7 (las velas de 1 h ya cerraron)
   workflow_dispatch:
     inputs:
       source:
-        description: "Fuente de datos: binance (real) o synthetic (inventados, solo pruebas)"
+        description: "Fuente de datos: binance (mercado real) o synthetic (inventados, solo pruebas)"
         default: "binance"
         type: choice
         options: [binance, synthetic]
+      fresh:
+        description: "Reiniciar la simulación desde cero (necesario si cambias bots o parámetros)"
+        default: false
+        type: boolean
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: simulate
@@ -25,6 +32,7 @@ jobs:
     timeout-minutes: 15
     env:
       SOURCE: ${{ github.event.inputs.source || 'binance' }}
+      FRESH: ${{ github.event.inputs.fresh || 'false' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -40,7 +48,7 @@ jobs:
         run: |
           URL="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
           if git ls-remote --exit-code --heads "$URL" sim-data >/dev/null 2>&1; then
-            git clone --quiet --depth 1 --branch sim-data "$URL" store
+            git clone --quiet --branch sim-data "$URL" store
           else
             mkdir store && git -C store init --quiet -b sim-data && git -C store remote add origin "$URL"
           fi
@@ -49,9 +57,11 @@ jobs:
         id: sim
         run: |
           set +e
-          SUMMARY_FILE="$RUNNER_TEMP/summary.txt" STORE=store bash scripts/ci_run.sh
+          SUMMARY_FILE="$RUNNER_TEMP/summary.txt" NOTIFY_FILE="$RUNNER_TEMP/notify.txt" TABLE_FILE="$RUNNER_TEMP/table.md" \
+            STORE=store bash scripts/ci_run.sh
           echo "code=$?" >> "$GITHUB_OUTPUT"
-          { echo "### Simulador (${SOURCE})"; echo; cat "$RUNNER_TEMP/summary.txt"; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "### Simulador (${SOURCE})"; echo; cat "$RUNNER_TEMP/summary.txt"; echo; cat "$RUNNER_TEMP/table.md";
+            if [ -s "$RUNNER_TEMP/notify.txt" ]; then echo; echo '**Novedades**'; echo; echo '```'; cat "$RUNNER_TEMP/notify.txt"; echo '```'; fi; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Guardar estado y tablero en sim-data
         if: always()
@@ -62,18 +72,40 @@ jobs:
           git add -A
           if git diff --cached --quiet; then echo "Sin cambios"; else
             git commit --quiet -m "simulador (${SOURCE}): $(head -c 120 "$RUNNER_TEMP/summary.txt")"
-            git push --quiet origin sim-data
+            # el historial de git de esta rama no hace falta (el estado completo va en ledger.json): se compacta
+            # cada ~300 commits para que el repositorio no crezca sin límite
+            if [ "$(git rev-list --count HEAD)" -gt 300 ]; then
+              git checkout --quiet --orphan compact
+              git commit --quiet -m "simulador: historial compactado"
+              git branch -M sim-data
+              git push --quiet --force origin sim-data
+            else
+              git push --quiet origin sim-data
+            fi
           fi
 
-      - name: Aviso al celular (opcional, ntfy)
+      - name: Aviso al celular (ntfy) · operaciones nuevas o falla
         if: always()
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          CODE: ${{ steps.sim.outputs.code }}
         run: |
-          if [ -n "$NTFY_TOPIC" ] && [ -f "$RUNNER_TEMP/summary.txt" ]; then
-            curl -fsS -H "Title: Simulador cripto (${SOURCE}) · dinero ficticio" \
+          [ -z "$NTFY_TOPIC" ] && exit 0
+          PAGES="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/${SOURCE}/"
+          if [ "$CODE" != "0" ]; then
+            curl -fsS -H "Title: Simulador cripto - FALLO" -H "Priority: high" -H "Tags: warning" \
                  -d "$(cat "$RUNNER_TEMP/summary.txt")" "https://ntfy.sh/${NTFY_TOPIC}" || true
+          elif [ -s "$RUNNER_TEMP/notify.txt" ]; then
+            curl -fsS -H "Title: Simulador cripto - operaciones (dinero ficticio)" -H "Tags: chart_with_upwards_trend" \
+                 -H "Click: ${PAGES}" -d "$(cat "$RUNNER_TEMP/notify.txt")" "https://ntfy.sh/${NTFY_TOPIC}" || true
           fi
+
+      - name: Mantener activo el flujo programado (mejor esfuerzo)
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/simulate.yml/enable" || true
 
       - name: Marcar fallo si el simulador no corrió
         if: steps.sim.outputs.code != '0'

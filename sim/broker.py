@@ -12,6 +12,10 @@ Reglas de ejecución (todas conservadoras, para no inflar resultados):
 Contabilidad: el costo promedio de cada posición INCLUYE la comisión de compra, y el P&L realizado
 de una venta descuenta la comisión de venta. Por eso siempre se cumple:
     equity = efectivo_inicial + P&L_realizado + P&L_no_realizado
+
+Patas fuera de la cartera spot (perpetuo corto del bot de carry, capturas del bot de arbitraje, funding):
+las registra el propio bot con `book()` (movimiento de efectivo = P&L realizado, la identidad se conserva) y su
+valor no realizado entra en `extra_value`. Aparecen en el historial como operaciones de tipo perp/funding/arb.
 """
 from __future__ import annotations
 
@@ -82,6 +86,8 @@ class PaperWallet:
         self.fees_paid = 0.0
         self._next_id = 1
         self._events: list[tuple[str, str]] = []
+        self.extra_value = 0.0                 # P&L no realizado de patas fuera de la cartera spot (p.ej. perpetuo)
+        self._extra_fills: list["Fill"] = []
 
     # ------------------------------------------------------------------ consultas
     def pos(self, symbol: str) -> Position:
@@ -109,10 +115,28 @@ class PaperWallet:
         return self.pos(symbol).qty - self.reserved_qty(symbol)
 
     def equity(self, marks: dict[str, float]) -> float:
-        return self.cash + sum(p.qty * marks[s] for s, p in self.positions.items() if p.qty > 0)
+        return self.cash + self.extra_value + sum(p.qty * marks[s] for s, p in self.positions.items() if p.qty > 0)
 
     def unrealized(self, marks: dict[str, float]) -> float:
-        return sum(p.qty * (marks[s] - p.avg_cost) for s, p in self.positions.items() if p.qty > 0)
+        return self.extra_value + sum(p.qty * (marks[s] - p.avg_cost) for s, p in self.positions.items() if p.qty > 0)
+
+    # ------------------------------------------------------------------ registro de patas sintéticas
+    def book(self, ts: int, symbol: str, side: str, kind: str, qty: float, price: float,
+             fee: float = 0.0, realized: float = 0.0, reason: str = "", tag: str = "") -> "Fill":
+        """Registra un movimiento fuera de la cartera spot. `realized` ya incluye la comisión (la resta);
+        el efectivo se mueve exactamente por `realized`, así la identidad contable se conserva."""
+        self.cash += realized
+        self.realized_pnl += realized
+        self.fees_paid += fee
+        f = Fill(ts=ts, bot_id=self.bot_id, exchange=self.profile.key, order_id=0, symbol=symbol, side=side,
+                 kind=kind, qty=qty, price=price, notional=qty * price, fee=fee, realized_pnl=realized,
+                 reason=reason, tag=tag)
+        self._extra_fills.append(f)
+        return f
+
+    def drain_extra_fills(self) -> list["Fill"]:
+        out, self._extra_fills = self._extra_fills, []
+        return out
 
     # ------------------------------------------------------------------ eventos
     def _event(self, level: str, msg: str) -> None:
@@ -252,7 +276,7 @@ class PaperWallet:
         return {
             "cash": self.cash, "initial_cash": self.initial_cash,
             "realized_pnl": self.realized_pnl, "fees_paid": self.fees_paid,
-            "next_id": self._next_id,
+            "next_id": self._next_id, "extra_value": self.extra_value,
             "positions": {s: [p.qty, p.avg_cost] for s, p in self.positions.items()},
             "orders": [asdict(o) for o in self.orders],
         }
@@ -263,5 +287,6 @@ class PaperWallet:
         self.realized_pnl = d["realized_pnl"]
         self.fees_paid = d["fees_paid"]
         self._next_id = d["next_id"]
+        self.extra_value = d.get("extra_value", 0.0)
         self.positions = {s: Position(q, a) for s, (q, a) in d["positions"].items()}
         self.orders = [Order(**o) for o in d["orders"]]

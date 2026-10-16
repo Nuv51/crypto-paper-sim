@@ -96,7 +96,7 @@ class _DownFeed:
 
 def test_network_failure_leaves_state_untouched(tmp_path):
     code, st = step(tmp_path, "down", None, source="binance", feed=_DownFeed())
-    assert code == 2 and not st["ok"] and "No pude leer velas" in st["message"]
+    assert code == 2 and not st["ok"] and "No pude leer datos de mercado" in st["message"]
     assert not (tmp_path / "down" / "ledger.json").exists()                 # no se publica estado a medias
     assert json.loads((tmp_path / "down" / "status.json").read_text())["ok"] is False
 
@@ -124,7 +124,7 @@ def test_dashboard_json_is_strict_and_complete(tmp_path):
     assert len(d["series"]["total"]) == n and len(d["series"]["drawdown_total"]) == n
     assert {b["id"] for b in d["bots"]} == {b["id"] for b in config.BOTS}
     assert d["synthetic"] is True and d["kpis"]["reserve"] == pytest.approx(CAP - d["kpis"]["capital"])
-    syms = sorted({s for b in config.BOTS for s in b["symbols"]})
+    syms = sorted({s for b in config.BOTS for s in b["symbols"] if "~" not in s})     # las fuentes "~" no se grafican
     assert sorted(d["prices"]) == syms
     assert sorted(d["forecasts"]) == syms, "faltan estimaciones de tendencia"
     f = d["forecasts"][syms[0]]["h"]["24"]

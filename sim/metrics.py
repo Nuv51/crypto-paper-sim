@@ -46,9 +46,10 @@ def bot_summary(bots: pd.DataFrame, trades: pd.DataFrame, equity: pd.DataFrame) 
         bid = b["bot_id"]
         e = equity[equity.bot_id == bid]
         t = trades[trades.bot_id == bid]
-        sells = t[t.side == "sell"]
+        sells = t[(t.side == "sell") & (t.kind != "funding")]          # cierres (el funding cobrado no es un cierre)
         wins, losses = sells[sells.realized_pnl > 0], sells[sells.realized_pnl < 0]
-        gp, gl = float(wins.realized_pnl.sum()), float(-losses.realized_pnl.sum())
+        gp = float(t.realized_pnl[t.realized_pnl > 0].sum())           # incluye funding, perpetuo y arbitraje
+        gl = float(-t.realized_pnl[t.realized_pnl < 0].sum())
         last = e.iloc[-1] if len(e) else None
         eq_now = float(last.equity) if last is not None else float(b["capital"])
         rows.append({

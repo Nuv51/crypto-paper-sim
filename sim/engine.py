@@ -2,7 +2,8 @@
 (una barra nueva cada hora, con estado persistido para pausar/reanudar).
 
 Orden dentro de cada barra, para cada bot (sin mirar al futuro):
-   1) se ejecutan las órdenes pendientes contra la barra (mercado a la apertura, límite si el precio las cruza)
+   1) se ejecutan las órdenes pendientes contra la barra (mercado a la apertura, límite si el precio las cruza);
+      luego `bot.mark` registra las patas fuera de spot (perpetuo, funding, capturas de arbitraje)
    2) se valora el portafolio al cierre y se registra el equity
    3) control de riesgo (drawdown máximo -> liquidar / pausar / avisar)
    4) la estrategia decide con la información hasta el cierre de esta barra
@@ -131,6 +132,9 @@ class Engine:
                                          f.price, f.notional, f.fee, f.realized_pnl, f.reason, f.tag))
                     bot.on_fill(f, ctx)
 
+            bot.mark(ctx, rows)                                       # 1b) patas fuera de spot (perp, funding, arb)
+            self._drain_extra(w)
+
             marks = {s: rows[s][3] for s in bot.symbols}              # 2) valoración
             eq = w.equity(marks)
             rt.peak = max(rt.peak, eq)
@@ -140,9 +144,15 @@ class Engine:
 
             if rt.status == "active" and i >= bot.warmup:             # 4) estrategia
                 bot.on_bar(ctx)
+                self._drain_extra(w)
 
             for lvl, msg in w.drain_events():
                 self._events.append((ts, bid, lvl, msg))
+
+    def _drain_extra(self, w: PaperWallet) -> None:
+        for f in w.drain_extra_fills():
+            self._trades.append((f.ts, f.bot_id, f.exchange, f.symbol, f.side, f.kind, f.qty,
+                                 f.price, f.notional, f.fee, f.realized_pnl, f.reason, f.tag))
 
     def _risk_check(self, rt: BotRuntime, ctx: Ctx, eq: float) -> None:
         rk, bot, ts = rt.bot.risk, rt.bot, ctx.ts
