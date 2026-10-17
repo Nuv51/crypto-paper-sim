@@ -138,7 +138,7 @@ Guarda en la rama **`sim-data`**: `binance/state/ledger.json` (estado), `binance
   Además del portafolio, BTC y ETH, el gráfico de crecimiento incluye **Mercado**: un índice ponderado por capitalización de
   las 10 mayores monedas no estables de Binance (suministros aproximados fijos en `sim/cloud.py`; es una referencia, no el
   total oficial del mercado). Summary también muestra el **índice de miedo y codicia** (alternative.me, dato externo diario,
-  opcional: si no responde, la tarjeta lo dice). Las primeras gráficas de Resumen, P&L y Riesgo son **por estrategia**.
+  opcional: si no responde, la tarjeta lo dice). Las primeras gráficas de Rendimiento, P&L y Riesgo son **por estrategia**.
   La pestaña Bots agrupa los bots por tipo de estrategia. Las familias de estrategia están en `sim/export.py` (`FAMILIES`), no en `config.py`, para que reagrupar
   no cambie la huella de configuración ni reinicie la simulación.
 - **Historial de la rama de datos:** se compacta solo cada ~300 corridas (el estado completo va en `ledger.json`).
