@@ -124,7 +124,8 @@ def _sample_idx(n: int, max_points: int) -> np.ndarray:
 
 
 def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars: int = 336,
-                    trade_limit: int = 2000, event_limit: int = 80, benchmarks: dict | None = None) -> dict:
+                    trade_limit: int = 2000, event_limit: int = 80, benchmarks: dict | None = None,
+                    fear_greed: dict | None = None) -> dict:
     meta, bots, trades, equity, bars, events = (data[k] for k in ("meta", "bots", "trades", "equity", "bars", "events"))
     interval = meta.get("interval", "1h")
     bar_ms = INTERVAL_MS.get(interval, 3_600_000)
@@ -273,6 +274,17 @@ def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars:
         "drawdown": {c: dd_full[c].to_numpy()[idx].round(4) for c in wide.columns},
         "drawdown_total": dd_total.to_numpy()[idx].round(4),
     }
+    fam_series = {}
+    for key, name, _kinds, _desc in FAMILIES + [("otros", "Otros", (), "")]:
+        members = [c for c in wide.columns if family_of(c) == key]
+        if not members:
+            continue
+        fe = wide[members].sum(axis=1)
+        fcap = float(cap[members].sum())
+        fam_series[key] = {"capital": fcap, "equity": fe.to_numpy()[idx].round(4),
+                           "realized": realized[[c for c in members if c in realized.columns]].sum(axis=1).to_numpy()[idx].round(4),
+                           "drawdown": ((fe / fe.cummax() - 1) * 100).to_numpy()[idx].round(4)}
+    series["family"] = fam_series
     if mkt_cum is not None:                   # acumulados desde el inicio; la página los resta entre dos fechas
         series["market_cum"] = mkt_cum.to_numpy()[idx].round(4)
         series["own_cum"] = own_cum.to_numpy()[idx].round(4)
@@ -320,6 +332,8 @@ def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars:
         "events": ev[["ts", "bot_id", "level", "message"]].to_numpy(dtype=object).tolist(),
         "overlap": overlap, "prices": prices, "forecasts": forecasts,
     }
-    if benchmarks:                       # historia de BTC y ETH para comparar en periodos largos (opcional)
+    if benchmarks:                       # historia de BTC, ETH y del índice de mercado para periodos largos (opcional)
         out["benchmarks"] = benchmarks
+    if fear_greed:                       # sentimiento general del mercado cripto (opcional, fuente externa)
+        out["fear_greed"] = fear_greed
     return _j(out)

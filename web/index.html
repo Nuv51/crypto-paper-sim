@@ -108,6 +108,15 @@ h2 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
 .rkc { display: flex; flex-direction: column; gap: 5px; min-width: 150px; }
 .rkt { font: 400 11.5px var(--mono); color: var(--ink2); font-variant-numeric: tabular-nums; }
 .rkt b { font-weight: 600; }
+.fg-top { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+.fg-v { font: 600 34px/1 var(--font); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.fg-l { font: 500 14px var(--font); color: var(--ink2); }
+.fg-bar { position: relative; height: 10px; border-radius: 5px; margin: 0 2px;
+  background: linear-gradient(90deg, var(--div-red) 0%, color-mix(in srgb, var(--div-red) 35%, var(--div-mid)) 30%, var(--div-mid) 50%, color-mix(in srgb, var(--div-blue) 35%, var(--div-mid)) 70%, var(--div-blue) 100%); }
+.fg-bar i { position: absolute; top: -5px; width: 5px; height: 20px; border-radius: 3px; background: var(--ink); border: 2px solid var(--surface); transform: translateX(-50%); box-sizing: border-box; }
+.fg-sc { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 11px; color: var(--muted); }
+.fg-h { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 14px 0 0; padding: 0; list-style: none; font: 400 12px var(--mono); color: var(--ink2); }
+.fg-h b { font-weight: 600; color: var(--ink); }
 .verdict { margin: 0 0 12px; font-size: 13px; color: var(--ink2); line-height: 1.45; }
 .verdict b { color: var(--ink); }
 .reason { font-size: 12px; color: var(--ink2); background: var(--surface2); border-radius: 6px; padding: 6px 8px; }
@@ -528,17 +537,18 @@ function growthCard(d, st, w) {
   var K = d.kpis, S = d.series, B = d.benchmarks && d.benchmarks.BTCUSDT ? d.benchmarks : null, hist = Math.max(0, K.last_ts - K.first_ts);
   var per = PERIODS.filter(function (p) { return p[0] === st.smPer; })[0] || PERIODS[5];
   if (!B && per[2]) per = PERIODS[5];                       /* sin historia de mercado solo existe "Inicio" */
-  var span = periodSpan(per, K), havePort = !per[2] || hist >= span - d.bar_ms, xs, btc = null, eth = null, port = null;
+  var span = periodSpan(per, K), havePort = !per[2] || hist >= span - d.bar_ms, xs, btc = null, eth = null, mkt = null, port = null;
   if (B) {
     var ref = benchFor(B, 'BTCUSDT', span), i0 = idxAtOrBefore(ref.ts, per[2] ? K.last_ts - span : K.first_ts);
     if (i0 < 0) i0 = 0;
     xs = ref.ts.slice(i0);
     var b0 = ref.px[i0]; btc = ref.px.slice(i0).map(function (v) { return (v / b0 - 1) * 100; });
-    var es = benchFor(B, 'ETHUSDT', span);
-    if (es) {
-      var e0i = idxAtOrBefore(es.ts, xs[0]), e0 = es.px[e0i < 0 ? 0 : e0i];
-      eth = xs.map(function (g) { var k = idxAtOrBefore(es.ts, g); return k < 0 ? null : (es.px[k] / e0 - 1) * 100; });
-    }
+    var rebased = function (sym) {                            /* serie de otro activo, en % desde el primer punto de xs */
+      var o = benchFor(B, sym, span); if (!o) return null;
+      var i0 = idxAtOrBefore(o.ts, xs[0]), v0 = o.px[i0 < 0 ? 0 : i0];
+      return xs.map(function (g) { var k = idxAtOrBefore(o.ts, g); return k < 0 ? null : (o.px[k] / v0 - 1) * 100; });
+    };
+    eth = rebased('ETHUSDT'); mkt = rebased('MARKET');
   } else {
     xs = S.ts;
     if (S.btc && fin(S.btc[0])) btc = S.btc.map(function (v) { return (v / S.btc[0] - 1) * 100; });
@@ -551,9 +561,10 @@ function growthCard(d, st, w) {
   if (port) sp.push({ key: 'sm_port', name: 'Portafolio', color: 'var(--s1)', width: 2.5, ys: port });
   if (btc) sp.push({ key: 'sm_btc', name: 'Bitcoin', color: 'var(--s2)', dash: '5 4', ys: btc });
   if (eth) sp.push({ key: 'sm_eth', name: 'Ethereum', color: 'var(--s3)', dash: '1.5 3.5', ys: eth });
-  var rows = PERIODS.map(function (p) { return { p: p, port: portRet(d, p), btc: B ? benchRet(B, 'BTCUSDT', p, K) : (p[2] ? null : K.btc_ret), eth: B ? benchRet(B, 'ETHUSDT', p, K) : null }; });
+  if (mkt) sp.push({ key: 'sm_mkt', name: 'Mercado (top 10)', color: 'var(--s7)', dash: '9 3 2 3', ys: mkt });
+  var rows = PERIODS.map(function (p) { return { p: p, port: portRet(d, p), btc: B ? benchRet(B, 'BTCUSDT', p, K) : (p[2] ? null : K.btc_ret), eth: B ? benchRet(B, 'ETHUSDT', p, K) : null, mkt: B && B.MARKET ? benchRet(B, 'MARKET', p, K) : null }; });
   var cur = rows.filter(function (r) { return r.p === per; })[0];
-  var head = [port ? 'Portafolio ' + sgn(cur.port, 2, '%') : null, btc ? 'BTC ' + sgn(cur.btc, 2, '%') : null, eth ? 'ETH ' + sgn(cur.eth, 2, '%') : null].filter(Boolean).join(' · ');
+  var head = [port ? 'Portafolio ' + sgn(cur.port, 2, '%') : null, btc ? 'BTC ' + sgn(cur.btc, 2, '%') : null, eth ? 'ETH ' + sgn(cur.eth, 2, '%') : null, mkt ? 'Mercado ' + sgn(cur.mkt, 2, '%') : null].filter(Boolean).join(' · ');
   var seg = '<div class="sm-ctrl"><span class="seg" role="group" aria-label="Periodo">' + PERIODS.map(function (p) {
     var off = !B && p[2];
     return '<button type="button" data-smper="' + p[0] + '" aria-pressed="' + (p === per) + '"' + (off ? ' disabled title="Disponible tras la próxima corrida"' : '') + '>' + esc(p[1]) + '</button>';
@@ -562,11 +573,11 @@ function growthCard(d, st, w) {
   if (!havePort) note = '<p class="hint" style="margin-bottom:6px">El portafolio lleva ' + nf(hist / DAY_MS, 1) + ' días corriendo y este periodo pide ' + nf(span / DAY_MS, 0) + (span / DAY_MS === 1 ? ' día' : ' días') + ': por ahora solo se muestran Bitcoin y Ethereum. El portafolio aparece cuando tenga ese historial.</p>';
   else if (!B) note = '<p class="hint" style="margin-bottom:6px">Los periodos Día a Año y la línea de Ethereum aparecen tras la próxima corrida del simulador (necesitan historia de mercado).</p>';
   var cell = function (v) { return v == null ? '<td class="n" title="Sin historial suficiente">—</td>' : '<td class="n">' + sgn(v, 2, '%') + '</td>'; };
-  var tbl = '<div class="tw" style="margin-top:10px"><table class="cmp"><thead><tr><th>Periodo</th><th class="n">Portafolio</th><th class="n">Bitcoin</th><th class="n">Ethereum</th></tr></thead><tbody>' + rows.map(function (r) {
-    return '<tr' + (r.p === per ? ' class="cur"' : '') + '><td>' + esc(r.p[2] ? r.p[1] : 'Inicio (' + nf(hist / DAY_MS, 1) + ' d)') + '</td>' + cell(r.port) + cell(r.btc) + cell(r.eth) + '</tr>';
-  }).join('') + '</tbody></table></div><p class="hint" style="margin-top:6px">— = el portafolio aún no lleva ese tiempo corriendo (no se inventa historial). Bitcoin y Ethereum: comprar y mantener, sin comisiones.</p>';
-  return '<section class="sm-card"><h2>Crecimiento: portafolio vs Bitcoin y Ethereum <span class="r">' + esc(head) + '</span></h2>' + seg + note + legendHtml(sp, st.hidden) +
-    lineChart({ id: 'c-sm', w: Math.max(260, w - 30), h: 240, xs: xs, series: sp, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Crecimiento porcentual del portafolio, Bitcoin y Ethereum en el periodo ' + per[1], yw: 46 }) + tbl + '</section>';
+  var tbl = '<div class="tw" style="margin-top:10px"><table class="cmp"><thead><tr><th>Periodo</th><th class="n">Portafolio</th><th class="n">Bitcoin</th><th class="n">Ethereum</th>' + (B && B.MARKET ? '<th class="n">Mercado</th>' : '') + '</tr></thead><tbody>' + rows.map(function (r) {
+    return '<tr' + (r.p === per ? ' class="cur"' : '') + '><td>' + esc(r.p[2] ? r.p[1] : 'Inicio (' + nf(hist / DAY_MS, 1) + ' d)') + '</td>' + cell(r.port) + cell(r.btc) + cell(r.eth) + (B && B.MARKET ? cell(r.mkt) : '') + '</tr>';
+  }).join('') + '</tbody></table></div><p class="hint" style="margin-top:6px">— = el portafolio aún no lleva ese tiempo corriendo (no se inventa historial). Bitcoin, Ethereum y Mercado: comprar y mantener, sin comisiones.' + (B && B.MARKET ? ' <b>Mercado</b> = índice ponderado por capitalización de las 10 mayores monedas no estables de Binance (BTC, ETH, XRP, BNB, SOL, DOGE, ADA, TRX, AVAX, LINK; suministros aproximados). Es una referencia del mercado, no el total oficial.' : '') + '</p>';
+  return '<section class="sm-card"><h2>Crecimiento: portafolio vs Bitcoin, Ethereum y el mercado <span class="r">' + esc(head) + '</span></h2>' + seg + note + legendHtml(sp, st.hidden) +
+    lineChart({ id: 'c-sm', w: Math.max(260, w - 30), h: 240, xs: xs, series: sp, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Crecimiento porcentual del portafolio, Bitcoin, Ethereum y el mercado en el periodo ' + per[1], yw: 46 }) + tbl + '</section>';
 }
 
 /* ------------------------------------------------------------------ riesgo: cercanía al límite y mercado vs bots */
@@ -594,6 +605,22 @@ function riskCell(b) {
   if (r.level === 'halted') return '<span class="rkt">Detenido</span>';
   var txt = nf(r.dd * 100, 1) + '% de ' + nf(r.limit * 100, 0) + '% · <b>' + nf(r.used * 100, 0) + '%</b> del límite';
   return '<div class="rkc">' + rkBar(r.used, r.level, 'Usa ' + nf(r.used * 100, 0) + '% de su límite de drawdown') + '<span class="rkt">' + txt + ' · ' + esc(LEVEL[r.level] || '') + '</span></div>';
+}
+var FNG_NOTE = 'Índice de alternative.me sobre el sentimiento del mercado cripto en general (mezcla volatilidad, momentum, redes sociales, dominancia y búsquedas; se publica una vez al día). Es un dato externo y no es una señal de compra o venta.';
+function fngCard(d) {
+  var g = d.fear_greed;
+  if (!g || !fin(g.value)) return '<section class="sm-card"><h2>Miedo y codicia del mercado</h2><p class="hint">No disponible por ahora: depende de una fuente externa (alternative.me) y aparece cuando responda en una corrida.</p></section>';
+  var cmp = function (l, o) {
+    if (!o || !fin(o.value)) return '';
+    var dl = g.value - o.value;
+    return '<li>' + l + ' <b>' + o.value + '</b> <span>' + (dl === 0 ? '=' : (dl > 0 ? '▲' : '▼') + Math.abs(dl)) + '</span></li>';
+  };
+  return '<section class="sm-card"><h2>Miedo y codicia del mercado <span class="r">' + esc(fmtDT(g.ts).slice(0, 10)) + '</span></h2>' +
+    '<div class="fg-top"><span class="fg-v">' + g.value + '</span><span class="fg-l">' + esc(g.label) + ' · de 100</span></div>' +
+    '<div class="fg-bar" role="img" aria-label="Índice de miedo y codicia: ' + g.value + ' de 100, ' + esc(g.label) + '"><i style="left:' + Math.max(1, Math.min(99, g.value)) + '%"></i></div>' +
+    '<div class="fg-sc"><span>0 · Miedo extremo</span><span>50</span><span>Codicia extrema · 100</span></div>' +
+    '<ul class="fg-h">' + cmp('Ayer', g.yesterday) + cmp('Hace 1 sem.', g.week) + cmp('Hace 1 mes', g.month) + '</ul>' +
+    '<p class="hint" style="margin-top:10px">' + esc(FNG_NOTE) + '</p></section>';
 }
 function periodChoice(d, st) { return PERIODS.filter(function (p) { return p[0] === st.smPer; })[0] || PERIODS[5]; }
 /* cambio del portafolio en el periodo, partido en lo que puso el mercado y lo que pusieron los bots */
@@ -707,12 +734,20 @@ function panelSummary(d, st, w) {
     }) + '</section>';
   var cardLine = growthCard(d, st, w);
 
-  out += '<div class="sm-grid">' + attribCard(d, st) + '</div><div class="sm-grid three">' + cardStrat + cardBots + cardAssets + '</div><div class="sm-grid" style="align-items:start">' + cardFam + cardBotRet + '</div>' + cardLine;
+  out += '<div class="sm-grid" style="align-items:start">' + attribCard(d, st) + fngCard(d) + '</div><div class="sm-grid three">' + cardStrat + cardBots + cardAssets + '</div><div class="sm-grid" style="align-items:start">' + cardFam + cardBotRet + '</div>' + cardLine;
   out += '<p class="hint">Rendimiento = valor actual contra el capital asignado (ficticio). Bitcoin y Ethereum se miden sin comisiones, comprando y manteniendo. Con pocos días de datos, nada de esto es concluyente.</p>';
   if (F) out += '<details><summary>Cómo se agrupan las estrategias</summary><pre>' + esc(F.map(function (f) { return f.name + ': ' + f.bots.map(function (id) { return nm[id] || id; }).join(', '); }).join('\n')) + '</pre></details>';
   return out + '</div>';
 }
 
+/* una serie por estrategia (familia) a partir de las series que ya exporta Python; null si el JSON es antiguo */
+function famLines(d, field, map) {
+  var F = d.families, SF = d.series.family; if (!F || !SF) return null;
+  var out = F.filter(function (f) { return SF[f.key]; }).map(function (f) {
+    return { key: 'fam_' + f.key, name: f.name, color: FAMILY_COLOR[f.key] || 'var(--other)', ys: SF[f.key][field].map(function (v) { return map(v, SF[f.key]); }) };
+  });
+  return out.length ? out : null;
+}
 function panelResumen(d, st, w) {
   var K = d.kpis, cm = colorMap(d), S = d.series, cap = {};
   d.bots.forEach(function (b) { cap[b.id] = b.capital; });
@@ -725,11 +760,11 @@ function panelResumen(d, st, w) {
     kpi('Máx. drawdown portafolio', nf(K.max_dd, 2) + '%') + '</div>';
   out += '<p class="hint">Ganancia y pérdida histórica suman solo P&amp;L realizado (ventas); las posiciones abiertas se ven en el equity. El capital mostrado es el asignado a estos bots' + (fin(K.reserve) && K.reserve > 0.5 ? '; ' + nf(K.reserve, 0) + ' USDT quedan de reserva para los bots aún sin construir' : '') + '.' +
     (fin(K.btc_ret) ? ' Referencia: comprar y mantener BTC en el mismo periodo rindió ' + sgn(K.btc_ret, 2, '%') + ' (sin comisiones).' : '') + '</p>';
-  var series = d.bots.map(function (b) { return { key: b.id, name: b.name, color: cm[b.id], ys: S.equity[b.id].map(function (v) { return (v / cap[b.id] - 1) * 100; }) }; });
+  var series = famLines(d, 'equity', function (v, f) { return (v / f.capital - 1) * 100; }) || d.bots.map(function (b) { return { key: b.id, name: b.name, color: cm[b.id], ys: S.equity[b.id].map(function (v) { return (v / cap[b.id] - 1) * 100; }) }; });
   series.push({ key: '_total', name: 'Portafolio de bots', color: 'var(--ink)', width: 3, ys: S.total.map(function (v) { return (v / K.capital - 1) * 100; }) });
   if (S.btc && fin(S.btc[0])) series.push({ key: '_btc', name: 'BTC comprar y mantener', color: 'var(--ink2)', dash: true, ys: S.btc.map(function (v) { return (v / S.btc[0] - 1) * 100; }) });
-  out += '<div><h2>Rendimiento acumulado vs capital asignado</h2>' + legendHtml(series, st.hidden) +
-    lineChart({ id: 'c-equity', w: w, xs: S.ts, series: series, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Rendimiento acumulado por bot', yw: 50 }) + '</div>';
+  out += '<div><h2>Rendimiento acumulado por estrategia vs capital asignado</h2>' + legendHtml(series, st.hidden) +
+    lineChart({ id: 'c-equity', w: w, xs: S.ts, series: series, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Rendimiento acumulado por estrategia', yw: 50 }) + '</div>';
   out += '<div><h2>Estado y estrategia activa por bot</h2><div class="bots">' + d.bots.map(function (b) {
     var s = '<article class="bot"><header><h3><span class="sw" style="background:' + cm[b.id] + '"></span>' + esc(b.name) + '</h3>' + statusPill(b.status) + '</header>';
     s += '<p class="strat">' + esc(b.strategy) + (b.status_detail ? ' — ' + esc(b.status_detail) : '') + '</p>';
@@ -745,11 +780,13 @@ function panelResumen(d, st, w) {
 
 function panelPnl(d, st, w) {
   var cm = colorMap(d), nm = nameMap(d), S = d.series, out = '';
-  var rs = d.bots.map(function (b) { return { key: b.id, name: b.name, color: cm[b.id], ys: S.realized[b.id] || [], step: true }; });
+  var rs = famLines(d, 'realized', function (v) { return v; });
+  if (rs) rs.forEach(function (s) { s.step = true; });
+  else rs = d.bots.map(function (b) { return { key: b.id, name: b.name, color: cm[b.id], ys: S.realized[b.id] || [], step: true }; });
   var tot = S.ts.map(function (_, i) { return rs.reduce(function (a, s) { return a + (fin(s.ys[i]) ? s.ys[i] : 0); }, 0); });
   rs.push({ key: '_total', name: 'Total', color: 'var(--ink)', width: 3, ys: tot, step: true });
-  out += '<div><h2>P&amp;L realizado acumulado (USDT)</h2>' + legendHtml(rs, st.hidden) +
-    lineChart({ id: 'c-real', w: w, xs: S.ts, series: rs, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0); }, tipfmt: function (v) { return sgn(v, 2); }, label: 'P&L realizado acumulado' }) + '</div>';
+  out += '<div><h2>P&amp;L realizado acumulado por estrategia (USDT)</h2>' + legendHtml(rs, st.hidden) +
+    lineChart({ id: 'c-real', w: w, xs: S.ts, series: rs, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0); }, tipfmt: function (v) { return sgn(v, 2); }, label: 'P&L realizado acumulado por estrategia' }) + '</div>';
   var sells = d.trades.rows.filter(function (r) { return r[T.side] === 'sell'; });
   out += '<div><h2>P&amp;L por operación de cierre (USDT)</h2>';
   if (!sells.length) out += '<p class="hint">Todavía no hay ventas cerradas.</p>';
@@ -799,10 +836,10 @@ function panelTx(d, st, w) {
 function heat(c) { var a = Math.min(1, Math.abs(c)); return 'background:color-mix(in srgb, ' + (c >= 0 ? 'var(--div-red)' : 'var(--div-blue)') + ' ' + Math.round(a * 100) + '%, var(--div-mid))'; }
 function panelRiesgo(d, st, w) {
   var cm = colorMap(d), S = d.series, out = '';
-  var ds = d.bots.map(function (b) { return { key: b.id, name: b.name, color: cm[b.id], ys: S.drawdown[b.id] || [] }; });
+  var ds = famLines(d, 'drawdown', function (v) { return v; }) || d.bots.map(function (b) { return { key: b.id, name: b.name, color: cm[b.id], ys: S.drawdown[b.id] || [] }; });
   ds.push({ key: '_total', name: 'Portafolio', color: 'var(--ink)', width: 3, ys: S.drawdown_total });
-  out += '<div><h2>Drawdown desde el máximo de equity (%)</h2>' + legendHtml(ds, st.hidden) +
-    lineChart({ id: 'c-dd', w: w, xs: S.ts, series: ds, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return nf(v, 2) + '%'; }, label: 'Drawdown por bot', yw: 50 }) + '</div>';
+  out += '<div><h2>Drawdown desde el máximo de equity por estrategia (%)</h2>' + legendHtml(ds, st.hidden) +
+    lineChart({ id: 'c-dd', w: w, xs: S.ts, series: ds, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return nf(v, 2) + '%'; }, label: 'Drawdown por estrategia', yw: 50 }) + '</div>';
   var PR = d.portfolio_risk;
   if (PR) {
     var gdays = Math.round((PR.cooldown_bars || 168) * d.bar_ms / DAY_MS), lvl = PR.status === 'paused' ? 'paused' : PR.used >= 0.8 ? 'near' : PR.used >= 0.5 ? 'watch' : 'ok';

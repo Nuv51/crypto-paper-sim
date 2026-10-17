@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Optional
 
 from . import metrics
-from .data import MarketFeed, SyntheticFeed, INTERVAL_MS
+from .data import MarketFeed, SyntheticFeed, INTERVAL_MS, fetch_fear_greed
 from .engine import Engine
 from .export import build_dashboard
 from .ledger import Ledger
@@ -29,34 +29,82 @@ class DataUnavailable(Exception):
 
 BENCH_SYMBOLS = ("BTCUSDT", "ETHUSDT")
 
+# "El mercado": índice ponderado por capitalización de las 10 mayores monedas no estables que cotizan en Binance.
+# Es el valor de una canasta con cantidades fijas (suministro circulante APROXIMADO, en unidades de la moneda), así que
+# su rendimiento es el de un índice de capitalización sin rebalanceos. No es el total del mercado cripto (no incluye
+# miles de monedas pequeñas); los suministros cambian poco y no se actualizan solos. Es una referencia, no un dato oficial.
+MARKET_BASKET = {"BTCUSDT": 20.0e6, "ETHUSDT": 120.7e6, "XRPUSDT": 60.0e9, "BNBUSDT": 140.0e6, "SOLUSDT": 550.0e6,
+                 "DOGEUSDT": 151.0e9, "ADAUSDT": 36.0e9, "TRXUSDT": 94.7e9, "AVAXUSDT": 420.0e6, "LINKUSDT": 680.0e6}
+
+
+def _fetch_hd(feed, sym: str):
+    h = feed.latest_closed(sym, "1h", 768)
+    time.sleep(getattr(feed, "pause", 0))
+    d = feed.latest_closed(sym, "1d", 365)
+    time.sleep(getattr(feed, "pause", 0))
+    if h.empty or d.empty:
+        raise ValueError(f"sin velas de {sym}")
+    return h, d
+
+
+def _with_now(d_ts: list, d_cl: list, h_ts: int, h_cl: float):
+    """A la serie diaria se le agrega el último cierre horario para que llegue "hasta ahora"."""
+    if h_ts > d_ts[-1]:
+        d_ts, d_cl = d_ts + [h_ts], d_cl + [h_cl]
+    return d_ts, d_cl
+
+
+def _market_index(frames: dict) -> Optional[dict]:
+    """Índice de la canasta a partir de {símbolo: (velas_h, velas_d)}; solo usa las marcas de tiempo comunes a todas."""
+    import pandas as pd
+    out = {}
+    for key, idx_pos in (("h", 0), ("d", 1)):
+        cols = {s: fr[idx_pos]["close"].astype(float) for s, fr in frames.items()}
+        df = pd.DataFrame(cols).dropna()
+        if len(df) < 2:
+            return None
+        val = sum(df[s] * MARKET_BASKET[s] for s in df.columns) / 1e9           # miles de millones de USD
+        out[key] = (df.index, val)
+    hts, hv = out["h"]
+    dts, dv = out["d"]
+    d_ts, d_cl = _with_now([int(t) for t in dts], [float(v) for v in dv], int(hts[-1]), float(hv.iloc[-1]))
+    return {"h": {"ts": [int(t) for t in hts], "close": [round(float(v), 4) for v in hv]},
+            "d": {"ts": d_ts, "close": [round(v, 4) for v in d_cl]}}
+
 
 def benchmarks_from_feed(feed) -> Optional[dict]:
-    """Historia de BTC y ETH para comparar el portafolio en periodos largos (día, semana, mes, 3 meses, año).
+    """Historia de BTC, ETH y del índice de mercado para comparar el portafolio en periodos largos (día, semana, mes,
+    3 meses, año).
 
     Velas horarias de ~32 días y diarias de 365. A la serie diaria se le agrega el último cierre horario para que el
-    rendimiento llegue "hasta ahora" y no hasta el cierre de ayer. Es OPCIONAL: si algo falla devuelve None y el
-    tablero simplemente no ofrece los periodos largos; nunca hace fallar la corrida.
+    rendimiento llegue "hasta ahora" y no hasta el cierre de ayer. Es OPCIONAL: si BTC o ETH fallan devuelve None y el
+    tablero simplemente no ofrece los periodos largos; si solo falla el índice de mercado, se omite esa línea. Nunca
+    hace fallar la corrida.
     """
     if not hasattr(feed, "latest_closed"):
         return None
     out: dict = {}
+    frames: dict = {}
     try:
         for sym in BENCH_SYMBOLS:
-            h = feed.latest_closed(sym, "1h", 768)
-            time.sleep(getattr(feed, "pause", 0))
-            d = feed.latest_closed(sym, "1d", 365)
-            time.sleep(getattr(feed, "pause", 0))
-            if h.empty or d.empty:
-                return None
+            h, d = _fetch_hd(feed, sym)
+            frames[sym] = (h, d)
             dts = [int(t) for t in d.index]
             dcl = [float(v) for v in d["close"]]
-            if int(h.index[-1]) > dts[-1]:
-                dts.append(int(h.index[-1]))
-                dcl.append(float(h["close"].iloc[-1]))
+            dts, dcl = _with_now(dts, dcl, int(h.index[-1]), float(h["close"].iloc[-1]))
             out[sym] = {"h": {"ts": [int(t) for t in h.index], "close": [round(float(v), 4) for v in h["close"]]},
                         "d": {"ts": dts, "close": [round(v, 4) for v in dcl]}}
     except Exception:
         return None
+    try:                                                       # el índice de mercado es un extra: si falla, se omite
+        for sym in MARKET_BASKET:
+            if sym not in frames:
+                frames[sym] = _fetch_hd(feed, sym)
+        mk = _market_index(frames)
+        if mk:
+            out["MARKET"] = mk
+    except Exception:
+        pass
     return out
 
 
@@ -137,7 +185,8 @@ def run_step(bots_cfg: list[dict], interval: str, capital: float, state_path: Op
         ledger.prune_bars(800)
         _write(out / "ledger.json", ledger.dump())
         bench = benchmarks_from_feed(feed) if source != "synthetic" else None
-        _write(out / "dashboard.json", build_dashboard(metrics.load_all(ledger.con), now_ms, benchmarks=bench))
+        fng = fetch_fear_greed(getattr(feed, "session", None)) if source != "synthetic" else None
+        _write(out / "dashboard.json", build_dashboard(metrics.load_all(ledger.con), now_ms, benchmarks=bench, fear_greed=fng))
         status.update(ok=True, bars_processed=n, resumed=resumed, source=label,
                       message=f"{n} barra(s) nueva(s) procesada(s)" if n else "Sin barras nuevas desde la última corrida")
         code = 0

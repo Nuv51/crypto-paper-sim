@@ -178,6 +178,30 @@ def _http_json(session: requests.Session, url: str, params: Optional[dict] = Non
     raise RuntimeError(f"No pude leer {url}: {last}")
 
 
+FNG_URL = "https://api.alternative.me/fng/"
+FNG_CLASSES = {"Extreme Fear": "Miedo extremo", "Fear": "Miedo", "Neutral": "Neutral", "Greed": "Codicia",
+               "Extreme Greed": "Codicia extrema"}
+
+
+def parse_fear_greed(payload: dict) -> dict:
+    """Índice Crypto Fear & Greed de alternative.me (0 = miedo extremo, 100 = codicia extrema; sentimiento del mercado
+    cripto en general, publicado una vez al día). `data` viene del más reciente al más antiguo."""
+    rows = payload["data"]
+    pick = lambda i: ({"value": int(rows[i]["value"]), "ts": int(rows[i]["timestamp"]) * 1000} if len(rows) > i else None)
+    cur = rows[0]
+    return {"value": int(cur["value"]), "label": FNG_CLASSES.get(cur.get("value_classification"), cur.get("value_classification")),
+            "ts": int(cur["timestamp"]) * 1000, "yesterday": pick(1), "week": pick(7), "month": pick(30),
+            "source": "alternative.me"}
+
+
+def fetch_fear_greed(session: Optional[requests.Session] = None) -> Optional[dict]:
+    """Opcional: si la fuente no responde devuelve None (el tablero solo omite el medidor); nunca rompe la corrida."""
+    try:
+        return parse_fear_greed(_http_json(session or requests.Session(), FNG_URL, {"limit": 31, "format": "json"}, retries=2))
+    except Exception:
+        return None
+
+
 def parse_kucoin_futures_klines(payload: dict) -> pd.DataFrame:
     """data: [[ms, open, high, low, close, volume, turnover], ...] (verificado contra la API real el 2026-10-16)."""
     rows = payload.get("data") or []

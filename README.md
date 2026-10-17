@@ -135,7 +135,11 @@ Guarda en la rama **`sim-data`**: `binance/state/ledger.json` (estado), `binance
   contra Bitcoin y Ethereum con selector de periodo (Día, Semana, Mes, 3 meses, Año, Inicio) y tabla comparativa, más seis
   métricas de resumen. Los periodos largos usan velas de BTC y ETH que cada corrida trae de Binance (horarias de ~32 días y
   diarias de 365); el portafolio solo se muestra en un periodo cuando ya lleva ese tiempo corriendo (no se inventa historial).
-  La pestaña Bots agrupa los bots por tipo de estrategia. Las demás pestañas siguen igual. Las familias de estrategia están en `sim/export.py` (`FAMILIES`), no en `config.py`, para que reagrupar
+  Además del portafolio, BTC y ETH, el gráfico de crecimiento incluye **Mercado**: un índice ponderado por capitalización de
+  las 10 mayores monedas no estables de Binance (suministros aproximados fijos en `sim/cloud.py`; es una referencia, no el
+  total oficial del mercado). Summary también muestra el **índice de miedo y codicia** (alternative.me, dato externo diario,
+  opcional: si no responde, la tarjeta lo dice). Las primeras gráficas de Resumen, P&L y Riesgo son **por estrategia**.
+  La pestaña Bots agrupa los bots por tipo de estrategia. Las familias de estrategia están en `sim/export.py` (`FAMILIES`), no en `config.py`, para que reagrupar
   no cambie la huella de configuración ni reinicie la simulación.
 - **Historial de la rama de datos:** se compacta solo cada ~300 corridas (el estado completo va en `ledger.json`).
 - Los repos públicos pierden los flujos programados tras 60 días sin actividad. El flujo intenta mantenerse activo (mejor
@@ -179,7 +183,7 @@ sim/cloud.py         paso de nube, huella de configuración
 sim/forecast.py      estimación de tendencia (con cono de incertidumbre)
 sim/metrics.py       métricas y solapamiento
 sim/ledger.py        SQLite
-tests/               80 pruebas
+tests/               84 pruebas
 ```
 
 ## Pruebas

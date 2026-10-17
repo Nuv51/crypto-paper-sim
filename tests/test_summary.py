@@ -87,7 +87,7 @@ class FakeFeed:
 
 def test_benchmarks_cover_the_periods_and_reach_now():
     B = benchmarks_from_feed(FakeFeed())
-    assert set(B) == {"BTCUSDT", "ETHUSDT"}
+    assert set(B) == {"BTCUSDT", "ETHUSDT", "MARKET"}
     for sym, b in B.items():
         assert len(b["h"]["ts"]) == 768 and len(b["h"]["close"]) == 768     # >= 30 días en horas
         assert len(b["d"]["ts"]) == 366                                      # 365 días + el último cierre horario
@@ -120,3 +120,51 @@ def test_dashboard_includes_benchmarks_only_when_given(dash):
     assert out["benchmarks"]["BTCUSDT"]["d"]["close"][0] == pytest.approx(80_000.0)
     json.dumps(out, allow_nan=False)                               # JSON estricto
     assert all(f["desc"] for f in out["families"])
+
+
+def test_market_index_is_a_cap_weighted_basket_and_is_optional():
+    from sim.cloud import MARKET_BASKET
+    B = benchmarks_from_feed(FakeFeed())["MARKET"]
+    assert len(B["h"]["ts"]) == 768 and B["d"]["ts"][-1] == B["h"]["ts"][-1]
+    # valor de la canasta en la primera vela horaria = suma(suministro x precio) en miles de millones
+    ref = FakeFeed()
+    first = sum(MARKET_BASKET[s] * float(ref.latest_closed(s, "1h", 768)["close"].iloc[0]) for s in MARKET_BASKET) / 1e9
+    assert B["h"]["close"][0] == pytest.approx(first, rel=1e-4)
+
+    class NoTron(FakeFeed):                                      # si falla una moneda de la canasta solo se omite el índice
+        def latest_closed(self, symbol, interval="1h", n=600):
+            if symbol == "TRXUSDT":
+                raise RuntimeError("sin red")
+            return super().latest_closed(symbol, interval, n)
+    B2 = benchmarks_from_feed(NoTron())
+    assert set(B2) == {"BTCUSDT", "ETHUSDT"}
+
+
+def test_fear_greed_parser_and_graceful_failure():
+    from sim.data import fetch_fear_greed, parse_fear_greed
+    rows = [{"value": str(40 - i), "value_classification": "Fear", "timestamp": str(1_800_000_000 - i * 86400)} for i in range(31)]
+    g = parse_fear_greed({"data": rows})
+    assert g["value"] == 40 and g["label"] == "Miedo" and g["yesterday"]["value"] == 39
+    assert g["week"]["value"] == 33 and g["month"]["value"] == 10 and g["ts"] == 1_800_000_000_000
+
+    class Boom:
+        def get(self, *a, **k):
+            raise RuntimeError("sin red")
+    assert fetch_fear_greed(Boom()) is None
+
+
+def test_family_series_add_up_to_the_portfolio(dash):
+    SF, S = dash["series"]["family"], dash["series"]
+    assert set(SF) == {f["key"] for f in dash["families"]}
+    n = len(S["total"])
+    for k in range(n):
+        assert sum(SF[f]["equity"][k] for f in SF) == pytest.approx(S["total"][k], abs=1e-3)
+    for f in dash["families"]:
+        assert SF[f["key"]]["capital"] == pytest.approx(f["capital"])
+        assert len(SF[f["key"]]["drawdown"]) == n and max(SF[f["key"]]["drawdown"]) <= 1e-9
+
+
+def test_page_charts_by_strategy_and_has_fear_greed_gauge():
+    html = (ROOT / "web" / "index.html").read_text(encoding="utf-8")
+    assert html.count("famLines(d,") >= 3                           # Resumen, P&L y Riesgo
+    assert "fngCard(d)" in html and "MARKET" in html
