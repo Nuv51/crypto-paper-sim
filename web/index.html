@@ -35,6 +35,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.45;
   padding-block: 0 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .wrap { max-width: 1180px; margin: 0 auto; }
@@ -42,6 +43,8 @@ h1, h2, h3, p { margin: 0; }
 .top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding-block: 18px 12px; }
 .top h1 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
 .top .sub { color: var(--ink2); font-size: 12.5px; min-width: 0; }
+.topr { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+a.stamp { text-decoration: none; color: var(--accent); border-color: var(--accent); }
 .stamp { display: inline-flex; align-items: center; gap: 8px; font: 500 11.5px var(--font); letter-spacing: .06em; text-transform: uppercase;
   padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink2); }
 .banner { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 13px;
@@ -127,6 +130,7 @@ th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spa
 td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
 tr:last-child td { border-bottom: 0; }
 td.wrap { white-space: normal; min-width: 200px; }
+@media (max-width: 560px) { .cmp th, .cmp td { padding: 6px 5px; white-space: normal; } .cmp th { font-size: 9.5px; letter-spacing: 0; } .cmp td:first-child { max-width: 112px; } .cmp td.n small { white-space: nowrap; } }
 .filters { display: flex; flex-wrap: wrap; gap: 8px; }
 .filters label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; min-width: 0; }
 select, .btn { font: 400 13px var(--font); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; min-width: 130px; max-width: 100%; }
@@ -216,10 +220,10 @@ details pre { margin: 6px 0 2px; font: 400 11.5px var(--mono); white-space: pre-
 <div class="wrap" id="app">
   <div class="top">
     <div style="min-width:0">
-      <h1>Simulador de bots cripto</h1>
+      <h1 id="h1">Simulador de bots cripto</h1>
       <p class="sub" id="sub">Cargando…</p>
     </div>
-    <span class="stamp" id="stamp">Simulación · dinero ficticio</span>
+    <span class="topr"><a class="stamp" id="other-link" href="#" hidden></a><span class="stamp" id="stamp">Simulación · dinero ficticio</span></span>
   </div>
   <div id="banners"></div>
   <div class="tabs" role="tablist" id="tabs">
@@ -230,6 +234,7 @@ details pre { margin: 6px 0 2px; font: 400 11.5px var(--mono); white-space: pre-
     <button role="tab" data-tab="riesgo" aria-selected="false">Riesgo</button>
     <button role="tab" data-tab="tendencias" aria-selected="false">Tendencias</button>
     <button role="tab" data-tab="bots" aria-selected="false">Bots</button>
+    <button role="tab" data-tab="comparar" aria-selected="false">Comparar</button>
   </div>
   <main class="panel" id="panel"></main>
 </div>
@@ -876,16 +881,16 @@ function panelRiesgo(d, st, w) {
 function dirLabel(s) { return s === 'alcista' ? '▲ Alcista' : s === 'bajista' ? '▼ Bajista' : '◆ Lateral / sin tendencia significativa'; }
 function panelTend(d, st, w) {
   var F = d.forecasts, syms = Object.keys(F).sort(), out = '<div class="banner warn"><span><b>Estimación, no garantía.</b> ' + esc(d.disclaimer || '') + '</span></div>';
-  if (!syms.length) return out + '<p class="hint">Aún no hay suficientes velas para estimar tendencias (se necesitan ~84).</p>';
+  if (!syms.length) return out + '<p class="hint">Aún no hay suficientes velas para estimar tendencias (se necesitan ~3.5 días de historia).</p>';
   var sym = syms.indexOf(st.sym) >= 0 ? st.sym : syms[0], hz = st.hz === '72' ? '72' : '24', fc = F[sym], c = fc.h[hz];
   out += '<div class="filters" style="align-items:flex-end">' + selectHtml('t-sym', 'Moneda', syms.map(function (s) { return [s, short(s)]; }), sym).replace('<option value="">Todos</option>', '') +
-    '<div><div class="hint" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Horizonte</div><div class="seg"><button type="button" data-hz="24" aria-pressed="' + (hz === '24') + '">24 barras</button><button type="button" data-hz="72" aria-pressed="' + (hz === '72') + '">72 barras</button></div></div></div>';
+    '<div><div class="hint" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Horizonte</div><div class="seg"><button type="button" data-hz="24" aria-pressed="' + (hz === '24') + '">24 h</button><button type="button" data-hz="72" aria-pressed="' + (hz === '72') + '">72 h</button></div></div></div>';
   if (c && d.prices[sym]) {
-    var P = d.prices[sym], k = Math.min(P.ts.length, 168), dd = fc.last_price < 1 ? 5 : 2;
+    var P = d.prices[sym], k = Math.min(P.ts.length, Math.round(168 * 3600000 / d.bar_ms)), dd = fc.last_price < 1 ? 5 : 2;
     out += coneChart({ id: 'c-cone', w: w, sym: sym, barMs: d.bar_ms, hist: { ts: P.ts.slice(-k), close: P.close.slice(-k) }, cone: c });
     out += '<p class="hint">' + esc(short(sym)) + ': tendencia ' + esc(fc.direction) + ' (t-stat ' + nf(fc.t_stat, 1) + '). Al horizonte el modelo centra el precio en ' + nf(c.end_center, dd) + ', con rango ±2σ de ' + nf(c.end_lo2, dd) + ' a ' + nf(c.end_hi2, dd) + '. El cono suele ser mucho más ancho que el movimiento estimado: la tendencia rara vez supera el ruido.</p>';
   }
-  out += '<div><h2>Todas las monedas</h2><div class="tw"><table><thead><tr><th>Moneda</th><th>Tendencia estimada</th><th class="n">t-stat</th><th class="n">Pendiente %/día</th><th class="n">Precio actual</th><th class="n">Rango ±2σ (24 barras)</th></tr></thead><tbody>' + syms.map(function (s) {
+  out += '<div><h2>Todas las monedas</h2><div class="tw"><table><thead><tr><th>Moneda</th><th>Tendencia estimada</th><th class="n">t-stat</th><th class="n">Pendiente %/día</th><th class="n">Precio actual</th><th class="n">Rango ±2σ (24 h)</th></tr></thead><tbody>' + syms.map(function (s) {
     var f = F[s], h = f.h['24'], dd = f.last_price < 1 ? 5 : 2;
     return '<tr><td>' + esc(short(s)) + '</td><td>' + esc(dirLabel(f.direction)) + '</td><td class="n">' + nf(f.t_stat, 1) + '</td><td class="n">' + sgn(f.slope_pct_day, 2, '%') + '</td><td class="n">' + nf(f.last_price, dd) + '</td><td class="n">' + (h ? nf(h.end_lo2, dd) + ' – ' + nf(h.end_hi2, dd) : '—') + '</td></tr>';
   }).join('') + '</tbody></table></div></div>';
@@ -912,8 +917,62 @@ function panelBots(d) {
   }).join('');
 }
 
+/* ------------------------------------------------------------------ comparar los dos simuladores */
+function simName(x) { return (x && x.sim && x.sim.name) || 'Simulador'; }
+function simShort(x) { var n = simName(x).replace(/^Simulador\s+/i, ''); return n ? n.charAt(0).toUpperCase() + n.slice(1) : 'Simulador'; }
+function stepAt(ts, ys, t) { var i = idxAtOrBefore(ts, t); return ys[i < 0 ? 0 : i]; }
+function countStatus(d, s) { return d.bots.filter(function (b) { return b.status === s; }).length; }
+function panelComparar(d, st, w) {
+  var o = st.other, A = simShort(d);
+  if (!o || !o.kpis) return '<div class="empty"><h2>Comparar simuladores</h2><p>Aún no hay datos del otro simulador' + (d.sim && d.sim.other ? ' (<b>' + esc(d.sim.other) + '</b>)' : '') + '. Aparecerá aquí cuando tenga su primera corrida.</p></div>';
+  var B = simShort(o), KA = d.kpis, KB = o.kpis, SA = d.series, SB = o.series;
+  var t0 = Math.max(KA.first_ts, KB.first_ts), t1 = Math.min(KA.last_ts, KB.last_ts), span = t1 - t0;
+  var out = '<div class="banner info"><span><b>Misma prueba, dos ritmos.</b> Mismo capital ficticio (' + nf(KA.capital, 0) + ' USDT) y mismos precios reales. ' + (d.sim && d.sim.desc ? '<b>' + esc(A) + '</b>: ' + esc(d.sim.desc) + '. ' : '') + (o.sim && o.sim.desc ? '<b>' + esc(B) + '</b>: ' + esc(o.sim.desc) + '. ' : '') + 'Ninguno de los dos se ajusta mientras corre la prueba.</span></div>';
+  var row = function (l, a, b, dl) { return '<tr><td>' + esc(l) + '</td><td class="n">' + a + '</td><td class="n">' + b + '</td><td class="n">' + (dl == null ? '' : dl) + '</td></tr>'; };
+  var days = function (K) { return Math.max(K.last_ts - K.first_ts, 1) / DAY_MS; };
+  var dif = function (a, b, dd, suf) { return fin(a) && fin(b) ? sgn(b - a, dd, suf) : '—'; };
+  if (span >= 2 * Math.max(d.bar_ms, o.bar_ms)) {
+    var xs = []; [SA.ts, SB.ts].forEach(function (ts) { ts.forEach(function (t) { if (t >= t0 && t <= t1) xs.push(t); }); });
+    xs.sort(function (a, b) { return a - b; }); xs = xs.filter(function (t, i) { return i === 0 || t !== xs[i - 1]; });
+    var bA = stepAt(SA.ts, SA.total, t0), bB = stepAt(SB.ts, SB.total, t0), series = [
+      { key: 'cA', name: A, color: 'var(--s1)', width: 2.5, ys: xs.map(function (t) { return (stepAt(SA.ts, SA.total, t) / bA - 1) * 100; }) },
+      { key: 'cB', name: B, color: 'var(--s2)', width: 2.5, ys: xs.map(function (t) { return (stepAt(SB.ts, SB.total, t) / bB - 1) * 100; }) }];
+    if (SA.btc && fin(stepAt(SA.ts, SA.btc, t0))) { var b0 = stepAt(SA.ts, SA.btc, t0); series.push({ key: 'cBTC', name: 'BTC comprar y mantener', color: 'var(--ink2)', dash: true, ys: xs.map(function (t) { return (stepAt(SA.ts, SA.btc, t) / b0 - 1) * 100; }) }); }
+    var rA = series[0].ys[xs.length - 1], rB = series[1].ys[xs.length - 1];
+    out += '<section class="sm-card"><h2>Mismo periodo <span class="r">' + esc(fmtDT(t0)) + ' → ' + esc(fmtDT(t1)) + ' · ' + nf(span / DAY_MS, 1) + ' días</span></h2>' +
+      '<p class="verdict">' + esc(A) + ' <b>' + sgn(rA, 2, '%') + '</b> · ' + esc(B) + ' <b>' + sgn(rB, 2, '%') + '</b> · diferencia <b>' + sgn(rB - rA, 2, ' pp') + '</b> a favor de ' + esc(rB >= rA ? B : A) + '. Con pocos días esto es ruido, no un veredicto: más operaciones solo ayudan si lo que ganan supera las comisiones.</p>' +
+      legendHtml(series, st.hidden) +
+      lineChart({ id: 'c-cmp', w: w, xs: xs, series: series, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Rendimiento de los dos simuladores desde el inicio común', yw: 50 }) + '</section>';
+  } else {
+    out += '<p class="hint">Todavía no hay un periodo en común suficiente para graficar (los dos simuladores empezaron en momentos distintos). Se muestra la tabla con lo acumulado de cada uno.</p>';
+  }
+  out += '<div><h2>Cifras acumuladas de cada uno</h2><div class="tw cmp"><table><thead><tr><th></th><th class="n">' + esc(A) + '</th><th class="n">' + esc(B) + '</th><th class="n">Diferencia</th></tr></thead><tbody>' +
+    row('Velas', esc(d.interval), esc(o.interval)) +
+    row('Bots', d.bots.length, o.bots.length) +
+    row('Corriendo desde', esc(dayf.format(new Date(KA.first_ts))), esc(dayf.format(new Date(KB.first_ts)))) +
+    row('Días de prueba', nf(days(KA), 1), nf(days(KB), 1)) +
+    row('Equity (USDT)', nf(KA.equity, 2), nf(KB.equity, 2), dif(KA.equity, KB.equity, 2)) +
+    row('P&L (USDT)', sgn(KA.pnl, 2), sgn(KB.pnl, 2), dif(KA.pnl, KB.pnl, 2)) +
+    row('ROI', sgn(KA.roi, 2, '%'), sgn(KB.roi, 2, '%'), dif(KA.roi, KB.roi, 2, ' pp')) +
+    (fin(KA.market_pnl) && fin(KB.market_pnl) ? row('Por el mercado (USDT)', sgn(KA.market_pnl, 2), sgn(KB.market_pnl, 2), dif(KA.market_pnl, KB.market_pnl, 2)) + row('Por los bots (USDT)', sgn(KA.own_pnl, 2), sgn(KB.own_pnl, 2), dif(KA.own_pnl, KB.own_pnl, 2)) : '') +
+    row('Comisiones (USDT)', nf(KA.fees, 2), nf(KB.fees, 2), dif(KA.fees, KB.fees, 2)) +
+    row('Operaciones', KA.n_trades, KB.n_trades, dif(KA.n_trades, KB.n_trades, 0)) +
+    row('Operaciones por día', nf(KA.n_trades / days(KA), 1), nf(KB.n_trades / days(KB), 1)) +
+    row('Máx. drawdown', nf(KA.max_dd, 2) + '%', nf(KB.max_dd, 2) + '%') +
+    row('Ganancia / pérdida histórica', nf(KA.gross_profit, 0) + ' / ' + nf(KA.gross_loss, 0), nf(KB.gross_profit, 0) + ' / ' + nf(KB.gross_loss, 0)) +
+    row('Bots activos / pausados / retirados', countStatus(d, 'active') + ' / ' + countStatus(d, 'paused') + ' / ' + countStatus(d, 'retired'), countStatus(o, 'active') + ' / ' + countStatus(o, 'paused') + ' / ' + countStatus(o, 'retired')) +
+    '</tbody></table></div></div>';
+  var fa = {}, fb = {}, keys = [];
+  (d.families || []).forEach(function (f) { fa[f.key] = f; keys.push(f.key); });
+  (o.families || []).forEach(function (f) { fb[f.key] = f; if (keys.indexOf(f.key) < 0) keys.push(f.key); });
+  var cell = function (f) { return f ? sgn(f.pnl, 2) + '<small style="display:block;color:var(--muted)">' + f.bots.length + ' bots · ' + f.n_trades + ' ops</small>' : '—'; };
+  out += '<div><h2>Por estrategia (P&amp;L en USDT)</h2><div class="tw cmp"><table><thead><tr><th>Estrategia</th><th class="n">' + esc(A) + '</th><th class="n">' + esc(B) + '</th></tr></thead><tbody>' +
+    keys.map(function (k) { var f = fa[k] || fb[k]; return '<tr><td>' + esc(f.name) + '</td><td class="n">' + cell(fa[k]) + '</td><td class="n">' + cell(fb[k]) + '</td></tr>'; }).join('') +
+    '</tbody></table></div><p class="hint" style="margin-top:6px">El P&amp;L de cada estrategia incluye el efecto del mercado sobre lo que mantiene. Dos simuladores con distinto número de bots por estrategia no tienen el mismo capital por estrategia: compara el ROI en cada pestaña Rendimiento si necesitas igualar tamaños.</p></div>';
+  return out;
+}
 function buildPanels(d, status, st, w) {
-  return { summary: panelSummary(d, st, w), resumen: panelResumen(d, st, w), pnl: panelPnl(d, st, w), tx: panelTx(d, st, w), riesgo: panelRiesgo(d, st, w), tendencias: panelTend(d, st, w), bots: panelBots(d) };
+  return { summary: panelSummary(d, st, w), resumen: panelResumen(d, st, w), pnl: panelPnl(d, st, w), tx: panelTx(d, st, w), riesgo: panelRiesgo(d, st, w), tendencias: panelTend(d, st, w), bots: panelBots(d), comparar: panelComparar(d, st, w) };
 }
 function bannersHtml(d, status) {
   var s = '';
@@ -935,7 +994,7 @@ if (TEST) { globalThis.__dashApi = api; return; }
 
 /* ------------------------------------------------------------------ DOM */
 var $ = function (s, r) { return (r || document).querySelector(s); };
-var state = { tab: 'summary', smCash: false, smPer: 'all', hidden: {}, tx: { bot: '', ex: '', sym: '', side: '' }, txLimit: 100, sym: '', hz: '24' };
+var state = { tab: 'summary', smCash: false, smPer: 'all', hidden: {}, tx: { bot: '', ex: '', sym: '', side: '' }, txLimit: 100, sym: '', hz: '24', other: null };
 var D = null, S = null, pending = null;
 
 function width() { var p = $('#panel'); return Math.max(280, (p && p.clientWidth) || 640) - 2; }
@@ -997,13 +1056,21 @@ function load() {
     D = res[0]; S = res[1];
     $('#banners').innerHTML = bannersHtml(D, S);
     $('#sub').innerHTML = subHtml(D, S);
-    if (D) { var st = $('#stamp'); st.textContent = D.synthetic ? 'Datos inventados · solo pruebas' : 'Simulación · dinero ficticio'; }
+    if (D) {
+      var st = $('#stamp'); st.textContent = D.synthetic ? 'Datos inventados · solo pruebas' : 'Simulación · dinero ficticio';
+      var nm = D.sim && D.sim.name; if (nm) { $('#h1').textContent = nm + ' · bots cripto'; try { document.title = nm + ' · bots cripto'; } catch (e) { /* sin título */ } }
+      var other = D.sim && D.sim.other, link = $('#other-link');
+      if (other && /github\.io$/.test(location.hostname)) { link.href = '../' + other + '/'; link.textContent = 'Ver el otro simulador →'; link.hidden = false; }
+      /* el otro simulador: en el sitio publicado vive en una carpeta hermana; en una copia suelta viene como data/other.json */
+      var tryOther = other ? get('../' + other + '/data/dashboard.json').then(function (x) { return x || get('data/other.json'); }) : get('data/other.json');
+      tryOther.then(function (x) { state.other = x; if (state.tab === 'comparar') render(); });
+    }
     render();
   });
 }
 document.querySelectorAll('#tabs button').forEach(function (b) { b.addEventListener('click', function () { setTab(b.dataset.tab, true); }); });
 var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(render, 150); });
-var h = (location.hash || '').replace('#', ''); if (/^(summary|resumen|pnl|tx|riesgo|tendencias|bots)$/.test(h)) state.tab = h;
+var h = (location.hash || '').replace('#', ''); if (/^(summary|resumen|pnl|tx|riesgo|tendencias|bots|comparar)$/.test(h)) state.tab = h;
 setTab(state.tab, false);
 load();
 })();

@@ -141,7 +141,7 @@ def _frames(feed, source: str, symbols: list[str], interval: str, ledger: Ledger
 
 def run_step(bots_cfg: list[dict], interval: str, capital: float, state_path: Optional[str], out_dir: str,
              source: str = "binance", feed=None, synthetic_advance: int = 24, seed: int = 7,
-             portfolio_risk: Optional[dict] = None) -> tuple[int, dict]:
+             portfolio_risk: Optional[dict] = None, sim: Optional[dict] = None) -> tuple[int, dict]:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     now_ms = int(time.time() * 1000)
@@ -178,11 +178,14 @@ def run_step(bots_cfg: list[dict], interval: str, capital: float, state_path: Op
         ledger.set_meta("mode", "cloud")
         ledger.set_meta("interval", interval)
         ledger.set_meta("portfolio_capital", capital)
+        if sim:                                                    # identidad de esta simulación (la muestra el tablero)
+            ledger.set_meta("sim", json.dumps(sim, ensure_ascii=False))
         n = eng.process_new(frames)
         # la ventana completa de velas alimenta los gráficos de precio y las estimaciones de tendencia
         ledger.upsert_bars([(s_, int(r.ts), float(r.open), float(r.high), float(r.low), float(r.close), float(r.volume))
                             for s_, df in frames.items() for r in df.reset_index().itertuples(index=False)])
         ledger.prune_bars(800)
+        ledger.compact_equity(int(ledger.get_meta("last_ts", 0) or 0), INTERVAL_MS[interval])
         _write(out / "ledger.json", ledger.dump())
         bench = benchmarks_from_feed(feed) if source != "synthetic" else None
         fng = fetch_fear_greed(getattr(feed, "session", None)) if source != "synthetic" else None

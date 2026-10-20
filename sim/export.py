@@ -46,7 +46,7 @@ FAMILIES = [
 
 
 def family_of(bot_id: str) -> str:
-    kind = str(bot_id).split("_", 1)[-1]
+    kind = str(bot_id).split("_", 1)[-1].split("_")[0]          # "b11_grid_btc" -> "grid": varios bots del mismo tipo
     for key, _name, kinds, _desc in FAMILIES:
         if kind in kinds:
             return key
@@ -114,6 +114,16 @@ def _risk_proximity(b: dict, st: dict, last_ts: int, bar_ms: int) -> dict:
             "level": level, "peak": peak, "warn_at": warn_at, "strikes": len(strikes),
             "max_strikes": rk.get("max_strikes"), "pause_until": st.get("pause_until") if status == "paused" else None,
             "flagged": bool(st.get("flagged"))}
+
+
+def _sim_info(meta: dict, interval: str) -> dict:
+    """Qué simulación es (id, nombre, descripción) para que cada tablero se identifique y pueda compararse con el otro."""
+    try:
+        info = json.loads(meta.get("sim") or "null") or {}
+    except Exception:
+        info = {}
+    return {"id": info.get("id", "actual"), "name": info.get("name", "Simulador actual"),
+            "desc": info.get("desc", ""), "other": info.get("other"), "interval": interval}
 
 
 def _sample_idx(n: int, max_points: int) -> np.ndarray:
@@ -309,15 +319,18 @@ def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars:
             continue
         g = g.drop_duplicates("ts").sort_values("ts")
         cl = g.set_index("ts").close
-        tail = g.tail(price_bars)
+        tail = g.tail(min(700, int(round(price_bars * 3_600_000 / bar_ms))))      # ~14 días de velas de 1 h; con velas cortas, tope de 700
         prices[sym] = {"ts": tail.ts.to_numpy(), "close": tail.close.round(8).to_numpy()}
         hs, base = {}, None
-        for H in (24, 72):
-            r = trend_forecast(cl, 168, H)
+        bars_per_h = 3_600_000 / bar_ms
+        look = max(30, int(round(168 * bars_per_h)))          # siempre ~7 días de historia, sea cual sea el tamaño de la vela
+        for hrs in (24, 72):                                  # horizontes en HORAS (las claves "24"/"72" son horas)
+            H = max(1, int(round(hrs * bars_per_h)))
+            r = trend_forecast(cl, look, H)
             if r:
                 base = base or r
-                hs[str(H)] = {k: np.round(r[k], 8) for k in ("center", "lo1", "hi1", "lo2", "hi2")}
-                hs[str(H)].update(end_center=r["end_center"], end_lo2=r["end_lo2"], end_hi2=r["end_hi2"])
+                hs[str(hrs)] = {k: np.round(r[k], 8) for k in ("center", "lo1", "hi1", "lo2", "hi2")}
+                hs[str(hrs)].update(end_center=r["end_center"], end_lo2=r["end_lo2"], end_hi2=r["end_hi2"])
         if base:
             forecasts[sym] = {"direction": base["direction"], "t_stat": base["t_stat"],
                               "slope_pct_day": base["slope_pct_per_bar"] * per_day * 100,
@@ -327,6 +340,7 @@ def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars:
         "generated_at": now_ms, "bar_ms": bar_ms, "interval": interval,
         "source": meta.get("source", "?"), "mode": meta.get("mode", "?"),
         "synthetic": "SINT" in meta.get("source", "").upper(),
+        "sim": _sim_info(meta, interval),
         "disclaimer": DISCLAIMER, "kpis": kpis, "portfolio_risk": portfolio_risk, "bots": bot_rows, "holdings": holdings, "families": families, "series": series,
         "trades": {"cols": tcols, "rows": t_out.to_numpy(dtype=object).tolist(), "total": int(len(trades))},
         "events": ev[["ts", "bot_id", "level", "message"]].to_numpy(dtype=object).tolist(),

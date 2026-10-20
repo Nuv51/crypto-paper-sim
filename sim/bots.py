@@ -457,7 +457,7 @@ class CarryBot(Bot):
         self.spot, self.perp = spot[0], perp[0]
 
     def _warmup(self) -> int:
-        return 60
+        return max(60, -(-60 * HOUR_MS // self.bar_ms))        # historial de funding suficiente (60 h)
 
     def init_state(self) -> dict:
         return {"phase": "flat", "open_req": False, "close_req": False, "close_reason": "",
@@ -466,7 +466,8 @@ class CarryBot(Bot):
 
     # --- helpers -----------------------------------------------------------------------
     def _recent_rates(self, ctx: Ctx, n: int) -> list:
-        arr = ctx.arrays[self.perp]["funding"][max(0, ctx.i - 60): ctx.i + 1]
+        look = max(60, -(-60 * HOUR_MS // self.bar_ms))        # 60 h hacia atrás, sea cual sea el tamaño de la vela
+        arr = ctx.arrays[self.perp]["funding"][max(0, ctx.i - look): ctx.i + 1]
         vals = arr[~np.isnan(arr)]
         return [float(x) for x in vals[-n:]]
 
@@ -746,6 +747,11 @@ class MLBot(Bot):
     FEATS = ["f_r1", "f_r3", "f_r6", "f_r12", "f_r24", "f_vol24", "f_vratio", "f_rsi", "f_emad", "f_volz", "f_range"]
     DEFAULTS = dict(horizon=6, train_bars=480, retrain_bars=336, thr=0.60, stop_pct=0.03, l2=5.0,
                     min_train=300, cooldown_bars=6, size_frac=0.95)
+
+    def __init__(self, spec: dict, bar_ms: int):
+        super().__init__(spec, bar_ms)
+        hrs = self.p.horizon * bar_ms / 3_600_000                # el horizonte se mide en barras: se muestra en horas reales
+        self.strategy_label = f"ML · regresión logística walk-forward (P de subida a {hrs:g} h)"
 
     def _warmup(self) -> int:
         return int(self.p.train_bars + self.p.horizon + 60)

@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
 # Un paso del simulador en CI (GitHub Actions) — también se puede probar en local.
-#   SOURCE=binance|synthetic  STORE=store  SUMMARY_FILE=ruta  NOTIFY_FILE=ruta  TABLE_FILE=ruta  FRESH=true  bash scripts/ci_run.sh
-# Guarda en STORE/<SOURCE>/{state/ledger.json, data/*.json, index.html}. Si falla, NO toca el estado anterior.
+#   SOURCE=binance|synthetic  SIM_DIR=carpeta  CONFIG=config|config_active  STORE=store  SUMMARY_FILE=ruta  NOTIFY_FILE=ruta
+#   TABLE_FILE=ruta  FRESH=true  bash scripts/ci_run.sh
+# Guarda en STORE/<SIM_DIR>/{state/ledger.json, data/*.json, index.html}. SIM_DIR por defecto = SOURCE (simulador actual: "binance");
+# el simulador dinámico usa CONFIG=config_active y SIM_DIR=activo. Si falla, NO toca el estado anterior.
 # FRESH=true: reinicia la simulación (el estado anterior se conserva como state/ledger.prev.json).
 # NOTIFY_FILE recibe el texto de operaciones/alertas nuevas (vacío si no hubo). TABLE_FILE, la tabla markdown por bot.
 # Salida: 0 ok · 1 error · 2 sin datos/red (igual que cloud_step.py).
 set -u
 SOURCE="${SOURCE:-binance}"
+SIM_DIR="${SIM_DIR:-$SOURCE}"
+CONFIG="${CONFIG:-config}"
 STORE="${STORE:-store}"
 SUMMARY_FILE="${SUMMARY_FILE:-/dev/null}"
 NOTIFY_FILE="${NOTIFY_FILE:-/dev/null}"
 TABLE_FILE="${TABLE_FILE:-/dev/null}"
 FRESH="${FRESH:-false}"
-DEST="$STORE/$SOURCE"
+DEST="$STORE/$SIM_DIR"
 OUT="$(mktemp -d)"
 mkdir -p "$DEST/state" "$DEST/data"
 : > "$NOTIFY_FILE"; : > "$TABLE_FILE"
@@ -27,7 +31,7 @@ STATE_ARGS=()
 if [ -f "$DEST/state/ledger.json" ]; then STATE_ARGS=(--state "$DEST/state/ledger.json"); fi
 [ -f "$DEST/data/dashboard.json" ] && cp "$DEST/data/dashboard.json" "$OUT/prev_dashboard.json"
 
-python cloud_step.py "${STATE_ARGS[@]}" --out "$OUT" --source "$SOURCE"
+python cloud_step.py "${STATE_ARGS[@]}" --out "$OUT" --source "$SOURCE" --config "$CONFIG"
 CODE=$?
 
 [ -f "$OUT/status.json" ] && cp "$OUT/status.json" "$DEST/data/status.json"

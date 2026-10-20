@@ -223,7 +223,7 @@ class Engine:
             rt.warned = False
             if action == "pause_and_resume" and max_strikes and len(rt.strikes) >= max_strikes:
                 rt.status = "retired"
-                rt.reason = f"{msg}: {len(rt.strikes)} rupturas en {window // self.bar_ms // 24} días, bot retirado"
+                rt.reason = f"{msg}: {len(rt.strikes)} rupturas en {window // 86_400_000} días, bot retirado"
             elif action == "pause_and_resume":
                 days = int(rk.get("cooldown_bars", 168)) * self.bar_ms // 86_400_000
                 rt.status = "paused"

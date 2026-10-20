@@ -1,8 +1,11 @@
 name: simulate
 
-# Corre el simulador (dinero FICTICIO) cada hora y guarda estado + tablero en la rama `sim-data`.
-# Los bots deciden al CIERRE de cada vela de 1 h; si una corrida se retrasa o falla, la siguiente procesa
-# todas las velas pendientes en orden, así que el resultado no depende de cuándo corre.
+# Corre DOS simulaciones (dinero FICTICIO) cada hora y guarda estado + tablero de cada una en la rama `sim-data`:
+#   · simulador ACTUAL   → carpeta binance/ (velas de 1 h, config.py)
+#   · simulador DINÁMICO → carpeta activo/  (velas de 15 min, config_active.py)
+# Los bots deciden al CIERRE de cada vela; si una corrida se retrasa o falla, la siguiente procesa todas las velas
+# pendientes en orden, así que el resultado no depende de cuándo corre. Cada simulación falla por separado: si una
+# no puede leer datos, la otra igual se guarda.
 on:
   schedule:
     - cron: "7 * * * *"           # cada hora (UTC), al minuto 7 (las velas de 1 h ya cerraron)
@@ -13,10 +16,11 @@ on:
         default: "binance"
         type: choice
         options: [binance, synthetic]
-      fresh:
-        description: "Reiniciar la simulación desde cero (necesario si cambias bots o parámetros)"
-        default: false
-        type: boolean
+      reiniciar:
+        description: "Reiniciar desde cero (necesario si cambias bots o parámetros de ESA simulación). Por defecto no reinicia ninguna"
+        default: "ninguno"
+        type: choice
+        options: [ninguno, activo, actual]
 
 permissions:
   contents: write
@@ -29,10 +33,10 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     env:
       SOURCE: ${{ github.event.inputs.source || 'binance' }}
-      FRESH: ${{ github.event.inputs.fresh || 'false' }}
+      REINICIAR: ${{ github.event.inputs.reiniciar || 'ninguno' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -53,15 +57,28 @@ jobs:
             mkdir store && git -C store init --quiet -b sim-data && git -C store remote add origin "$URL"
           fi
 
-      - name: Simular un paso
+      - name: Simulador actual (velas de 1 h)
         id: sim
         run: |
           set +e
+          FRESH=$([ "$REINICIAR" = "actual" ] && echo true || echo false)
           SUMMARY_FILE="$RUNNER_TEMP/summary.txt" NOTIFY_FILE="$RUNNER_TEMP/notify.txt" TABLE_FILE="$RUNNER_TEMP/table.md" \
-            STORE=store bash scripts/ci_run.sh
+            STORE=store SIM_DIR="$SOURCE" CONFIG=config FRESH="$FRESH" bash scripts/ci_run.sh
           echo "code=$?" >> "$GITHUB_OUTPUT"
-          { echo "### Simulador (${SOURCE})"; echo; cat "$RUNNER_TEMP/summary.txt"; echo; cat "$RUNNER_TEMP/table.md";
+          { echo "### Simulador actual (${SOURCE})"; echo; cat "$RUNNER_TEMP/summary.txt"; echo; cat "$RUNNER_TEMP/table.md";
             if [ -s "$RUNNER_TEMP/notify.txt" ]; then echo; echo '**Novedades**'; echo; echo '```'; cat "$RUNNER_TEMP/notify.txt"; echo '```'; fi; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Simulador dinámico (velas de 15 min)
+        id: dyn
+        run: |
+          set +e
+          FRESH=$([ "$REINICIAR" = "activo" ] && echo true || echo false)
+          DIR=$([ "$SOURCE" = "binance" ] && echo activo || echo "activo-${SOURCE}")
+          SUMMARY_FILE="$RUNNER_TEMP/summary_dyn.txt" NOTIFY_FILE="$RUNNER_TEMP/notify_dyn.txt" TABLE_FILE="$RUNNER_TEMP/table_dyn.md" \
+            STORE=store SIM_DIR="$DIR" CONFIG=config_active FRESH="$FRESH" bash scripts/ci_run.sh
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          { echo "### Simulador dinámico (${SOURCE})"; echo; cat "$RUNNER_TEMP/summary_dyn.txt"; echo; cat "$RUNNER_TEMP/table_dyn.md";
+            if [ -s "$RUNNER_TEMP/notify_dyn.txt" ]; then echo; echo '**Novedades**'; echo; echo '```'; cat "$RUNNER_TEMP/notify_dyn.txt"; echo '```'; fi; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Guardar estado y tablero en sim-data
         if: always()
@@ -73,8 +90,8 @@ jobs:
           if git diff --cached --quiet; then echo "Sin cambios"; else
             git commit --quiet -m "simulador (${SOURCE}): $(head -c 120 "$RUNNER_TEMP/summary.txt")"
             # el historial de git de esta rama no hace falta (el estado completo va en ledger.json): se compacta
-            # cada ~300 commits para que el repositorio no crezca sin límite
-            if [ "$(git rev-list --count HEAD)" -gt 300 ]; then
+            # cada ~150 commits para que el repositorio no crezca sin límite (hay dos estados por commit)
+            if [ "$(git rev-list --count HEAD)" -gt 150 ]; then
               git checkout --quiet --orphan compact
               git commit --quiet -m "simulador: historial compactado"
               git branch -M sim-data
@@ -89,9 +106,15 @@ jobs:
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           CODE: ${{ steps.sim.outputs.code }}
+          CODE_DYN: ${{ steps.dyn.outputs.code }}
         run: |
           [ -z "$NTFY_TOPIC" ] && exit 0
           PAGES="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/${SOURCE}/"
+          # el dinámico opera mucho: solo avisa si FALLA (sus operaciones se ven en su tablero y en el resumen del job)
+          if [ "$CODE_DYN" != "0" ]; then
+            curl -fsS -H "Title: Simulador dinámico - FALLO" -H "Priority: high" -H "Tags: warning" \
+                 -d "$(cat "$RUNNER_TEMP/summary_dyn.txt")" "https://ntfy.sh/${NTFY_TOPIC}" || true
+          fi
           if [ "$CODE" != "0" ]; then
             curl -fsS -H "Title: Simulador cripto - FALLO" -H "Priority: high" -H "Tags: warning" \
                  -d "$(cat "$RUNNER_TEMP/summary.txt")" "https://ntfy.sh/${NTFY_TOPIC}" || true
@@ -107,6 +130,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/simulate.yml/enable" || true
 
-      - name: Marcar fallo si el simulador no corrió
-        if: steps.sim.outputs.code != '0'
+      - name: Marcar fallo si algún simulador no corrió
+        if: steps.sim.outputs.code != '0' || steps.dyn.outputs.code != '0'
         run: exit 1

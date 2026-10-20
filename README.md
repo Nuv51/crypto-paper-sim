@@ -113,13 +113,33 @@ bruto necesario ronda 0.6–0.9%: si casi nunca aparece, la idea no se sostiene 
 Si alguna fuente obligatoria falla, la corrida termina con código 2, el estado anterior no se toca y la siguiente se pone
 al día. La foto de Bitso/KuCoin es opcional: si falla, solo se pierde esa muestra.
 
+## Dos simuladores en paralelo: el actual y el dinámico
+
+El mismo workflow corre **dos** simulaciones independientes (cada una con su estado, su carpeta y su tablero), con el mismo capital
+ficticio (10,000 USDT, 100 % desplegado) y los mismos precios reales de Binance:
+
+| | Simulador actual | Simulador dinámico |
+|---|---|---|
+| Configuración | `config.py` | `config_active.py` |
+| Velas | 1 h | **15 min** (los indicadores usan las mismas barras, así que reaccionan ~4× más rápido) |
+| Bots | 10 | 14 (más monedas por bot + grid BTC/SOL, MM ETH, carry ETH) |
+| Umbrales | conservadores | más sueltos (RSI 35, breakout de 6 h, ML P ≥ 0.55, spread MM 0.10 %…) |
+| Tablero | `…/crypto-paper-sim/binance/` | `…/crypto-paper-sim/activo/` |
+
+Las reglas de cada uno quedan fijas durante la prueba (nada se afina a mitad de camino: si no, la comparación no sería justa).
+Lo que significa "tiempo" en barras se re-expresó para que dure lo mismo (pausa de riesgo 7 días = 672 barras, ventana de
+rupturas 30 días = 2,880). Cada tablero tiene una pestaña **Comparar** que pone ambos lado a lado desde su inicio común.
+La hipótesis a medir: ¿el movimiento extra compensa sus comisiones? Más operaciones no garantizan más ganancia.
+Si una simulación no puede leer datos, la otra igual se guarda. Con velas de 15 min la curva de equity vieja se reduce a un
+punto por hora (`Ledger.compact_equity`) para que el estado no crezca sin límite.
+
 ## Ejecución automática con GitHub Actions
 
 `.github/workflows/simulate.yml` corre el simulador cada hora (y a mano: **Actions → simulate → Run workflow**).
 Guarda en la rama **`sim-data`**: `binance/state/ledger.json` (estado), `binance/data/*.json` (tablero) y
 `binance/index.html` (el tablero). Si falla, `status.json` explica el motivo y la corrida sale en rojo.
 
-- **Reiniciar la simulación:** Run workflow → `fresh = true`. Hace falta al cambiar bots o parámetros: la configuración
+- **Reiniciar una simulación:** Run workflow → `reiniciar = activo` (dinámico) o `actual`. Por defecto (`ninguno`) no reinicia nada. Hace falta al cambiar bots o parámetros de ESA simulación: la configuración
   tiene una huella y una corrida con una configuración distinta *se niega* a continuar el estado guardado (no se afinan
   parámetros a mitad de una prueba hacia adelante). El estado anterior queda en `state/ledger.prev.json`.
 - **Prueba sin red:** `source = synthetic` (datos inventados; guarda aparte, en `synthetic/`).
@@ -167,7 +187,8 @@ Opcional: `export CMC_API_KEY=...` activa la verificación cruzada de precio con
 ## Archivos
 
 ```
-config.py            capital, monedas, parámetros y límites de riesgo por bot
+config.py            simulador actual: capital, monedas, parámetros y límites de riesgo por bot (velas de 1 h)
+config_active.py     simulador dinámico (velas de 15 min, más monedas y umbrales sueltos)
 run.py               CLI: replay | live | report
 cloud_step.py        un paso incremental para la nube (lo usa GitHub Actions)
 dashboard.py         Streamlit + Plotly (uso local)
@@ -183,7 +204,7 @@ sim/cloud.py         paso de nube, huella de configuración
 sim/forecast.py      estimación de tendencia (con cono de incertidumbre)
 sim/metrics.py       métricas y solapamiento
 sim/ledger.py        SQLite
-tests/               84 pruebas
+tests/               93 pruebas
 ```
 
 ## Pruebas

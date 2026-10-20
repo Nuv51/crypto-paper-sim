@@ -69,7 +69,7 @@ def test_family_rule_and_config_untouched():
 def test_page_has_summary_tab_first():
     html = (ROOT / "web" / "index.html").read_text(encoding="utf-8")
     tabs = re.findall(r'role="tab" data-tab="(\w+)"', html)
-    assert tabs[0] == "summary" and tabs[1:] == ["resumen", "pnl", "tx", "riesgo", "tendencias", "bots"]
+    assert tabs[0] == "summary" and tabs[1:] == ["resumen", "pnl", "tx", "riesgo", "tendencias", "bots", "comparar"]
     assert "summary: panelSummary(" in html
 
 

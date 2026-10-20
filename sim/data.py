@@ -148,6 +148,7 @@ class BinanceFeed:
 # KuCoin futuros (perpetuo + funding), Bitso y KuCoin spot (fotos del libro) — todo público, sin llaves
 # ======================================================================================
 HOUR = 3_600_000
+KUCOIN_GRANULARITY = {"1m": 1, "5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440}   # minutos por vela
 KUCOIN_FUT = "https://api-futures.kucoin.com"
 KUCOIN_SPOT = "https://api.kucoin.com"
 BITSO = "https://api.bitso.com"
@@ -236,21 +237,23 @@ class MarketFeed(BinanceFeed):
 
     # ----------------------------------------------------------------------------- perpetuo
     def _perp_frame(self, symbol: str, interval: str, bars: int) -> pd.DataFrame:
-        if interval != "1h":
-            raise ValueError("El perpetuo de KuCoin solo está implementado para velas de 1h")
+        if interval not in KUCOIN_GRANULARITY:
+            raise ValueError(f"El perpetuo de KuCoin no está implementado para velas de {interval}")
+        step = INTERVAL_MS[interval]
         contract, now_ms = kucoin_contract(symbol), int(time.time() * 1000)
-        start = (now_ms // HOUR - bars - 2) * HOUR
+        start = (now_ms // step - bars - 2) * step
         frames, cursor = [], start
         while cursor < now_ms:
-            end = min(cursor + 190 * HOUR, now_ms)
+            end = min(cursor + 190 * step, now_ms)                  # KuCoin devuelve máx. ~200 velas por petición
             payload = _http_json(self.session, KUCOIN_FUT + "/api/v1/kline/query",
-                                 {"symbol": contract, "granularity": 60, "from": cursor, "to": end}, timeout=self.timeout)
+                                 {"symbol": contract, "granularity": KUCOIN_GRANULARITY[interval], "from": cursor, "to": end},
+                                 timeout=self.timeout)
             frames.append(parse_kucoin_futures_klines(payload))
-            cursor = end + HOUR
+            cursor = end + step
             time.sleep(self.pause)
         df = pd.concat(frames) if frames else _empty()
         df = df[~df.index.duplicated(keep="last")].sort_index()
-        df = df[df.index + HOUR <= now_ms]                         # solo velas cerradas
+        df = df[df.index + step <= now_ms]                         # solo velas cerradas
         if df.empty:
             raise RuntimeError(f"KuCoin no devolvió velas de {contract}")
         fund: dict[int, float] = {}
@@ -330,7 +333,7 @@ class MarketFeed(BinanceFeed):
 
     def history(self, symbol: str, interval: str = "1h", days: int = 120) -> pd.DataFrame:
         if symbol.endswith("~PERP"):
-            return self._perp_frame(symbol, interval, days * 24)
+            return self._perp_frame(symbol, interval, days * 86_400_000 // INTERVAL_MS[interval])
         if symbol.endswith("~RAIL"):
             base = super().history("XRPUSDT", interval, days)
             df = base.copy()
@@ -347,9 +350,13 @@ class SyntheticFeed:
     name = "synthetic"
     label = "SINTÉTICO (datos inventados, solo para pruebas)"
     BASE_PRICE = {"BTCUSDT": 65000.0, "ETHUSDT": 3200.0, "BNBUSDT": 580.0, "ADAUSDT": 0.45,
-                  "SOLUSDT": 150.0, "AVAXUSDT": 35.0, "DOGEUSDT": 0.15, "LINKUSDT": 14.0, "XRPUSDT": 1.34}
+                  "SOLUSDT": 150.0, "AVAXUSDT": 35.0, "DOGEUSDT": 0.15, "LINKUSDT": 14.0, "XRPUSDT": 1.34,
+                  "DOTUSDT": 4.2, "LTCUSDT": 85.0, "ATOMUSDT": 5.0, "XLMUSDT": 0.27, "NEARUSDT": 3.1, "SUIUSDT": 2.6,
+                  "APTUSDT": 4.5, "INJUSDT": 14.0, "ARBUSDT": 0.40, "OPUSDT": 0.80}
     BASE_VOL = {"BTCUSDT": 0.0045, "ETHUSDT": 0.0060, "BNBUSDT": 0.0055, "ADAUSDT": 0.0075,
-                "SOLUSDT": 0.0095, "AVAXUSDT": 0.0095, "DOGEUSDT": 0.0120, "LINKUSDT": 0.0090, "XRPUSDT": 0.0085}
+                "SOLUSDT": 0.0095, "AVAXUSDT": 0.0095, "DOGEUSDT": 0.0120, "LINKUSDT": 0.0090, "XRPUSDT": 0.0085,
+                "DOTUSDT": 0.0090, "LTCUSDT": 0.0075, "ATOMUSDT": 0.0090, "XLMUSDT": 0.0085, "NEARUSDT": 0.0100,
+                "SUIUSDT": 0.0110, "APTUSDT": 0.0105, "INJUSDT": 0.0115, "ARBUSDT": 0.0105, "OPUSDT": 0.0105}
     END_MS = int(pd.Timestamp("2026-10-01", tz="UTC").timestamp() * 1000)
 
     def __init__(self, seed: int = 7):

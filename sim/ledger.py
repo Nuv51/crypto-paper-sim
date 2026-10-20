@@ -128,6 +128,34 @@ class Ledger:
                 f"INSERT INTO {t}({','.join(cols)}) VALUES({','.join('?' * len(cols))})", d["rows"])
         self.con.commit()
 
+    def compact_equity(self, last_ts: int, bar_ms: int, keep_ms: int = 3_600_000, recent_ms: int = 48 * 3_600_000) -> int:
+        """Con velas cortas la curva de equity crece muy rápido (y el estado viaja entero en cada corrida). Lo anterior a
+        `recent_ms` se reduce a una fila por `keep_ms` (el cierre de cada hora); lo reciente queda completo. El efecto de
+        mercado (tabla attrib) de las filas eliminadas se suma a la siguiente fila conservada, así que la atribución sigue
+        cuadrando. Es determinista (no depende de cómo se agrupen las corridas) e idempotente. Devuelve filas eliminadas."""
+        if keep_ms <= bar_ms:
+            return 0
+        aligned = lambda ts: (ts + bar_ms) % keep_ms == 0
+        edge = last_ts - recent_ms
+        cutoff = edge - ((edge + bar_ms) % keep_ms)                 # la fila de corte también está alineada
+        have = {(t, b) for t, b in self.con.execute("SELECT ts, bot_id FROM equity WHERE ts <= ?", (cutoff,))}
+        dropped = 0
+        for ts, bid in sorted(have):
+            if ts >= cutoff or aligned(ts):
+                continue
+            nxt = ts + (keep_ms - (ts + bar_ms) % keep_ms)
+            if (nxt, bid) not in have:                                  # hueco de datos: se conserva la fila
+                continue
+            r = self.con.execute("SELECT market FROM attrib WHERE ts=? AND bot_id=?", (ts, bid)).fetchone()
+            if r and r[0]:
+                self.con.execute("INSERT INTO attrib(ts,bot_id,market) VALUES(?,?,?) ON CONFLICT(ts,bot_id) "
+                                 "DO UPDATE SET market = market + excluded.market", (nxt, bid, r[0]))
+            self.con.execute("DELETE FROM attrib WHERE ts=? AND bot_id=?", (ts, bid))
+            self.con.execute("DELETE FROM equity WHERE ts=? AND bot_id=?", (ts, bid))
+            dropped += 1
+        self.con.commit()
+        return dropped
+
     def prune_bars(self, keep: int = 800) -> None:
         """Conserva solo las últimas `keep` velas por moneda (el historial completo no hace falta para seguir)."""
         for (sym,) in self.con.execute("SELECT DISTINCT symbol FROM bars").fetchall():

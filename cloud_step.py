@@ -11,10 +11,18 @@ Códigos : 0 ok · 1 error inesperado · 2 sin datos/red (no se escribe ledger.j
 from __future__ import annotations
 
 import argparse
+import importlib
 import sys
 
-import config
 from sim.cloud import run_step
+
+# Identidad de cada simulación (la muestra el tablero y enlaza con la otra). "actual" usa config.py; "activo" usa config_active.py.
+SIMS = {
+    "config": dict(id="actual", name="Simulador actual", other="activo",
+                   desc="Velas de 1 h · 10 bots · umbrales conservadores"),
+    "config_active": dict(id="activo", name="Simulador dinámico", other="binance",
+                          desc="Velas de 15 min · más monedas · umbrales más sueltos · 14 bots"),
+}
 
 
 def main() -> int:
@@ -22,11 +30,14 @@ def main() -> int:
     ap.add_argument("--state", help="ruta del ledger.json anterior")
     ap.add_argument("--out", required=True, help="carpeta de salida")
     ap.add_argument("--source", choices=["binance", "synthetic"], default="binance")
-    ap.add_argument("--capital", type=float, default=config.PORTFOLIO_CAPITAL)
+    ap.add_argument("--config", default="config", choices=sorted(SIMS), help="módulo de configuración (config | config_active)")
+    ap.add_argument("--capital", type=float, default=None, help="por defecto, el PORTFOLIO_CAPITAL de la configuración")
     ap.add_argument("--synthetic-advance", type=int, default=24, help="(solo synthetic) velas nuevas por corrida")
     a = ap.parse_args()
-    code, status = run_step(config.BOTS, config.INTERVAL, a.capital, a.state, a.out, a.source,
-                            synthetic_advance=a.synthetic_advance, portfolio_risk=config.PORTFOLIO_RISK)
+    cfg = importlib.import_module(a.config)
+    capital = cfg.PORTFOLIO_CAPITAL if a.capital is None else a.capital
+    code, status = run_step(cfg.BOTS, cfg.INTERVAL, capital, a.state, a.out, a.source,
+                            synthetic_advance=a.synthetic_advance, portfolio_risk=cfg.PORTFOLIO_RISK, sim=SIMS[a.config])
     print(("OK" if code == 0 else f"FALLÓ (código {code})") + f": {status['message']}")
     return code
 
