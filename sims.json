@@ -1,0 +1,20 @@
+[
+ {
+  "dir": "binance",
+  "id": "actual",
+  "name": "Simulador actual",
+  "desc": "Velas de 1 h · 10 bots · umbrales conservadores"
+ },
+ {
+  "dir": "activo",
+  "id": "activo",
+  "name": "Simulador dinámico",
+  "desc": "Velas de 15 min · más monedas · umbrales más sueltos · 14 bots"
+ },
+ {
+  "dir": "indice",
+  "id": "indice",
+  "name": "Simulador indexado",
+  "desc": "Cartera pasiva: 3 índices (Top-25 y Top-50 por capitalización, Top-25 igual peso) con rebalanceo mensual; sin señales"
+ }
+]
