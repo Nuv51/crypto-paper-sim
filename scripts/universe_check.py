@@ -15,9 +15,12 @@ import argparse
 import importlib
 import json
 import sys
+import os
 import time
 
 import requests
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))      # raíz del repo (para importar config_index)
 
 BASE = "https://data-api.binance.vision"
 

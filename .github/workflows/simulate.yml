@@ -98,7 +98,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          python scripts/universe_check.py --config config_index --out "$RUNNER_TEMP/universe_status.json" > "$RUNNER_TEMP/universe.txt"
+          python scripts/universe_check.py --config config_index --out "$RUNNER_TEMP/universe_status.json" > "$RUNNER_TEMP/universe.txt" 2>&1
           CODE=$?
           cat "$RUNNER_TEMP/universe.txt"
           mkdir -p store/indice/data && cp "$RUNNER_TEMP/universe_status.json" store/indice/data/universe_status.json
