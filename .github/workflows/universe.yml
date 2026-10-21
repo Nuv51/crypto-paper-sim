@@ -1,0 +1,29 @@
+name: universe
+# Sondeo manual (solo lectura): ¿qué monedas candidatas operan en Binance spot, con cuánta historia y liquidez?
+# Guarda el resultado en la rama `universe`. Lo usa el simulador indexado para fijar su universo.
+on:
+  workflow_dispatch:
+    inputs:
+      candidates:
+        description: "Monedas candidatas separadas por coma (sin USDT)"
+        required: true
+        type: string
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install requests
+      - run: python3 scripts/universe_check.py --candidates "${{ inputs.candidates }}" --out universe_check.json
+      - name: Guardar resultado en la rama universe
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan universe
+          git rm -rf --quiet . || true
+          git add -f universe_check.json
+          git commit -q -m "universe: resultado del sondeo"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" universe
