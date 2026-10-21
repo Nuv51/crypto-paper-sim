@@ -80,6 +80,29 @@ jobs:
           { echo "### Simulador dinámico (${SOURCE})"; echo; cat "$RUNNER_TEMP/summary_dyn.txt"; echo; cat "$RUNNER_TEMP/table_dyn.md";
             if [ -s "$RUNNER_TEMP/notify_dyn.txt" ]; then echo; echo '**Novedades**'; echo; echo '```'; cat "$RUNNER_TEMP/notify_dyn.txt"; echo '```'; fi; } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Observatorio de spreads (solo mide; si falla, no afecta a los simuladores)
+        id: obs
+        if: env.SOURCE == 'binance'
+        continue-on-error: true
+        run: |
+          set +e
+          D=store/observatorio
+          mkdir -p "$D/state" "$D/data" "$RUNNER_TEMP/obs"
+          STATE_ARGS=()
+          [ -f "$D/state/stats.json" ] && STATE_ARGS=(--state "$D/state/stats.json")
+          python observatory_step.py "${STATE_ARGS[@]}" --out "$RUNNER_TEMP/obs" --snapshots 6 --interval 20
+          CODE=$?
+          [ -f "$RUNNER_TEMP/obs/status.json" ] && cp "$RUNNER_TEMP/obs/status.json" "$D/data/status.json"
+          if [ "$CODE" -eq 0 ]; then
+            cp "$RUNNER_TEMP/obs/stats.json" "$D/state/stats.json"
+            cp "$RUNNER_TEMP/obs/summary.json" "$D/data/summary.json"
+            cp web/observatorio.html "$D/index.html"
+            { echo "### Observatorio de spreads"; echo; cat "$RUNNER_TEMP/obs/summary.md"; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Observatorio sin datos nuevos (código $CODE): $(head -c 300 "$RUNNER_TEMP/obs/status.json" 2>/dev/null)"
+          fi
+          exit 0
+
       - name: Guardar estado y tablero en sim-data
         if: always()
         run: |

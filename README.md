@@ -166,6 +166,23 @@ Guarda en la rama **`sim-data`**: `binance/state/ledger.json` (estado), `binance
   esfuerzo); si pasa, se reactivan desde la pestaña Actions. El resumen diario avisa si el simulador lleva más de 3 h sin correr.
 - Todo es simulación con dinero ficticio y sin llaves de API.
 
+## Observatorio de spreads (medición previa a cualquier bot de arbitraje nuevo)
+
+No es un bot: **solo mide**. Cada corrida horaria toma 6 fotos (una cada ~20 s) del mejor bid/ask de cada moneda listada en Bitso
+(mercado USDT) frente a Binance y KuCoin, y calcula el spread bruto y el neto de comisiones taker y slippage de **cada ruta**
+(comprar en A, vender en B). Acumula estadísticas de tamaño constante (`observatorio/state/stats.json` en la rama `sim-data`).
+
+- **Qué responde:** en qué monedas y rutas el neto supera el umbral (0.30 %), con qué frecuencia, cuánto *dura* (persistencia ~20 s
+  después), cuánta profundidad hay en la punta del libro y una cota superior de ganancia diaria.
+- **Rutas de control (Binance ↔ KuCoin):** si Bitso no muestra más oportunidades que ellas, el "nicho Bitso" no existe.
+- **Prima del peso:** precio implícito en USDT de cada moneda vía Bitso MXN frente a Binance.
+- **Regla de la prueba:** los parámetros quedan guardados; si cambian, la corrida se niega (no se afina a mitad de la medición).
+  Sin ~30 días de datos el resumen dice "Sin veredicto".
+- **Límites:** fotos, no flujo continuo; comisiones base (KuCoin Clase B/C pagan más); fondos pre-posicionados (sin costo de
+  rebalanceo); spreads brutos > 20 % se descartan como tickers distintos.
+- **Dónde verlo:** resumen en cada corrida (pestaña Summary del job) y página `…/crypto-paper-sim/observatorio/` (GitHub Pages).
+- **Local:** `python observatory_step.py --state stats.json --out out --snapshots 3 --interval 10`.
+
 ## Inicio rápido (en tu computadora)
 
 ```bash
@@ -204,7 +221,10 @@ sim/cloud.py         paso de nube, huella de configuración
 sim/forecast.py      estimación de tendencia (con cono de incertidumbre)
 sim/metrics.py       métricas y solapamiento
 sim/ledger.py        SQLite
-tests/               93 pruebas
+sim/observatory.py   observatorio de spreads (solo mide)
+observatory_step.py  una corrida del observatorio
+web/observatorio.html  página del observatorio
+tests/               93 pruebas + 21 del observatorio
 ```
 
 ## Pruebas
