@@ -1,11 +1,12 @@
 name: simulate
 
-# Corre DOS simulaciones (dinero FICTICIO) cada hora y guarda estado + tablero de cada una en la rama `sim-data`:
-#   · simulador ACTUAL   → carpeta binance/ (velas de 1 h, config.py)
-#   · simulador DINÁMICO → carpeta activo/  (velas de 15 min, config_active.py)
+# Corre TRES simulaciones (dinero FICTICIO) cada hora y guarda estado + tablero de cada una en la rama `sim-data`:
+#   · simulador ACTUAL    → carpeta binance/ (velas de 1 h, config.py)
+#   · simulador DINÁMICO  → carpeta activo/  (velas de 15 min, config_active.py)
+#   · simulador INDEXADO  → carpeta indice/  (velas de 1 h, config_index.py: 3 carteras pasivas, rebalanceo mensual)
 # Los bots deciden al CIERRE de cada vela; si una corrida se retrasa o falla, la siguiente procesa todas las velas
 # pendientes en orden, así que el resultado no depende de cuándo corre. Cada simulación falla por separado: si una
-# no puede leer datos, la otra igual se guarda.
+# no puede leer datos, las otras igual se guardan.
 on:
   schedule:
     - cron: "7 * * * *"           # cada hora (UTC), al minuto 7 (las velas de 1 h ya cerraron)
@@ -20,7 +21,7 @@ on:
         description: "Reiniciar desde cero (necesario si cambias bots o parámetros de ESA simulación). Por defecto no reinicia ninguna"
         default: "ninguno"
         type: choice
-        options: [ninguno, activo, actual]
+        options: [ninguno, activo, actual, indice]
 
 permissions:
   contents: write
@@ -80,6 +81,30 @@ jobs:
           { echo "### Simulador dinámico (${SOURCE})"; echo; cat "$RUNNER_TEMP/summary_dyn.txt"; echo; cat "$RUNNER_TEMP/table_dyn.md";
             if [ -s "$RUNNER_TEMP/notify_dyn.txt" ]; then echo; echo '**Novedades**'; echo; echo '```'; cat "$RUNNER_TEMP/notify_dyn.txt"; echo '```'; fi; } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Simulador indexado (3 carteras pasivas, velas de 1 h)
+        id: idx
+        run: |
+          set +e
+          FRESH=$([ "$REINICIAR" = "indice" ] && echo true || echo false)
+          DIR=$([ "$SOURCE" = "binance" ] && echo indice || echo "indice-${SOURCE}")
+          SUMMARY_FILE="$RUNNER_TEMP/summary_idx.txt" NOTIFY_FILE="$RUNNER_TEMP/notify_idx.txt" TABLE_FILE="$RUNNER_TEMP/table_idx.md" \
+            STORE=store SIM_DIR="$DIR" CONFIG=config_index FRESH="$FRESH" bash scripts/ci_run.sh
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          { echo "### Simulador indexado (${SOURCE})"; echo; cat "$RUNNER_TEMP/summary_idx.txt"; echo; cat "$RUNNER_TEMP/table_idx.md"; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Universo del indexado sigue operando en Binance (solo avisa)
+        id: uni
+        if: env.SOURCE == 'binance'
+        continue-on-error: true
+        run: |
+          set +e
+          python scripts/universe_check.py --config config_index --out "$RUNNER_TEMP/universe_status.json" > "$RUNNER_TEMP/universe.txt"
+          CODE=$?
+          cat "$RUNNER_TEMP/universe.txt"
+          mkdir -p store/indice/data && cp "$RUNNER_TEMP/universe_status.json" store/indice/data/universe_status.json
+          [ "$CODE" -ne 0 ] && echo "::warning::Alguna moneda del universo indexado dejó de operar en Binance: $(head -c 300 "$RUNNER_TEMP/universe.txt")"
+          exit 0
+
       - name: Observatorio de spreads (solo mide; si falla, no afecta a los simuladores)
         id: obs
         if: env.SOURCE == 'binance'
@@ -130,6 +155,7 @@ jobs:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           CODE: ${{ steps.sim.outputs.code }}
           CODE_DYN: ${{ steps.dyn.outputs.code }}
+          CODE_IDX: ${{ steps.idx.outputs.code }}
         run: |
           [ -z "$NTFY_TOPIC" ] && exit 0
           PAGES="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/${SOURCE}/"
@@ -137,6 +163,10 @@ jobs:
           if [ "$CODE_DYN" != "0" ]; then
             curl -fsS -H "Title: Simulador dinámico - FALLO" -H "Priority: high" -H "Tags: warning" \
                  -d "$(cat "$RUNNER_TEMP/summary_dyn.txt")" "https://ntfy.sh/${NTFY_TOPIC}" || true
+          fi
+          if [ "$CODE_IDX" != "0" ]; then
+            curl -fsS -H "Title: Simulador indexado - FALLO" -H "Priority: high" -H "Tags: warning" \
+                 -d "$(cat "$RUNNER_TEMP/summary_idx.txt")" "https://ntfy.sh/${NTFY_TOPIC}" || true
           fi
           if [ "$CODE" != "0" ]; then
             curl -fsS -H "Title: Simulador cripto - FALLO" -H "Priority: high" -H "Tags: warning" \
@@ -154,5 +184,5 @@ jobs:
         run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/simulate.yml/enable" || true
 
       - name: Marcar fallo si algún simulador no corrió
-        if: steps.sim.outputs.code != '0' || steps.dyn.outputs.code != '0'
+        if: steps.sim.outputs.code != '0' || steps.dyn.outputs.code != '0' || steps.idx.outputs.code != '0'
         run: exit 1

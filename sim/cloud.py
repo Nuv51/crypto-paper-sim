@@ -121,18 +121,18 @@ def _write(path: Path, obj) -> None:
     path.write_text(json.dumps(obj, separators=(",", ":"), allow_nan=False, ensure_ascii=False), encoding="utf-8")
 
 
-def _frames(feed, source: str, symbols: list[str], interval: str, ledger: Ledger, advance: int):
+def _frames(feed, source: str, symbols: list[str], interval: str, ledger: Ledger, advance: int, window: int = WINDOW):
     bar_ms = INTERVAL_MS[interval]
     if source == "synthetic":                      # SOLO para pruebas: revela `advance` velas nuevas por corrida
         full = {s: feed.history(s, interval, 60) for s in symbols}
         common = sorted(set.intersection(*[set(int(t) for t in f.index) for f in full.values()]))
         last_ts = int(ledger.get_meta("last_ts", 0) or 0)
         until = common[800] if not last_ts else min(last_ts + advance * bar_ms, common[-1])
-        return {s: f[f.index <= until].tail(WINDOW) for s, f in full.items()}
+        return {s: f[f.index <= until].tail(window) for s, f in full.items()}
     try:
         frames = {}
         for s in symbols:
-            frames[s] = feed.latest_closed(s, interval, WINDOW)
+            frames[s] = feed.latest_closed(s, interval, window)
             time.sleep(getattr(feed, "pause", 0))
         return frames
     except Exception as e:
@@ -141,7 +141,8 @@ def _frames(feed, source: str, symbols: list[str], interval: str, ledger: Ledger
 
 def run_step(bots_cfg: list[dict], interval: str, capital: float, state_path: Optional[str], out_dir: str,
              source: str = "binance", feed=None, synthetic_advance: int = 24, seed: int = 7,
-             portfolio_risk: Optional[dict] = None, sim: Optional[dict] = None) -> tuple[int, dict]:
+             portfolio_risk: Optional[dict] = None, sim: Optional[dict] = None,
+             window: int = WINDOW, keep_bars: int = 800) -> tuple[int, dict]:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     now_ms = int(time.time() * 1000)
@@ -173,7 +174,7 @@ def run_step(bots_cfg: list[dict], interval: str, capital: float, state_path: Op
             if not eng.has_saved_state():
                 raise ValueError("El estado guardado está incompleto")
             eng.load_state()
-        frames = _frames(feed, source, eng.symbols, interval, ledger, synthetic_advance)
+        frames = _frames(feed, source, eng.symbols, interval, ledger, synthetic_advance, window)
         ledger.set_meta("source", label)
         ledger.set_meta("mode", "cloud")
         ledger.set_meta("interval", interval)
@@ -184,7 +185,7 @@ def run_step(bots_cfg: list[dict], interval: str, capital: float, state_path: Op
         # la ventana completa de velas alimenta los gráficos de precio y las estimaciones de tendencia
         ledger.upsert_bars([(s_, int(r.ts), float(r.open), float(r.high), float(r.low), float(r.close), float(r.volume))
                             for s_, df in frames.items() for r in df.reset_index().itertuples(index=False)])
-        ledger.prune_bars(800)
+        ledger.prune_bars(keep_bars, keep_extra={s_: 800 for s_ in BENCH_SYMBOLS})
         ledger.compact_equity(int(ledger.get_meta("last_ts", 0) or 0), INTERVAL_MS[interval])
         _write(out / "ledger.json", ledger.dump())
         bench = benchmarks_from_feed(feed) if source != "synthetic" else None

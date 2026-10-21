@@ -133,6 +133,38 @@ La hipótesis a medir: ¿el movimiento extra compensa sus comisiones? Más opera
 Si una simulación no puede leer datos, la otra igual se guarda. Con velas de 15 min la curva de equity vieja se reduce a un
 punto por hora (`Ledger.compact_equity`) para que el estado no crezca sin límite.
 
+## Simulador indexado (la vara pasiva contra la que se miden los bots activos)
+
+Un **tercer** simulador, independiente de los otros dos (`config_index.py`, tablero en `…/crypto-paper-sim/indice/`). Tres carteras
+pasivas con 10,000 USDT ficticios cada una, sin señales ni stops: compran el índice el primer día y lo rebalancean cada 30 días.
+
+| Bot | Qué compra | Pesos |
+|---|---|---|
+| `i01_index_cap25` | Top-25 por capitalización | ∝ capitalización, **tope 30 %** por moneda |
+| `i02_index_cap50` | Top-50 por capitalización | ∝ capitalización, tope 30 % (la cola pesa poco: se parece al Top-25 y eso es parte de lo que se mide) |
+| `i03_index_ew25` | las mismas 25 monedas | **igual peso** (4 % cada una) |
+
+- **Para qué sirve:** es la vara de medir. Si ningún bot activo supera a estas carteras *después de costos*, la complejidad no está
+  pagando. Todas se comparan contra BTC y contra el índice de mercado del tablero, con las mismas comisiones y slippage.
+- **Universo congelado (2026-10-20):** las 50 mayores monedas por capitalización (CoinGecko) que cotizan `<MONEDA>USDT` en Binance spot
+  con estado TRADING y ≥ 365 días de historia, sin stablecoins, dinero tokenizado, oro tokenizado ni tokens de otros exchanges. Se
+  verificó con `scripts/universe_check.py` (workflow `universe`). No se reconstituye durante la prueba.
+- **Pesos:** se parte de la capitalización de CoinGecko del 2026-10-20; con el primer precio de la simulación se fija un suministro implícito
+  por moneda (cap / precio) y en cada rebalanceo el peso es suministro × precio con el tope de 30 % (el exceso se reparte entre las demás
+  en proporción a su capitalización). Lo que quede bajo 0.08 % (~8 USDT) no se compra y se renormaliza.
+- **Ejecución:** decide al cierre y llena a la apertura siguiente con taker de Binance 0.10 % + slippage **por nivel de liquidez**
+  (5–40 bps según el volumen diario promedio de 30 días). El rebalanceo es en **dos tiempos**: vende lo que sobra y, a la vela siguiente,
+  compra lo que falta (ninguna compra depende de efectivo que aún no existe). Se conserva 0.5 % en efectivo.
+- **Sin freno de riesgo:** un índice pasivo se mantiene aunque caiga; solo hay una alerta informativa a -50 %.
+- **Límites que conviene tener claros:**
+  - *Sesgo de supervivencia:* el universo se eligió hoy con información de hoy, y no incluye monedas que murieron.
+  - *Si una moneda deja de cotizar en Binance*, el simulador no puede leer sus velas y esa simulación se detiene (código 2) hasta
+    que se reinicie con otro universo. El flujo revisa el estado de las 50 monedas en cada corrida (`indice/data/universe_status.json`)
+    y avisa en el resumen del job.
+  - *Suministros aproximados:* la capitalización viene de una página pública y es un punto de partida, no un dato oficial.
+  - *Muestras cortas no son evidencia:* un índice mide el mercado; unas semanas no dicen si una forma de ponderar es mejor que otra.
+- **Reiniciar:** Run workflow → `reiniciar = indice`. Cambiar cualquier parámetro o el universo exige reiniciar (a propósito).
+
 ## Ejecución automática con GitHub Actions
 
 `.github/workflows/simulate.yml` corre el simulador cada hora (y a mano: **Actions → simulate → Run workflow**).
@@ -206,6 +238,7 @@ Opcional: `export CMC_API_KEY=...` activa la verificación cruzada de precio con
 ```
 config.py            simulador actual: capital, monedas, parámetros y límites de riesgo por bot (velas de 1 h)
 config_active.py     simulador dinámico (velas de 15 min, más monedas y umbrales sueltos)
+config_index.py      simulador indexado: universo de 50 monedas, capitalizaciones, slippage por liquidez, 3 carteras pasivas
 run.py               CLI: replay | live | report
 cloud_step.py        un paso incremental para la nube (lo usa GitHub Actions)
 dashboard.py         Streamlit + Plotly (uso local)
@@ -213,8 +246,10 @@ web/index.html       tablero web de un solo archivo (lo publica la rama sim-data
 scripts/ci_run.sh    una corrida de CI: estado, tablero, avisos
 scripts/digest.py    textos de las notificaciones (operaciones nuevas, resumen, tabla)
 scripts/probe.py     sondeo de qué APIs alcanza GitHub (se usó para elegir las fuentes)
+scripts/universe_check.py  verifica monedas en Binance spot (estado, historia, liquidez); también revisa el universo indexado
 sim/broker.py        wallet virtual: comisiones, slippage, límite, reservas, patas fuera de spot
-sim/bots.py          las 10 estrategias
+sim/bots.py          las 10 estrategias + el bot de índice pasivo
+sim/indexing.py      pesos de índice con tope por moneda (funciones puras)
 sim/engine.py        bucle de replay/live, control de riesgo, persistencia
 sim/data.py          Binance, KuCoin futuros, foto de Bitso, feed sintético, CoinMarketCap
 sim/cloud.py         paso de nube, huella de configuración
@@ -224,7 +259,7 @@ sim/ledger.py        SQLite
 sim/observatory.py   observatorio de spreads (solo mide)
 observatory_step.py  una corrida del observatorio
 web/observatorio.html  página del observatorio
-tests/               93 pruebas + 21 del observatorio
+tests/               93 pruebas + 21 del observatorio + 17 del indexado
 ```
 
 ## Pruebas

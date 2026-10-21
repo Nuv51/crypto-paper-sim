@@ -68,6 +68,7 @@ class Engine:
             spec = dict(cfg, capital=portfolio_capital * cfg["capital_pct"])
             bot = build_bot(spec, self.bar_ms)
             wallet = PaperWallet(bot.id, get_exchange(bot.exchange), bot.capital, bot.slippage_bps)
+            wallet.slippage_map = {s: v / 1e4 for s, v in bot.slippage_map_bps.items()}
             self.runtimes[bot.id] = BotRuntime(bot, wallet)
         if not self.runtimes:
             raise ValueError("Ningún bot seleccionado")

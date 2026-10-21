@@ -1,6 +1,6 @@
 """Bots de estrategia. Numeración = glosario del proyecto:
     #1 Carry spot-perpetuo · #2 Stablecoins · #3 DCA · #4 Grid · #5 Reversión a la media · #6 Market making
-    #7 Tendencia/Momentum · #8 Breakout · #9 ML · #10 Arbitraje cross-exchange vía XRP
+    #7 Tendencia/Momentum · #8 Breakout · #9 ML · #10 Arbitraje cross-exchange vía XRP · #11 Índice pasivo
 
 Contrato de cada bot:
   * prepare(sym, df)  -> agrega columnas de indicadores CAUSALES (sin mirar al futuro).
@@ -22,6 +22,7 @@ import pandas as pd
 
 from . import indicators as ind
 from .broker import PaperWallet, Fill, floor_qty
+from .indexing import index_weights
 
 HOUR_MS = 3_600_000
 
@@ -64,6 +65,7 @@ class Bot:
         self.differentiator = spec.get("differentiator", "")
         self.risk = dict(spec.get("risk", {}))
         self.slippage_bps = float(spec.get("slippage_bps", 3.0))
+        self.slippage_map_bps = {k: float(v) for k, v in spec.get("slippage_map_bps", {}).items()}   # por símbolo (opcional)
         self.p = SimpleNamespace(**{**self.DEFAULTS, **spec.get("params", {})})
         self.bar_ms = bar_ms
         self.warmup = self._warmup()
@@ -950,9 +952,119 @@ class XrpRailBot(Bot):
                 f"{st['opps']} oportunidades ≥ {self.p.threshold:.2%}")
 
 
+# ======================================================================================
+# #11 Índice pasivo (simulador indexado)
+# ======================================================================================
+class IndexBot(Bot):
+    """Cartera pasiva: compra todo el índice el primer día y lo rebalancea cada `rebalance_hours` hacia los pesos objetivo.
+
+    * weighting="cap": peso ∝ suministro × precio (suministro implícito = capitalización inicial / primer precio, fijo),
+      con tope `cap_max` por moneda. weighting="equal": igual peso.
+    * Rebalanceo en DOS tiempos: al cierre de la vela t vende lo que sobra; en la vela t+1 (ya con el efectivo) compra lo que
+      falta. Así ninguna compra depende de un efectivo que todavía no existe.
+    * Solo opera diferencias de al menos `min_trade_usdt`; las monedas con peso objetivo < `min_weight` no se compran.
+    * Se queda con `cash_buffer` del valor en efectivo para absorber comisión, deslizamiento y el salto del precio entre
+      el cierre (decisión) y la apertura siguiente (ejecución).
+    No hay señales, stops ni predicciones: lo único que decide es el calendario.
+    """
+    kind = "index"
+    strategy_label = "Índice pasivo · rebalanceo periódico"
+    DEFAULTS = dict(weighting="cap", cap_max=0.30, rebalance_hours=720, cash_buffer=0.005, min_trade_usdt=8.0, min_weight=0.0008)
+
+    def __init__(self, spec: dict, bar_ms: int):
+        super().__init__(spec, bar_ms)
+        self.caps_usd = {k: float(v) for k, v in spec.get("caps_usd", {}).items()}
+        if self.p.weighting not in ("cap", "equal"):
+            raise ValueError(f"weighting inválido: {self.p.weighting}")
+        if self.p.weighting == "cap":
+            missing = [s for s in self.symbols if not self.caps_usd.get(s)]
+            if missing:
+                raise ValueError(f"Faltan capitalizaciones (caps_usd) para: {', '.join(missing)}")
+            if self.p.cap_max * len(self.symbols) < 1:
+                raise ValueError("cap_max demasiado bajo para el número de monedas")
+
+    def init_state(self) -> dict:
+        return {"supply": {}, "started_ts": 0, "last_rb_ts": 0, "phase": "idle", "rb_ts": 0, "n_rebalances": 0, "weights": {}}
+
+    # --- pesos y tamaños ------------------------------------------------------------
+    def _weights(self, ctx: Ctx) -> dict:
+        p = self.p
+        if p.weighting == "equal":
+            raw = {s: 1.0 for s in self.symbols if _ok(ctx.price(s)) and ctx.price(s) > 0}
+            return index_weights(raw, None, p.min_weight)
+        raw = {s: self.st["supply"][s] * ctx.price(s) for s in self.symbols if _ok(ctx.price(s)) and ctx.price(s) > 0}
+        return index_weights(raw, p.cap_max, p.min_weight)
+
+    def _cost_factor(self, ctx: Ctx, sym: str) -> float:
+        w = ctx.wallet
+        return (1 + w.profile.taker) * (1 + w.slippage_map.get(sym, w.slippage))
+
+    def _values(self, ctx: Ctx) -> dict:
+        return {s: ctx.wallet.pos(s).qty * ctx.price(s) for s in self.symbols}
+
+    def _targets(self, ctx: Ctx):
+        w = self._weights(ctx)
+        budget = ctx.equity() * (1 - self.p.cash_buffer)
+        self.st["weights"] = {s: round(x, 6) for s, x in w.items()}
+        return {s: w.get(s, 0.0) * budget for s in self.symbols}
+
+    def _submit_buys(self, ctx: Ctx, diffs: dict, reason: str) -> int:
+        """diffs[s] = valor (USDT) por comprar. Si el efectivo no alcanza para valor + costos, se reduce todo en proporción."""
+        want = {s: d for s, d in diffs.items() if d >= self.p.min_trade_usdt}
+        need = sum(d * self._cost_factor(ctx, s) for s, d in want.items())      # desembolso real: valor + comisión + deslizamiento
+        avail = ctx.wallet.free_cash() * 0.998
+        scale = min(1.0, avail / need) if need > 0 else 1.0
+        n = 0
+        for s, d in want.items():
+            qty = floor_qty(d * scale / ctx.price(s))
+            if qty > 0 and ctx.wallet.submit(ctx.ts, s, "buy", "market", qty, reason=reason):
+                n += 1
+        return n
+
+    # --- estrategia -----------------------------------------------------------------
+    def on_bar(self, ctx: Ctx) -> None:
+        st, p = self.st, self.p
+        if not st["started_ts"]:                                  # día 0: fija suministros y compra todo el índice
+            if p.weighting == "cap":
+                bad = [s for s in self.symbols if not (_ok(ctx.price(s)) and ctx.price(s) > 0)]
+                if bad:
+                    return                                         # sin precio válido de alguna moneda: espera a la siguiente vela
+                st["supply"] = {s: self.caps_usd[s] / ctx.price(s) for s in self.symbols}
+            st["started_ts"] = st["last_rb_ts"] = ctx.ts
+            tg = self._targets(ctx)
+            self._submit_buys(ctx, tg, "index_init")
+            return
+        if st["phase"] == "buy":                                  # 2.º tiempo: ya se llenaron las ventas de la vela anterior
+            if ctx.ts > st["rb_ts"]:
+                tg, cur = self._targets(ctx), self._values(ctx)
+                self._submit_buys(ctx, {s: tg[s] - cur[s] for s in self.symbols}, "index_rebalance")
+                st["phase"] = "idle"
+                st["n_rebalances"] += 1
+            return
+        if ctx.ts - st["last_rb_ts"] >= p.rebalance_hours * HOUR_MS:      # 1.er tiempo: vender lo que sobra
+            tg, cur = self._targets(ctx), self._values(ctx)
+            for s in self.symbols:
+                over = cur[s] - tg[s]
+                held = ctx.wallet.pos(s).qty
+                if held <= 0 or over < p.min_trade_usdt:
+                    continue
+                qty = held if tg[s] <= 0 else min(held, floor_qty(over / ctx.price(s)))
+                if qty > 0:
+                    ctx.wallet.submit(ctx.ts, s, "sell", "market", qty, reason="index_rebalance")
+            st["phase"], st["rb_ts"], st["last_rb_ts"] = "buy", ctx.ts, ctx.ts
+
+    def status_detail(self, wallet: PaperWallet) -> str:
+        st = self.st
+        n = sum(1 for s in self.symbols if wallet.pos(s).qty > 0)
+        if not st["started_ts"]:
+            return "Por comprar el índice"
+        day = pd.Timestamp(st["last_rb_ts"], unit="ms", tz="UTC").strftime("%Y-%m-%d")
+        return f"{n} de {len(self.symbols)} monedas en cartera · {st['n_rebalances']} rebalanceos · último {day}"
+
+
 BOT_CLASSES = {"carry": CarryBot, "stable": StableBot, "dca": DcaBot, "grid": GridBot,
                "meanrev": MeanReversionBot, "mm": MarketMakerBot, "trend": TrendBot,
-               "breakout": BreakoutBot, "ml": MLBot, "xrp_rail": XrpRailBot}
+               "breakout": BreakoutBot, "ml": MLBot, "xrp_rail": XrpRailBot, "index": IndexBot}
 
 
 def build_bot(spec: dict, bar_ms: int) -> Bot:

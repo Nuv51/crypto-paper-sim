@@ -42,6 +42,8 @@ FAMILIES = [
      "Ganan si el precio sigue una dirección. Compran fuerza o siguen una señal; pierden en mercados laterales."),
     ("acumulacion", "Acumulación", ("dca",),
      "Compra periódica de monto fijo, sin señales ni stop. Es acumulación, no una ventaja estadística."),
+    ("indice", "Índice pasivo", ("index",),
+     "Compran el mercado (Top-25/Top-50) y rebalancean cada mes. Sin señales: sirven de vara para medir si los bots activos pagan su complejidad."),
 ]
 
 

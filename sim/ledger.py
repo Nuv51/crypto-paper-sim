@@ -156,11 +156,12 @@ class Ledger:
         self.con.commit()
         return dropped
 
-    def prune_bars(self, keep: int = 800) -> None:
-        """Conserva solo las últimas `keep` velas por moneda (el historial completo no hace falta para seguir)."""
+    def prune_bars(self, keep: int = 800, keep_extra: dict | None = None) -> None:
+        """Conserva solo las últimas `keep` velas por moneda (el historial completo no hace falta para seguir).
+        `keep_extra` = {símbolo: velas} da un tope distinto a monedas concretas (p. ej. BTC, que sirve de referencia)."""
         for (sym,) in self.con.execute("SELECT DISTINCT symbol FROM bars").fetchall():
             r = self.con.execute("SELECT ts FROM bars WHERE symbol=? ORDER BY ts DESC LIMIT 1 OFFSET ?",
-                                 (sym, keep)).fetchone()
+                                 (sym, (keep_extra or {}).get(sym, keep))).fetchone()
             if r:
                 self.con.execute("DELETE FROM bars WHERE symbol=? AND ts<=?", (sym, r[0]))
         self.con.commit()

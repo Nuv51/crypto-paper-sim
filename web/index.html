@@ -513,7 +513,7 @@ function smTile(l, v, dl, extra) { return '<div class="sm-tile"><div class="l">'
 /* ------------------------------------------------------------------ crecimiento: portafolio vs BTC y ETH por periodo */
 var PERIODS = [['1d', 'Día', 1], ['7d', 'Semana', 7], ['30d', 'Mes', 30], ['90d', '3 meses', 90], ['365d', 'Año', 365], ['all', 'Inicio', 0]];
 var HOUR_MS = 3600000, DAY_MS = 86400000;
-var FAMILY_COLOR = { neutral: 'var(--s3)', rango: 'var(--s4)', tendencia: 'var(--s7)', acumulacion: 'var(--s1)' };
+var FAMILY_COLOR = { neutral: 'var(--s3)', rango: 'var(--s4)', tendencia: 'var(--s7)', acumulacion: 'var(--s1)', indice: 'var(--s2)' };
 function idxAtOrBefore(ts, t) { var lo = 0, hi = ts.length - 1, r = -1; while (lo <= hi) { var m = (lo + hi) >> 1; if (ts[m] <= t) { r = m; lo = m + 1; } else hi = m - 1; } return r; }
 /* velas por hora para ventanas de hasta 30 días y por día para las más largas */
 function benchFor(B, sym, spanMs) {

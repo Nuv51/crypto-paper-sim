@@ -80,6 +80,7 @@ class PaperWallet:
         self.cash = float(cash)
         self.initial_cash = float(cash)
         self.slippage = slippage_bps / 1e4
+        self.slippage_map: dict[str, float] = {}   # deslizamiento propio por símbolo (fracción); si falta, se usa `slippage`
         self.positions: dict[str, Position] = {}
         self.orders: list[Order] = []
         self.realized_pnl = 0.0
@@ -225,8 +226,9 @@ class PaperWallet:
 
     def _fill_market(self, ts: int, od: Order, open_px: float) -> Optional[Fill]:
         taker = self.profile.taker
+        slip = self.slippage_map.get(od.symbol, self.slippage)
         if od.side == "buy":
-            px = open_px * (1 + self.slippage)
+            px = open_px * (1 + slip)
             max_qty = floor_qty(self.free_cash() / (px * (1 + taker)))
             qty = min(od.qty, max_qty)
             if qty < od.qty * 0.999:
@@ -236,7 +238,7 @@ class PaperWallet:
                 self._event("warn", f"{od.symbol} compra a mercado rechazada (sin efectivo / bajo mínimo)")
                 return None
         else:
-            px = open_px * (1 - self.slippage)
+            px = open_px * (1 - slip)
             held = self.pos(od.symbol).qty
             qty = min(od.qty, held)
             closing_all = qty >= held - 1e-12
