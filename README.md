@@ -128,7 +128,9 @@ ficticio (10,000 USDT, 100 % desplegado) y los mismos precios reales de Binance:
 
 Las reglas de cada uno quedan fijas durante la prueba (nada se afina a mitad de camino: si no, la comparación no sería justa).
 Lo que significa "tiempo" en barras se re-expresó para que dure lo mismo (pausa de riesgo 7 días = 672 barras, ventana de
-rupturas 30 días = 2,880). Cada tablero tiene una pestaña **Comparar** que pone ambos lado a lado desde su inicio común.
+rupturas 30 días = 2,880). Cada tablero tiene una pestaña **Comparar** que pone **todos** los simuladores publicados en una sola gráfica y una tabla, desde su inicio común
+(el del más reciente). Se descubren solos: cada corrida escribe `sims.json` con las carpetas que tienen tablero, así que un simulador nuevo aparece en
+la pestaña de todos sin editar la página. Si los capitales difieren (el indexado usa 30,000 USDT), la pestaña avisa que se compare el ROI.
 La hipótesis a medir: ¿el movimiento extra compensa sus comisiones? Más operaciones no garantizan más ganancia.
 Si una simulación no puede leer datos, la otra igual se guarda. Con velas de 15 min la curva de equity vieja se reduce a un
 punto por hora (`Ledger.compact_equity`) para que el estado no crezca sin límite.
@@ -246,6 +248,7 @@ web/index.html       tablero web de un solo archivo (lo publica la rama sim-data
 scripts/ci_run.sh    una corrida de CI: estado, tablero, avisos
 scripts/digest.py    textos de las notificaciones (operaciones nuevas, resumen, tabla)
 scripts/probe.py     sondeo de qué APIs alcanza GitHub (se usó para elegir las fuentes)
+scripts/make_registry.py  lista los simuladores publicados (sims.json) para la pestaña Comparar
 scripts/universe_check.py  verifica monedas en Binance spot (estado, historia, liquidez); también revisa el universo indexado
 sim/broker.py        wallet virtual: comisiones, slippage, límite, reservas, patas fuera de spot
 sim/bots.py          las 10 estrategias + el bot de índice pasivo
@@ -259,7 +262,7 @@ sim/ledger.py        SQLite
 sim/observatory.py   observatorio de spreads (solo mide)
 observatory_step.py  una corrida del observatorio
 web/observatorio.html  página del observatorio
-tests/               93 pruebas + 21 del observatorio + 17 del indexado
+tests/               93 pruebas + 21 del observatorio + 17 del indexado + 2 de Comparar (usa Node)
 ```
 
 ## Pruebas

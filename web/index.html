@@ -91,6 +91,7 @@ h2 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
 .bot header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .bot h3 { font-size: 14.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; min-width: 0; }
 .sw { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.cmp th .sw { display: inline-block; margin-right: 5px; vertical-align: baseline; }
 .bot .strat { color: var(--ink2); font-size: 12.5px; }
 .bot .meta { color: var(--muted); font-size: 12px; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px 10px; margin: 2px 0 0; }
@@ -223,7 +224,7 @@ details pre { margin: 6px 0 2px; font: 400 11.5px var(--mono); white-space: pre-
       <h1 id="h1">Simulador de bots cripto</h1>
       <p class="sub" id="sub">Cargando…</p>
     </div>
-    <span class="topr"><a class="stamp" id="other-link" href="#" hidden></a><span class="stamp" id="stamp">Simulación · dinero ficticio</span></span>
+    <span class="topr"><span id="sim-links"></span><span class="stamp" id="stamp">Simulación · dinero ficticio</span></span>
   </div>
   <div id="banners"></div>
   <div class="tabs" role="tablist" id="tabs">
@@ -917,58 +918,78 @@ function panelBots(d) {
   }).join('');
 }
 
-/* ------------------------------------------------------------------ comparar los dos simuladores */
+/* ------------------------------------------------------------------ comparar TODOS los simuladores */
+/* Los simuladores se descubren solos: `../sims.json` (lo genera el flujo con cada carpeta que tenga tablero) lista todos;
+   cada tablero carga los demás y los compara. Al agregar un simulador nuevo, aparece aquí en todos sin tocar esta página. */
 function simName(x) { return (x && x.sim && x.sim.name) || 'Simulador'; }
 function simShort(x) { var n = simName(x).replace(/^Simulador\s+/i, ''); return n ? n.charAt(0).toUpperCase() + n.slice(1) : 'Simulador'; }
 function stepAt(ts, ys, t) { var i = idxAtOrBefore(ts, t); return ys[i < 0 ? 0 : i]; }
 function countStatus(d, s) { return d.bots.filter(function (b) { return b.status === s; }).length; }
+var SIM_COLORS = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)', 'var(--s5)', 'var(--s7)', 'var(--s8)', 'var(--s6)'];
+/* orden estable (el del registro) para que cada simulador tenga el mismo color en todos los tableros */
+function simsList(d, st) {
+  var list = [{ d: d, order: (st.selfOrder == null ? -1 : st.selfOrder) }];
+  (st.others || []).forEach(function (o) { if (o && o.d && o.d.kpis) list.push(o); });
+  list.sort(function (x, y) { return x.order - y.order; });
+  return list.map(function (x, i) { return { d: x.d, name: simShort(x.d), color: SIM_COLORS[i % SIM_COLORS.length], self: x.d === d }; });
+}
 function panelComparar(d, st, w) {
-  var o = st.other, A = simShort(d);
-  if (!o || !o.kpis) return '<div class="empty"><h2>Comparar simuladores</h2><p>Aún no hay datos del otro simulador' + (d.sim && d.sim.other ? ' (<b>' + esc(d.sim.other) + '</b>)' : '') + '. Aparecerá aquí cuando tenga su primera corrida.</p></div>';
-  var B = simShort(o), KA = d.kpis, KB = o.kpis, SA = d.series, SB = o.series;
-  var t0 = Math.max(KA.first_ts, KB.first_ts), t1 = Math.min(KA.last_ts, KB.last_ts), span = t1 - t0;
-  var out = '<div class="banner info"><span><b>Misma prueba, dos ritmos.</b> Mismo capital ficticio (' + nf(KA.capital, 0) + ' USDT) y mismos precios reales. ' + (d.sim && d.sim.desc ? '<b>' + esc(A) + '</b>: ' + esc(d.sim.desc) + '. ' : '') + (o.sim && o.sim.desc ? '<b>' + esc(B) + '</b>: ' + esc(o.sim.desc) + '. ' : '') + 'Ninguno de los dos se ajusta mientras corre la prueba.</span></div>';
-  var row = function (l, a, b, dl) { return '<tr><td>' + esc(l) + '</td><td class="n">' + a + '</td><td class="n">' + b + '</td><td class="n">' + (dl == null ? '' : dl) + '</td></tr>'; };
+  var L = simsList(d, st);
+  if (L.length < 2) return '<div class="empty"><h2>Comparar simuladores</h2><p>Aún no hay datos de otros simuladores. Aparecerán aquí cuando tengan su primera corrida.</p></div>';
+  var n = L.length;
+  var t0 = Math.max.apply(null, L.map(function (x) { return x.d.kpis.first_ts; })), t1 = Math.min.apply(null, L.map(function (x) { return x.d.kpis.last_ts; })), span = t1 - t0;
+  var maxBar = Math.max.apply(null, L.map(function (x) { return x.d.bar_ms; }));
+  var caps = L.map(function (x) { return x.d.kpis.capital; });
+  var sameCap = caps.every(function (c) { return Math.abs(c - caps[0]) < 1; });
+  var out = '<div class="banner info"><span><b>Misma prueba, ' + n + ' simuladores.</b> ' + L.map(function (x) { return '<b>' + esc(x.name) + '</b>' + (x.d.sim && x.d.sim.desc ? ': ' + esc(x.d.sim.desc) : ''); }).join('. ') + '. ' +
+    (sameCap ? 'Mismo capital ficticio (' + nf(caps[0], 0) + ' USDT) y mismos precios reales. ' : 'Los capitales ficticios son distintos (' + L.map(function (x, i) { return esc(x.name) + ' ' + nf(caps[i], 0); }).join(' · ') + ' USDT): compara el <b>ROI</b>, no los USDT. ') +
+    'Ninguno se ajusta mientras corre la prueba.</span></div>';
   var days = function (K) { return Math.max(K.last_ts - K.first_ts, 1) / DAY_MS; };
-  var dif = function (a, b, dd, suf) { return fin(a) && fin(b) ? sgn(b - a, dd, suf) : '—'; };
-  if (span >= 2 * Math.max(d.bar_ms, o.bar_ms)) {
-    var xs = []; [SA.ts, SB.ts].forEach(function (ts) { ts.forEach(function (t) { if (t >= t0 && t <= t1) xs.push(t); }); });
+  var head = '<tr><th></th>' + L.map(function (x) { return '<th class="n"><span class="sw" style="background:' + x.color + '"></span>' + esc(x.name) + '</th>'; }).join('') + '</tr>';
+  var row = function (l, f) { return '<tr><td>' + esc(l) + '</td>' + L.map(function (x) { return '<td class="n">' + f(x.d, x.d.kpis) + '</td>'; }).join('') + '</tr>'; };
+  if (span >= 2 * maxBar) {
+    var xs = []; L.forEach(function (x) { x.d.series.ts.forEach(function (t) { if (t >= t0 && t <= t1) xs.push(t); }); });
     xs.sort(function (a, b) { return a - b; }); xs = xs.filter(function (t, i) { return i === 0 || t !== xs[i - 1]; });
-    var bA = stepAt(SA.ts, SA.total, t0), bB = stepAt(SB.ts, SB.total, t0), series = [
-      { key: 'cA', name: A, color: 'var(--s1)', width: 2.5, ys: xs.map(function (t) { return (stepAt(SA.ts, SA.total, t) / bA - 1) * 100; }) },
-      { key: 'cB', name: B, color: 'var(--s2)', width: 2.5, ys: xs.map(function (t) { return (stepAt(SB.ts, SB.total, t) / bB - 1) * 100; }) }];
-    if (SA.btc && fin(stepAt(SA.ts, SA.btc, t0))) { var b0 = stepAt(SA.ts, SA.btc, t0); series.push({ key: 'cBTC', name: 'BTC comprar y mantener', color: 'var(--ink2)', dash: true, ys: xs.map(function (t) { return (stepAt(SA.ts, SA.btc, t) / b0 - 1) * 100; }) }); }
-    var rA = series[0].ys[xs.length - 1], rB = series[1].ys[xs.length - 1];
+    var series = L.map(function (x, i) {
+      var S = x.d.series, b0 = stepAt(S.ts, S.total, t0);
+      return { key: 'c' + i, name: x.name, color: x.color, width: 2.5, ys: xs.map(function (t) { return (stepAt(S.ts, S.total, t) / b0 - 1) * 100; }) };
+    });
+    var SA = L[0].d.series;
+    if (SA.btc && fin(stepAt(SA.ts, SA.btc, t0))) { var bb = stepAt(SA.ts, SA.btc, t0); series.push({ key: 'cBTC', name: 'BTC comprar y mantener', color: 'var(--ink2)', dash: true, ys: xs.map(function (t) { return (stepAt(SA.ts, SA.btc, t) / bb - 1) * 100; }) }); }
+    var fin_ = series.slice(0, n).map(function (s, i) { return { name: L[i].name, r: s.ys[xs.length - 1] }; });
+    var best = fin_.reduce(function (a, b) { return b.r > a.r ? b : a; }), worst = fin_.reduce(function (a, b) { return b.r < a.r ? b : a; });
     out += '<section class="sm-card"><h2>Mismo periodo <span class="r">' + esc(fmtDT(t0)) + ' → ' + esc(fmtDT(t1)) + ' · ' + nf(span / DAY_MS, 1) + ' días</span></h2>' +
-      '<p class="verdict">' + esc(A) + ' <b>' + sgn(rA, 2, '%') + '</b> · ' + esc(B) + ' <b>' + sgn(rB, 2, '%') + '</b> · diferencia <b>' + sgn(rB - rA, 2, ' pp') + '</b> a favor de ' + esc(rB >= rA ? B : A) + '. Con pocos días esto es ruido, no un veredicto: más operaciones solo ayudan si lo que ganan supera las comisiones.</p>' +
+      '<p class="verdict">' + fin_.map(function (f) { return esc(f.name) + ' <b>' + sgn(f.r, 2, '%') + '</b>'; }).join(' · ') + '. Mejor: <b>' + esc(best.name) + '</b>; peor: <b>' + esc(worst.name) + '</b> (' + sgn(best.r - worst.r, 2, ' pp') + ' de distancia). ' +
+      'El periodo es el que tienen en común todos (arranca cuando empezó el más reciente). Con pocos días esto es ruido, no un veredicto: más operaciones solo ayudan si lo que ganan supera las comisiones.</p>' +
       legendHtml(series, st.hidden) +
-      lineChart({ id: 'c-cmp', w: w, xs: xs, series: series, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Rendimiento de los dos simuladores desde el inicio común', yw: 50 }) + '</section>';
+      lineChart({ id: 'c-cmp', w: w, xs: xs, series: series, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Rendimiento de los ' + n + ' simuladores desde el inicio común', yw: 50 }) + '</section>';
   } else {
-    out += '<p class="hint">Todavía no hay un periodo en común suficiente para graficar (los dos simuladores empezaron en momentos distintos). Se muestra la tabla con lo acumulado de cada uno.</p>';
+    out += '<p class="hint">Todavía no hay un periodo en común suficiente para graficar (los simuladores empezaron en momentos distintos; el más reciente aún tiene muy pocas velas). Se muestra la tabla con lo acumulado de cada uno.</p>';
   }
-  out += '<div><h2>Cifras acumuladas de cada uno</h2><div class="tw cmp"><table><thead><tr><th></th><th class="n">' + esc(A) + '</th><th class="n">' + esc(B) + '</th><th class="n">Diferencia</th></tr></thead><tbody>' +
-    row('Velas', esc(d.interval), esc(o.interval)) +
-    row('Bots', d.bots.length, o.bots.length) +
-    row('Corriendo desde', esc(dayf.format(new Date(KA.first_ts))), esc(dayf.format(new Date(KB.first_ts)))) +
-    row('Días de prueba', nf(days(KA), 1), nf(days(KB), 1)) +
-    row('Equity (USDT)', nf(KA.equity, 2), nf(KB.equity, 2), dif(KA.equity, KB.equity, 2)) +
-    row('P&L (USDT)', sgn(KA.pnl, 2), sgn(KB.pnl, 2), dif(KA.pnl, KB.pnl, 2)) +
-    row('ROI', sgn(KA.roi, 2, '%'), sgn(KB.roi, 2, '%'), dif(KA.roi, KB.roi, 2, ' pp')) +
-    (fin(KA.market_pnl) && fin(KB.market_pnl) ? row('Por el mercado (USDT)', sgn(KA.market_pnl, 2), sgn(KB.market_pnl, 2), dif(KA.market_pnl, KB.market_pnl, 2)) + row('Por los bots (USDT)', sgn(KA.own_pnl, 2), sgn(KB.own_pnl, 2), dif(KA.own_pnl, KB.own_pnl, 2)) : '') +
-    row('Comisiones (USDT)', nf(KA.fees, 2), nf(KB.fees, 2), dif(KA.fees, KB.fees, 2)) +
-    row('Operaciones', KA.n_trades, KB.n_trades, dif(KA.n_trades, KB.n_trades, 0)) +
-    row('Operaciones por día', nf(KA.n_trades / days(KA), 1), nf(KB.n_trades / days(KB), 1)) +
-    row('Máx. drawdown', nf(KA.max_dd, 2) + '%', nf(KB.max_dd, 2) + '%') +
-    row('Ganancia / pérdida histórica', nf(KA.gross_profit, 0) + ' / ' + nf(KA.gross_loss, 0), nf(KB.gross_profit, 0) + ' / ' + nf(KB.gross_loss, 0)) +
-    row('Bots activos / pausados / retirados', countStatus(d, 'active') + ' / ' + countStatus(d, 'paused') + ' / ' + countStatus(d, 'retired'), countStatus(o, 'active') + ' / ' + countStatus(o, 'paused') + ' / ' + countStatus(o, 'retired')) +
+  var anyMarket = L.every(function (x) { return fin(x.d.kpis.market_pnl); });
+  out += '<div><h2>Cifras acumuladas de cada uno</h2><div class="tw cmp"><table><thead>' + head + '</thead><tbody>' +
+    row('Velas', function (d) { return esc(d.interval); }) +
+    row('Bots', function (d) { return d.bots.length; }) +
+    row('Corriendo desde', function (d, K) { return esc(dayf.format(new Date(K.first_ts))); }) +
+    row('Días de prueba', function (d, K) { return nf(days(K), 1); }) +
+    row('Capital (USDT)', function (d, K) { return nf(K.capital, 0); }) +
+    row('Equity (USDT)', function (d, K) { return nf(K.equity, 2); }) +
+    row('P&L (USDT)', function (d, K) { return sgn(K.pnl, 2); }) +
+    row('ROI', function (d, K) { return sgn(K.roi, 2, '%'); }) +
+    (anyMarket ? row('Por el mercado (USDT)', function (d, K) { return sgn(K.market_pnl, 2); }) + row('Por los bots (USDT)', function (d, K) { return sgn(K.own_pnl, 2); }) : '') +
+    row('Comisiones (USDT)', function (d, K) { return nf(K.fees, 2); }) +
+    row('Operaciones', function (d, K) { return K.n_trades; }) +
+    row('Operaciones por día', function (d, K) { return nf(K.n_trades / days(K), 1); }) +
+    row('Máx. drawdown', function (d, K) { return nf(K.max_dd, 2) + '%'; }) +
+    row('Ganancia / pérdida histórica', function (d, K) { return nf(K.gross_profit, 0) + ' / ' + nf(K.gross_loss, 0); }) +
+    row('Bots activos / pausados / retirados', function (d) { return countStatus(d, 'active') + ' / ' + countStatus(d, 'paused') + ' / ' + countStatus(d, 'retired'); }) +
     '</tbody></table></div></div>';
-  var fa = {}, fb = {}, keys = [];
-  (d.families || []).forEach(function (f) { fa[f.key] = f; keys.push(f.key); });
-  (o.families || []).forEach(function (f) { fb[f.key] = f; if (keys.indexOf(f.key) < 0) keys.push(f.key); });
+  var fams = L.map(function (x) { var m = {}; (x.d.families || []).forEach(function (f) { m[f.key] = f; }); return m; }), keys = [], names = {};
+  L.forEach(function (x) { (x.d.families || []).forEach(function (f) { if (keys.indexOf(f.key) < 0) { keys.push(f.key); names[f.key] = f.name; } }); });
   var cell = function (f) { return f ? sgn(f.pnl, 2) + '<small style="display:block;color:var(--muted)">' + f.bots.length + ' bots · ' + f.n_trades + ' ops</small>' : '—'; };
-  out += '<div><h2>Por estrategia (P&amp;L en USDT)</h2><div class="tw cmp"><table><thead><tr><th>Estrategia</th><th class="n">' + esc(A) + '</th><th class="n">' + esc(B) + '</th></tr></thead><tbody>' +
-    keys.map(function (k) { var f = fa[k] || fb[k]; return '<tr><td>' + esc(f.name) + '</td><td class="n">' + cell(fa[k]) + '</td><td class="n">' + cell(fb[k]) + '</td></tr>'; }).join('') +
-    '</tbody></table></div><p class="hint" style="margin-top:6px">El P&amp;L de cada estrategia incluye el efecto del mercado sobre lo que mantiene. Dos simuladores con distinto número de bots por estrategia no tienen el mismo capital por estrategia: compara el ROI en cada pestaña Rendimiento si necesitas igualar tamaños.</p></div>';
+  out += '<div><h2>Por estrategia (P&amp;L en USDT)</h2><div class="tw cmp"><table><thead><tr><th>Estrategia</th>' + L.map(function (x) { return '<th class="n"><span class="sw" style="background:' + x.color + '"></span>' + esc(x.name) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+    keys.map(function (k) { return '<tr><td>' + esc(names[k]) + '</td>' + fams.map(function (m) { return '<td class="n">' + cell(m[k]) + '</td>'; }).join('') + '</tr>'; }).join('') +
+    '</tbody></table></div><p class="hint" style="margin-top:6px">El P&amp;L de cada estrategia incluye el efecto del mercado sobre lo que mantiene. Simuladores con distinto número de bots o de capital por estrategia no son comparables en USDT: usa el ROI de cada pestaña Rendimiento si necesitas igualar tamaños.</p></div>';
   return out;
 }
 function buildPanels(d, status, st, w) {
@@ -994,7 +1015,7 @@ if (TEST) { globalThis.__dashApi = api; return; }
 
 /* ------------------------------------------------------------------ DOM */
 var $ = function (s, r) { return (r || document).querySelector(s); };
-var state = { tab: 'summary', smCash: false, smPer: 'all', hidden: {}, tx: { bot: '', ex: '', sym: '', side: '' }, txLimit: 100, sym: '', hz: '24', other: null };
+var state = { tab: 'summary', smCash: false, smPer: 'all', hidden: {}, tx: { bot: '', ex: '', sym: '', side: '' }, txLimit: 100, sym: '', hz: '24', others: [], selfOrder: null };
 var D = null, S = null, pending = null;
 
 function width() { var p = $('#panel'); return Math.max(280, (p && p.clientWidth) || 640) - 2; }
@@ -1050,6 +1071,27 @@ function setTab(t, push) {
   if (push) { try { history.replaceState(null, '', '#' + t); } catch (e) { /* sin historial en el visor */ } }
   render();
 }
+/* Descubre los demás simuladores en el sitio publicado (carpetas hermanas) con el registro ../sims.json; si no existe, usa
+   los conocidos y, en una copia suelta, data/other.json. Cada uno que responda se agrega a la comparación. */
+function loadSims() {
+  var get = function (u) { return fetch(u + (u.indexOf('?') < 0 ? '?t=' : '&t=') + Date.now()).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).catch(function () { return null; }); };
+  var published = /github\.io$/.test(location.hostname);
+  var reg = published ? get('../sims.json') : Promise.resolve(null);
+  reg.then(function (list) {
+    if (!Array.isArray(list) || !list.length) list = published ? ['binance', 'activo', 'indice'].map(function (k) { return { dir: k, id: k }; }) : [];
+    var myId = D.sim && D.sim.id;
+    list.forEach(function (e, i) { if (e.id === myId) state.selfOrder = i; });
+    var others = list.filter(function (e) { return e.id !== myId && e.dir !== myId; });
+    var links = $('#sim-links');
+    if (published && others.length) { links.innerHTML = others.map(function (e) { return '<a class="stamp" href="../' + esc(e.dir) + '/">' + esc(e.name ? e.name.replace(/^Simulador\s+/i, '') : e.dir) + ' →</a>'; }).join(' '); }
+    var jobs = others.map(function (e, k) { return get('../' + e.dir + '/data/dashboard.json').then(function (x) { return x && x.kpis ? { d: x, order: list.indexOf(e) } : null; }); });
+    if (!published) jobs.push(get('data/other.json').then(function (x) { return x && x.kpis ? { d: x, order: 99 } : null; }));
+    Promise.all(jobs).then(function (res) {
+      state.others = res.filter(Boolean).filter(function (o) { return !(o.d.sim && D.sim && o.d.sim.id === D.sim.id); });
+      if (state.tab === 'comparar') render();
+    });
+  });
+}
 function load() {
   var get = function (u) { return fetch(u + '?t=' + Date.now()).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).catch(function () { return null; }); };
   Promise.all([get('data/dashboard.json'), get('data/status.json')]).then(function (res) {
@@ -1059,11 +1101,7 @@ function load() {
     if (D) {
       var st = $('#stamp'); st.textContent = D.synthetic ? 'Datos inventados · solo pruebas' : 'Simulación · dinero ficticio';
       var nm = D.sim && D.sim.name; if (nm) { $('#h1').textContent = nm + ' · bots cripto'; try { document.title = nm + ' · bots cripto'; } catch (e) { /* sin título */ } }
-      var other = D.sim && D.sim.other, link = $('#other-link');
-      if (other && /github\.io$/.test(location.hostname)) { link.href = '../' + other + '/'; link.textContent = 'Ver el otro simulador →'; link.hidden = false; }
-      /* el otro simulador: en el sitio publicado vive en una carpeta hermana; en una copia suelta viene como data/other.json */
-      var tryOther = other ? get('../' + other + '/data/dashboard.json').then(function (x) { return x || get('data/other.json'); }) : get('data/other.json');
-      tryOther.then(function (x) { state.other = x; if (state.tab === 'comparar') render(); });
+      loadSims();
     }
     render();
   });

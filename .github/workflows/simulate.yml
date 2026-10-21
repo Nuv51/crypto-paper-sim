@@ -131,6 +131,7 @@ jobs:
       - name: Guardar estado y tablero en sim-data
         if: always()
         run: |
+          python scripts/make_registry.py store || true      # lista de simuladores para la pestaña Comparar de todos los tableros
           cd store
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
