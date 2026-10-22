@@ -73,4 +73,4 @@ Si no se cumple, queda solo V3-ref (núcleo sin filtro) como candidata a vivo.
 
 ## 7. Cambios posteriores
 
-(ninguno)
+(ninguno antes de correr. 2026-10-22: las 12 corridas principales y la reserva V2 terminaron sin fallos ni repeticiones; resultados en `BACKTEST_V3_RESULTADOS.md`. La reserva V3 2025-2026 (`grupo=reserva`) **no** se ha corrido y, dado D5, solo tendría sentido para V3-ref.)
