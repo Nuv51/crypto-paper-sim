@@ -12,7 +12,7 @@ import argparse
 import importlib
 import sys
 
-from sim.backtest import ArchiveHistoricFeed, run_backtest
+from sim.backtest import ArchiveHistoricFeed, HistoricFeed, run_backtest
 
 NOTES = [
     "V2 · núcleo low cost (DCA, carry, estables, índice trimestral) + satélites gemelos (con y sin interruptor de volatilidad de BTC).",
@@ -24,14 +24,22 @@ NOTES = [
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--year", required=True, type=int, choices=range(2019, 2025))
+    ap.add_argument("--year", required=True, type=int, choices=range(2019, 2027))
+    ap.add_argument("--end", default=None, help="fin exclusivo (por defecto 1 de enero siguiente; 2026: 2026-10-11, el mismo tramo de V1)")
+    ap.add_argument("--feed", choices=["archive", "kucoin"], default=None,
+                    help="archive = perpetuo/funding del archivo de Binance (2019-2024) · kucoin = como V1 (reserva 2025-2026)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--export", default=None, help="carpeta donde volcar las tablas completas (análisis posterior)")
     a = ap.parse_args()
     cfg = importlib.import_module(f"config_v2_{a.year}")
     ident = dict(id=f"btv2-{a.year}", name=f"Backtest V2 · {a.year}", desc="Reestructurado low cost · velas de 1 h", notes=NOTES)
-    feed = ArchiveHistoricFeed(cache_dir=f"{a.out}/cache")
-    s = run_backtest(cfg, ident, a.out, f"{a.year}-01-01", f"{a.year + 1}-01-01", feed=feed, export_dir=a.export)
+    end = a.end or ("2026-10-11" if a.year == 2026 else f"{a.year + 1}-01-01")
+    kind = a.feed or ("kucoin" if a.year >= 2025 else "archive")
+    feed = (HistoricFeed if kind == "kucoin" else ArchiveHistoricFeed)(cache_dir=f"{a.out}/cache")
+    if a.year >= 2025:
+        ident["name"] = f"Reserva V2 · {a.year}"
+        ident["notes"] = NOTES + ["Reserva (2025-2026): perpetuo y funding de KuCoin, igual que V1, para comparar en las mismas condiciones."]
+    s = run_backtest(cfg, ident, a.out, f"{a.year}-01-01", end, feed=feed, export_dir=a.export)
     print(f"OK {ident['name']}: ROI {s['roi']:+.2f}% · caída máx {s['max_dd']:.2f}% · {s['n_trades']} operaciones · comisiones {s['fees']:.2f}")
     return 0
 

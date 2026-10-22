@@ -15,7 +15,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from universe_2025 import profile, to_ms          # noqa: E402
 from make_universe_2025 import EXCLUDE            # noqa: E402
 
-SNAP = {2019: "2018-12-30", 2020: "2019-12-29", 2021: "2020-12-27", 2022: "2021-12-26", 2023: "2022-12-25", 2024: "2023-12-31"}
+SNAP = {2019: "2018-12-30", 2020: "2019-12-29", 2021: "2020-12-27", 2022: "2021-12-26", 2023: "2022-12-25", 2024: "2023-12-31",
+        2025: "2024-12-29", 2026: "2025-12-28"}          # 2025 y 2026: reserva (ver BACKTEST_V2_2019_2024.md §9)
+END = {2026: "2026-10-11"}                              # fin (exclusivo) si no es el 1 de enero siguiente: mismo tramo que V1 (1 ene → 10 oct)
 ALIAS = {"MIOTA": "IOTA", "BCHSV": "BSV", "BCHABC": "BCH", "NANO": "XNO", "YOYOW": "YOYO", "ETHOS": "BQX", "RPX": "RPX"}
 MORE_EXCLUDE = {"BUSD", "PAX", "USDK", "HUSD", "SAI", "FTT", "CEL", "BTMX", "UST", "LUNC", "USTC", "WBTC", "RENBTC", "HBTC", "IMBTC",
                 "STETH", "TBTC", "EURS", "USDN", "XSGD", "MUSD", "CUSDC", "CDAI", "CETH", "AETH", "YFI_USD"}
@@ -40,7 +42,7 @@ def main():
         for must in ("BTC", "ETH", "USDC", "FDUSD", "TUSD", "BUSD", "PAX", "USDP"):
             if must not in cands:
                 cands.append(must)
-        t0, t1 = to_ms(f"{y}-01-01"), to_ms(f"{y + 1}-01-01")
+        t0, t1 = to_ms(f"{y}-01-01"), to_ms(END.get(y, f"{y + 1}-01-01"))
         res = {}
         for base in cands:
             try:

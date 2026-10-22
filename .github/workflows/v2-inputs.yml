@@ -9,6 +9,14 @@ on:
         type: choice
         default: caps
         options: [caps, pit, debug]
+      fechas:
+        description: "Fechas de las fotos de CoinMarketCap (solo paso caps), separadas por coma"
+        type: string
+        default: "2018-12-30,2019-12-29,2020-12-27,2021-12-26,2022-12-25,2023-12-31"
+      anios:
+        description: "Años del sondeo de Binance (solo paso pit), separados por coma"
+        type: string
+        default: "2019,2020,2021,2022,2023,2024"
 permissions:
   contents: write
 jobs:
@@ -22,7 +30,7 @@ jobs:
         if: ${{ inputs.paso == 'caps' }}
         run: |
           mkdir -p out
-          python3 scripts/fetch_caps_cmc.py --dates 2018-12-30,2019-12-29,2020-12-27,2021-12-26,2022-12-25,2023-12-31 --out out 2>&1 | tee out/log.txt
+          python3 scripts/fetch_caps_cmc.py --dates ${{ inputs.fechas }} --out out 2>&1 | tee out/log.txt
           exit ${PIPESTATUS[0]}
       - name: Depuración de la estructura de la página de CoinMarketCap
         if: ${{ inputs.paso == 'debug' }}
@@ -33,7 +41,7 @@ jobs:
         if: ${{ inputs.paso == 'pit' }}
         run: |
           mkdir -p out
-          python3 scripts/pit_v2.py --inputs backtest_v2/inputs --out out 2>&1 | tee out/log.txt
+          python3 scripts/pit_v2.py --years ${{ inputs.anios }} --inputs backtest_v2/inputs --out out 2>&1 | tee out/log.txt
           exit ${PIPESTATUS[0]}
       - name: Guardar en la rama v2-inputs
         if: always()

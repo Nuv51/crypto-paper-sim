@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from make_universe_2025 import EXCLUDE, tier                       # noqa: E402
-from pit_v2 import MORE_EXCLUDE, SNAP                               # noqa: E402
+from pit_v2 import END, MORE_EXCLUDE, SNAP                               # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 IN = ROOT / "backtest_v2" / "inputs"
@@ -23,6 +23,11 @@ MIN_HISTORY_DAYS = 180          # regla 1 (V1 usaba 365; con 365 el universo de 
 MIN_ELIGIBLE = 8                # si hay menos, el backtest de ese año no se corre
 CARRY_FROM = 2020               # el archivo de futuros de Binance empieza en 2020-01
 BAD = EXCLUDE | MORE_EXCLUDE | {"LUNA", "LUNC"}   # LUNA: el símbolo se reutilizó en 2022 (Terra clásica → LUNC; Terra 2.0 → LUNA)
+
+
+def period_days(year: int) -> int:
+    """Días del periodo simulado: año completo, o hasta END[año] (2026: 1 ene → 10 oct)."""
+    return (date.fromisoformat(END.get(year, f"{year + 1}-01-01")) - date(year, 1, 1)).days
 
 
 def eligible(year: int):
@@ -43,7 +48,7 @@ def eligible(year: int):
         first = date.fromisoformat(v["first_day"])
         if (asof - first).days < MIN_HISTORY_DAYS:
             excl.append((base, f"historial < {MIN_HISTORY_DAYS} días al {asof} (listada {first})")); continue
-        nd = 366 if (year % 4 == 0) else 365
+        nd = period_days(year)
         if v.get("days_period", 0) < nd - 5:
             excl.append((base, f"dejó de cotizar o tiene huecos en el año ({v.get('days_period')} de {nd} días; última {v.get('last_day')})")); continue
         if not v.get("close_pre") or not v.get("vol30_pre"):
@@ -62,7 +67,7 @@ def build(year: int) -> str:
     # Estables del bot v04: de USDC/TUSD/BUSD/PAX/USDP/FDUSD, las que cotizan TODO el año y tenían ≥30 días de historial; hasta 2,
     # las de mayor volumen de los 30 días previos (USDC dejó de cotizar contra USDT en Binance durante partes de 2022 y 2023).
     asof = date(year, 1, 1)
-    nd = 366 if year % 4 == 0 else 365
+    nd = period_days(year)
     cand = []
     for b in ("USDC", "TUSD", "BUSD", "PAX", "USDP", "FDUSD"):
         v = pit.get(b) or {}
@@ -175,7 +180,7 @@ BOTS = [
 
 
 def main():
-    years = [int(a) for a in sys.argv[1:]] or sorted(SNAP)
+    years = [int(a) for a in sys.argv[1:]] or list(range(2019, 2025))
     for y in years:
         (ROOT / f"config_v2_{y}.py").write_text(build(y))
         print(y, "ok")
