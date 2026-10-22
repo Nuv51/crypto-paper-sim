@@ -1,0 +1,52 @@
+Backtest V2 · 2021: 29 símbolos, velas de 1h, calentamiento 385 velas, 2021-01-01 → 2022-01-01
+  ADAUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  ATOMUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  BCHUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  BNBUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  BTCUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  BTCUSDT~PERP: 9145 velas (2020-12-15 → 2021-12-31)
+  BUSDUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  COMPUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  DASHUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  DOGEUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  EOSUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  ETCUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  ETHUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  ETHUSDT~PERP: 9145 velas (2020-12-15 → 2021-12-31)
+  IOTAUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  LINKUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  LTCUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  NEOUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  THETAUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  TRXUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  USDCUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  VETUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  WAVESUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  XLMUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  XMRUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  XRPUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  XTZUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  ZECUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  ZILUSDT: 9127 velas (2020-12-15 → 2021-12-31)
+  replay 1/8742 barras
+  replay 751/8742 barras
+  replay 1501/8742 barras
+  replay 2251/8742 barras
+  replay 3001/8742 barras
+  replay 3751/8742 barras
+  replay 4501/8742 barras
+  replay 5251/8742 barras
+  replay 6001/8742 barras
+  replay 6751/8742 barras
+  replay 7501/8742 barras
+  replay 8251/8742 barras
+Traceback (most recent call last):
+  File "/home/runner/work/crypto-paper-sim/crypto-paper-sim/backtest_v2_run.py", line 40, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/runner/work/crypto-paper-sim/crypto-paper-sim/backtest_v2_run.py", line 34, in main
+    s = run_backtest(cfg, ident, a.out, f"{a.year}-01-01", f"{a.year + 1}-01-01", feed=feed, export_dir=a.export)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/crypto-paper-sim/crypto-paper-sim/sim/backtest.py", line 234, in run_backtest
+    raise RuntimeError(f"El backtest no empezó en {start}: primera vela simulada {info['first_ts']} (faltan datos de alguna moneda al inicio)")
+RuntimeError: El backtest no empezó en 2021-01-01: primera vela simulada 1609477200000 (faltan datos de alguna moneda al inicio)
