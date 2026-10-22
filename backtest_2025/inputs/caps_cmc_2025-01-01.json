@@ -1,0 +1,22 @@
+{
+ "fuente": "CoinMarketCap, p\u00e1gina hist\u00f3rica 2025-01-01 (solo las 20 primeras filas son visibles; se excluyen estables y tokens de otras casas)",
+ "caps_usd": {
+  "BTC": 1869920980356,
+  "ETH": 404011689241,
+  "XRP": 133326115719,
+  "BNB": 101742783746,
+  "SOL": 93606300770,
+  "DOGE": 47818533277,
+  "ADA": 32243975884,
+  "TRX": 22007317003,
+  "AVAX": 15451201151,
+  "LINK": 13830717433,
+  "TON": 13970763189,
+  "XLM": 12831953999,
+  "SHIB": 12754826270,
+  "SUI": 12865861239,
+  "HBAR": 11243103200,
+  "DOT": 10785803802,
+  "BCH": 8901820471
+ }
+}

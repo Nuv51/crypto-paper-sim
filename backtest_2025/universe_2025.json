@@ -1,0 +1,882 @@
+{
+ "as_of": "2025-01-01",
+ "n_candidates": 147,
+ "top50": [
+  {
+   "base": "BTC",
+   "symbol": "BTCUSDT",
+   "cap": 1869920980356,
+   "cap_source": "cmc",
+   "first_day": "2017-08-17",
+   "vol30": 3295621614.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "ETH",
+   "symbol": "ETHUSDT",
+   "cap": 404011689241,
+   "cap_source": "cmc",
+   "first_day": "2017-08-17",
+   "vol30": 1991677940.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "XRP",
+   "symbol": "XRPUSDT",
+   "cap": 133326115719,
+   "cap_source": "cmc",
+   "first_day": "2018-05-04",
+   "vol30": 1586014959.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "BNB",
+   "symbol": "BNBUSDT",
+   "cap": 101742783746,
+   "cap_source": "cmc",
+   "first_day": "2017-11-06",
+   "vol30": 443278341.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "SOL",
+   "symbol": "SOLUSDT",
+   "cap": 93606300770,
+   "cap_source": "cmc",
+   "first_day": "2020-08-11",
+   "vol30": 899099581.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "DOGE",
+   "symbol": "DOGEUSDT",
+   "cap": 47818533277,
+   "cap_source": "cmc",
+   "first_day": "2019-07-05",
+   "vol30": 1093429373.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "ADA",
+   "symbol": "ADAUSDT",
+   "cap": 32243975884,
+   "cap_source": "cmc",
+   "first_day": "2018-04-17",
+   "vol30": 325323049.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "TRX",
+   "symbol": "TRXUSDT",
+   "cap": 22007317003,
+   "cap_source": "cmc",
+   "first_day": "2018-06-11",
+   "vol30": 372046789.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "AVAX",
+   "symbol": "AVAXUSDT",
+   "cap": 15451201151,
+   "cap_source": "cmc",
+   "first_day": "2020-09-22",
+   "vol30": 183084856.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "LINK",
+   "symbol": "LINKUSDT",
+   "cap": 13830717433,
+   "cap_source": "cmc",
+   "first_day": "2019-01-16",
+   "vol30": 265213754.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "SUI",
+   "symbol": "SUIUSDT",
+   "cap": 12865861239,
+   "cap_source": "cmc",
+   "first_day": "2023-05-03",
+   "vol30": 382541312.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "XLM",
+   "symbol": "XLMUSDT",
+   "cap": 12831953999,
+   "cap_source": "cmc",
+   "first_day": "2018-05-31",
+   "vol30": 144396506.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "SHIB",
+   "symbol": "SHIBUSDT",
+   "cap": 12754826270,
+   "cap_source": "cmc",
+   "first_day": "2021-05-10",
+   "vol30": 205813562.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "HBAR",
+   "symbol": "HBARUSDT",
+   "cap": 11243103200,
+   "cap_source": "cmc",
+   "first_day": "2019-09-29",
+   "vol30": 312559345.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "DOT",
+   "symbol": "DOTUSDT",
+   "cap": 10785803802,
+   "cap_source": "cmc",
+   "first_day": "2020-08-18",
+   "vol30": 131171996.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "BCH",
+   "symbol": "BCHUSDT",
+   "cap": 8901820471,
+   "cap_source": "cmc",
+   "first_day": "2019-11-28",
+   "vol30": 64393742.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "UNI",
+   "symbol": "UNIUSDT",
+   "cap": 8549352232,
+   "cap_source": "estimada",
+   "first_day": "2020-09-17",
+   "vol30": 126804072.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "PEPE",
+   "symbol": "PEPEUSDT",
+   "cap": 8344780586,
+   "cap_source": "estimada",
+   "first_day": "2023-05-05",
+   "vol30": 653045299.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "WLD",
+   "symbol": "WLDUSDT",
+   "cap": 8213628405,
+   "cap_source": "estimada",
+   "first_day": "2023-07-24",
+   "vol30": 158300871.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "LTC",
+   "symbol": "LTCUSDT",
+   "cap": 8102040846,
+   "cap_source": "estimada",
+   "first_day": "2017-12-13",
+   "vol30": 156514892.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "APT",
+   "symbol": "APTUSDT",
+   "cap": 7976308268,
+   "cap_source": "estimada",
+   "first_day": "2022-10-19",
+   "vol30": 98935551.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "NEAR",
+   "symbol": "NEARUSDT",
+   "cap": 6296601963,
+   "cap_source": "estimada",
+   "first_day": "2020-10-14",
+   "vol30": 108777434.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "ICP",
+   "symbol": "ICPUSDT",
+   "cap": 5690222228,
+   "cap_source": "estimada",
+   "first_day": "2021-05-11",
+   "vol30": 46865356.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "ARB",
+   "symbol": "ARBUSDT",
+   "cap": 5089035003,
+   "cap_source": "estimada",
+   "first_day": "2023-03-23",
+   "vol30": 107484020.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "AAVE",
+   "symbol": "AAVEUSDT",
+   "cap": 4902692175,
+   "cap_source": "estimada",
+   "first_day": "2020-10-15",
+   "vol30": 141709124.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "TIA",
+   "symbol": "TIAUSDT",
+   "cap": 4800151168,
+   "cap_source": "estimada",
+   "first_day": "2023-10-31",
+   "vol30": 65289120.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "OP",
+   "symbol": "OPUSDT",
+   "cap": 4228346525,
+   "cap_source": "estimada",
+   "first_day": "2022-06-01",
+   "vol30": 73745790.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "FIL",
+   "symbol": "FILUSDT",
+   "cap": 4196668305,
+   "cap_source": "estimada",
+   "first_day": "2020-10-15",
+   "vol30": 95390307.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "ETC",
+   "symbol": "ETCUSDT",
+   "cap": 3983695876,
+   "cap_source": "estimada",
+   "first_day": "2018-06-12",
+   "vol30": 68021270.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "VET",
+   "symbol": "VETUSDT",
+   "cap": 3612681054,
+   "cap_source": "estimada",
+   "first_day": "2018-07-25",
+   "vol30": 71543210.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "ATOM",
+   "symbol": "ATOMUSDT",
+   "cap": 3362754957,
+   "cap_source": "estimada",
+   "first_day": "2019-04-29",
+   "vol30": 43780419.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "ALGO",
+   "symbol": "ALGOUSDT",
+   "cap": 3095699276,
+   "cap_source": "estimada",
+   "first_day": "2019-06-22",
+   "vol30": 82497126.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "FET",
+   "symbol": "FETUSDT",
+   "cap": 3041675581,
+   "cap_source": "estimada",
+   "first_day": "2019-02-28",
+   "vol30": 98194301.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "STX",
+   "symbol": "STXUSDT",
+   "cap": 2914087035,
+   "cap_source": "estimada",
+   "first_day": "2019-10-25",
+   "vol30": 51169234.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "SEI",
+   "symbol": "SEIUSDT",
+   "cap": 2705292247,
+   "cap_source": "estimada",
+   "first_day": "2023-08-15",
+   "vol30": 72585197.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "BONK",
+   "symbol": "BONKUSDT",
+   "cap": 2645977882,
+   "cap_source": "estimada",
+   "first_day": "2023-12-15",
+   "vol30": 99925004.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "THETA",
+   "symbol": "THETAUSDT",
+   "cap": 2278392665,
+   "cap_source": "estimada",
+   "first_day": "2019-04-10",
+   "vol30": 30670037.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "GRT",
+   "symbol": "GRTUSDT",
+   "cap": 2183467965,
+   "cap_source": "estimada",
+   "first_day": "2020-12-17",
+   "vol30": 25196151.0,
+   "slippage_bps": 15
+  },
+  {
+   "base": "INJ",
+   "symbol": "INJUSDT",
+   "cap": 2109204024,
+   "cap_source": "estimada",
+   "first_day": "2020-10-21",
+   "vol30": 42507596.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "JTO",
+   "symbol": "JTOUSDT",
+   "cap": 1822549142,
+   "cap_source": "estimada",
+   "first_day": "2023-12-07",
+   "vol30": 20660874.0,
+   "slippage_bps": 15
+  },
+  {
+   "base": "FLOKI",
+   "symbol": "FLOKIUSDT",
+   "cap": 1751518027,
+   "cap_source": "estimada",
+   "first_day": "2023-05-05",
+   "vol30": 105872392.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "SAND",
+   "symbol": "SANDUSDT",
+   "cap": 1666346507,
+   "cap_source": "estimada",
+   "first_day": "2020-08-14",
+   "vol30": 104467362.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "JASMY",
+   "symbol": "JASMYUSDT",
+   "cap": 1592987743,
+   "cap_source": "estimada",
+   "first_day": "2021-11-22",
+   "vol30": 68018072.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "QNT",
+   "symbol": "QNTUSDT",
+   "cap": 1504056049,
+   "cap_source": "estimada",
+   "first_day": "2021-07-29",
+   "vol30": 14877684.0,
+   "slippage_bps": 15
+  },
+  {
+   "base": "LDO",
+   "symbol": "LDOUSDT",
+   "cap": 1485288907,
+   "cap_source": "estimada",
+   "first_day": "2022-05-09",
+   "vol30": 43432789.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "RUNE",
+   "symbol": "RUNEUSDT",
+   "cap": 1464933773,
+   "cap_source": "estimada",
+   "first_day": "2020-09-04",
+   "vol30": 92462412.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "XTZ",
+   "symbol": "XTZUSDT",
+   "cap": 1434798206,
+   "cap_source": "estimada",
+   "first_day": "2019-09-24",
+   "vol30": 29716940.0,
+   "slippage_bps": 15
+  },
+  {
+   "base": "CRV",
+   "symbol": "CRVUSDT",
+   "cap": 1400063862,
+   "cap_source": "estimada",
+   "first_day": "2020-08-15",
+   "vol30": 132192992.0,
+   "slippage_bps": 5
+  },
+  {
+   "base": "ENS",
+   "symbol": "ENSUSDT",
+   "cap": 1388068322,
+   "cap_source": "estimada",
+   "first_day": "2021-11-10",
+   "vol30": 62071596.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "IOTA",
+   "symbol": "IOTAUSDT",
+   "cap": 1314333031,
+   "cap_source": "estimada",
+   "first_day": "2018-05-31",
+   "vol30": 49706781.0,
+   "slippage_bps": 8
+  }
+ ],
+ "next_in_line": [
+  {
+   "base": "NEXO",
+   "symbol": "NEXOUSDT",
+   "cap": 1282822790,
+   "cap_source": "estimada",
+   "first_day": "2022-04-29",
+   "vol30": 2839261.0,
+   "slippage_bps": 40
+  },
+  {
+   "base": "AXS",
+   "symbol": "AXSUSDT",
+   "cap": 1112879891,
+   "cap_source": "estimada",
+   "first_day": "2020-11-04",
+   "vol30": 19059301.0,
+   "slippage_bps": 15
+  },
+  {
+   "base": "AR",
+   "symbol": "ARUSDT",
+   "cap": 1065009920,
+   "cap_source": "estimada",
+   "first_day": "2021-05-14",
+   "vol30": 46684417.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "MANA",
+   "symbol": "MANAUSDT",
+   "cap": 942653027,
+   "cap_source": "estimada",
+   "first_day": "2020-08-06",
+   "vol30": 24719280.0,
+   "slippage_bps": 15
+  },
+  {
+   "base": "ZEC",
+   "symbol": "ZECUSDT",
+   "cap": 933663786,
+   "cap_source": "estimada",
+   "first_day": "2019-03-21",
+   "vol30": 15808878.0,
+   "slippage_bps": 15
+  },
+  {
+   "base": "PENDLE",
+   "symbol": "PENDLEUSDT",
+   "cap": 852512775,
+   "cap_source": "estimada",
+   "first_day": "2023-07-03",
+   "vol30": 37208928.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "CFX",
+   "symbol": "CFXUSDT",
+   "cap": 834881835,
+   "cap_source": "estimada",
+   "first_day": "2021-03-29",
+   "vol30": 16346568.0,
+   "slippage_bps": 15
+  },
+  {
+   "base": "CAKE",
+   "symbol": "CAKEUSDT",
+   "cap": 822194567,
+   "cap_source": "estimada",
+   "first_day": "2021-02-19",
+   "vol30": 40440581.0,
+   "slippage_bps": 8
+  },
+  {
+   "base": "COMP",
+   "symbol": "COMPUSDT",
+   "cap": 751458322,
+   "cap_source": "estimada",
+   "first_day": "2020-06-25",
+   "vol30": 18117410.0,
+   "slippage_bps": 15
+  },
+  {
+   "base": "GNO",
+   "symbol": "GNOUSDT",
+   "cap": 710051200,
+   "cap_source": "estimada",
+   "first_day": "2021-08-30",
+   "vol30": 1163249.0,
+   "slippage_bps": 40
+  }
+ ],
+ "excluded": [
+  {
+   "base": "TON",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-08-08)"
+  },
+  {
+   "base": "POL",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-09-13)"
+  },
+  {
+   "base": "RENDER",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-07-26)"
+  },
+  {
+   "base": "TAO",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-04-11)"
+  },
+  {
+   "base": "IMX",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "ONDO",
+   "reason": "no cotizaba en Binance spot antes de 2025 o ya no existe"
+  },
+  {
+   "base": "JUP",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-01-31)"
+  },
+  {
+   "base": "WIF",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-03-05)"
+  },
+  {
+   "base": "NEO",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "MKR",
+   "reason": "dejó de cotizar o tiene huecos en 2025 (258 días; última 2025-09-15)"
+  },
+  {
+   "base": "GALA",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "CHZ",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "APE",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "EGLD",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "FLOW",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "EOS",
+   "reason": "dejó de cotizar o tiene huecos en 2025 (146 días; última 2025-05-26)"
+  },
+  {
+   "base": "SNX",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "PYTH",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-02-02)"
+  },
+  {
+   "base": "DYDX",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "1INCH",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "KAVA",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "XMR",
+   "reason": "no cotizaba en Binance spot antes de 2025 o ya no existe"
+  },
+  {
+   "base": "ENA",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-04-02)"
+  },
+  {
+   "base": "W",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-04-03)"
+  },
+  {
+   "base": "STRK",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-02-20)"
+  },
+  {
+   "base": "ORDI",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "NOT",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-05-16)"
+  },
+  {
+   "base": "PNUT",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-11-11)"
+  },
+  {
+   "base": "BEAM",
+   "reason": "no cotizaba en Binance spot antes de 2025 o ya no existe"
+  },
+  {
+   "base": "MINA",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "BTT",
+   "reason": "no cotizaba en Binance spot antes de 2025 o ya no existe"
+  },
+  {
+   "base": "GMT",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "SUSHI",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "YFI",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "ZIL",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "RVN",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "KSM",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "ROSE",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "CELO",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "ZRX",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "LRC",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "ENJ",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "ANKR",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "BLUR",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "MEME",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "IO",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-06-11)"
+  },
+  {
+   "base": "ZK",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-06-17)"
+  },
+  {
+   "base": "ZRO",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-06-20)"
+  },
+  {
+   "base": "ALT",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-01-25)"
+  },
+  {
+   "base": "FTM",
+   "reason": "dejó de cotizar o tiene huecos en 2025 (13 días; última 2025-01-13)"
+  },
+  {
+   "base": "S",
+   "reason": "no cotizaba en Binance spot antes de 2025 o ya no existe"
+  },
+  {
+   "base": "KAS",
+   "reason": "no cotizaba en Binance spot antes de 2025 o ya no existe"
+  },
+  {
+   "base": "VIRTUAL",
+   "reason": "no cotizaba en Binance spot antes de 2025 o ya no existe"
+  },
+  {
+   "base": "AIXBT",
+   "reason": "no cotizaba en Binance spot antes de 2025 o ya no existe"
+  },
+  {
+   "base": "GRASS",
+   "reason": "no cotizaba en Binance spot antes de 2025 o ya no existe"
+  },
+  {
+   "base": "WAVES",
+   "reason": "no cotizaba en Binance spot antes de 2025 o ya no existe"
+  },
+  {
+   "base": "OM",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "SAFE",
+   "reason": "no cotizaba en Binance spot antes de 2025 o ya no existe"
+  },
+  {
+   "base": "CKB",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "TRUMP",
+   "reason": "no cotizaba en Binance spot antes de 2025 o ya no existe"
+  },
+  {
+   "base": "PENGU",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-12-17)"
+  },
+  {
+   "base": "MOVE",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-12-09)"
+  },
+  {
+   "base": "ME",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-12-10)"
+  },
+  {
+   "base": "USUAL",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-11-19)"
+  },
+  {
+   "base": "HYPE",
+   "reason": "no cotizaba en Binance spot antes de 2025 o ya no existe"
+  },
+  {
+   "base": "EIGEN",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-10-01)"
+  },
+  {
+   "base": "DOGS",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-08-26)"
+  },
+  {
+   "base": "CATI",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-09-20)"
+  },
+  {
+   "base": "TURBO",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-09-16)"
+  },
+  {
+   "base": "NEIRO",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-09-16)"
+  },
+  {
+   "base": "PEOPLE",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "WOO",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "LISTA",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-06-20)"
+  },
+  {
+   "base": "BOME",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-03-16)"
+  },
+  {
+   "base": "AEVO",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-03-13)"
+  },
+  {
+   "base": "DYM",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-02-06)"
+  },
+  {
+   "base": "MANTA",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-01-18)"
+  },
+  {
+   "base": "PIXEL",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-02-19)"
+  },
+  {
+   "base": "PORTAL",
+   "reason": "historial < 365 días al 2025-01-01 (listada 2024-02-29)"
+  },
+  {
+   "base": "ARKM",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "BICO",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "RDNT",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  },
+  {
+   "base": "SSV",
+   "reason": "sin capitalización actual para estimar su cap de 2025 (fuera del Top-200 de hoy)"
+  }
+ ]
+}
