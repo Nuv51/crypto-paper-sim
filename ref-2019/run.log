@@ -1,0 +1,31 @@
+Backtest V3-ref (sin filtro) · 2019: 15 símbolos, velas de 1h, calentamiento 2 velas, 2019-01-01 → 2020-01-01
+  ADAUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  BNBUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  BTCUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  EOSUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  ETCUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  ETHUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  ICXUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  IOTAUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  LTCUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  NEOUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  ONTUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  QTUMUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  TRXUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  XLMUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  XRPUSDT: 8974 velas (2018-12-21 → 2019-12-31)
+  replay 1/8732 barras
+  replay 751/8732 barras
+  replay 1501/8732 barras
+  replay 2251/8732 barras
+  replay 3001/8732 barras
+  replay 3751/8732 barras
+  replay 4501/8732 barras
+  replay 5251/8732 barras
+  replay 6001/8732 barras
+  replay 6751/8732 barras
+  replay 7501/8732 barras
+  replay 8251/8732 barras
+  referencia SOLUSDT no disponible: Binance no devolvió velas de SOLUSDT entre 1546300800000 y 1577836800000
+  referencia AVAXUSDT no disponible: Binance no devolvió velas de AVAXUSDT entre 1546300800000 y 1577836800000
+OK Backtest V3-ref (sin filtro) · 2019: ROI +7.89% · caída máx -60.58% · 107 operaciones · comisiones 20.73

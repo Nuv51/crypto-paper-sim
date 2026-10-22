@@ -1,0 +1,41 @@
+Backtest V3-ref (sin filtro) · 2023: 27 símbolos, velas de 1h, calentamiento 61 velas, 2023-01-01 → 2024-01-01
+  ADAUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  ALGOUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  APEUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  ATOMUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  AVAXUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  BCHUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  BNBUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  BTCUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  BTCUSDT~PERP: 9061 velas (2022-12-19 → 2023-12-31)
+  DOGEUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  DOTUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  ETCUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  ETHUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  ETHUSDT~PERP: 9061 velas (2022-12-19 → 2023-12-31)
+  LINKUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  LTCUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  MATICUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  NEARUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  QNTUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  SHIBUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  SOLUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  TRXUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  UNIUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  VETUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  XLMUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  XMRUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  XRPUSDT: 9060 velas (2022-12-19 → 2023-12-31)
+  replay 1/8759 barras
+  replay 751/8759 barras
+  replay 1501/8759 barras
+  replay 2251/8759 barras
+  replay 3001/8759 barras
+  replay 3751/8759 barras
+  replay 4501/8759 barras
+  replay 5251/8759 barras
+  replay 6001/8759 barras
+  replay 6751/8759 barras
+  replay 7501/8759 barras
+  replay 8251/8759 barras
+OK Backtest V3-ref (sin filtro) · 2023: ROI +49.14% · caída máx -15.64% · 1485 operaciones · comisiones 58.05

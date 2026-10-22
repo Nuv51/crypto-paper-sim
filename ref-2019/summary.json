@@ -1,0 +1,48 @@
+{
+ "sim": "btref-2019",
+ "name": "Backtest V3-ref (sin filtro) · 2019",
+ "capital": 5000.0,
+ "equity": 5394.721772639706,
+ "pnl": 394.7217726397057,
+ "roi": 7.894435452794113,
+ "max_dd": -60.582407723315235,
+ "sharpe": 0.42993770357424294,
+ "fees": 20.73224890276502,
+ "n_trades": 107,
+ "btc_roi": 94.40105046160329,
+ "eth_roi": -1.7421072651198077,
+ "market_roi": null,
+ "first_ts": 1546300800000,
+ "last_ts": 1577833200000,
+ "bars": 8732,
+ "bots": [
+  {
+   "id": "w01_dca",
+   "name": "DCA BTC+ETH",
+   "strategy": "DCA · compras periódicas de monto fijo",
+   "capital": 2000.0,
+   "equity": 2086.137756224574,
+   "roi": 4.306887811228699,
+   "max_dd": -57.393971950064035,
+   "sharpe": 0.35591334132284347,
+   "n_trades": 66,
+   "fees": 15.447485442733443,
+   "status": "active",
+   "status_reason": "ALERTA (informativa, el bot sigue): Drawdown 45.0% >= límite 45%"
+  },
+  {
+   "id": "w04_index_cap25",
+   "name": "Índice Top-25 (capitalización) · rebalanceo trimestral",
+   "strategy": "Índice pasivo · rebalanceo periódico",
+   "capital": 3000.0,
+   "equity": 3308.584016415132,
+   "roi": 10.286133880504389,
+   "max_dd": -62.36945091513002,
+   "sharpe": 0.43799290298566734,
+   "n_trades": 41,
+   "fees": 5.284763460031575,
+   "status": "active",
+   "status_reason": "ALERTA (informativa, el bot sigue): Drawdown 50.0% >= límite 50%"
+  }
+ ]
+}
