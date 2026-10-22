@@ -74,3 +74,7 @@ Contaminación declarada, peor que en 2025:
 - Se vieron los resultados de 2025 antes de definir esta prueba (sin retocar nada), y los primeros días de datos en vivo (desde 2026-10-16, fuera de este periodo).
 - Siguen los sesgos del pre-registro (supervivencia residual, capitalización estimada, deslizamiento optimista, XRP no evaluable). Ejemplo concreto: TON (Top-30 al inicio) dejó de cotizar en Binance en junio de 2026 y queda fuera por la regla del periodo completo.
 - Por eso este periodo es una **validación más débil** que un forward test real; el simulador en vivo sigue siendo la prueba limpia.
+
+### Registro de la corrida de la reserva 2026
+- Corrida única del flujo `backtest-2026` (run 39722006383, código db4d267): sin fallos técnicos ni reintentos; empezó 2026-01-01 00:00 y terminó 2026-10-10 23:00 (6,792 velas de 1 h; 27,168 de 15 min). Resultados en la rama `backtest-2026`; comparación en `scripts/backtest_compare.py`.
+- Referencias: BTC −5.32 % · ETH −15.65 % · mercado −8.20 %. Resultado: actual −10.06 % · dinámico −18.57 % · indexado −4.11 % (Top-25 cap −10.74 %, Top-50 cap −10.57 %, Top-25 igual peso +9.00 %).
