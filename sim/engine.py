@@ -25,7 +25,7 @@ from .bots import Bot, Ctx, build_bot
 from .broker import PaperWallet
 from .data import INTERVAL_MS
 from .exchanges import get_exchange
-from .gates import btc_vol_gate
+from .gates import btc_sma_gate, btc_vol_gate
 from .ledger import Ledger
 
 
@@ -82,7 +82,11 @@ class Engine:
         self.gates = {c["id"]: c["gate"] for c in bots_cfg if c.get("gate") and c["id"] in self.runtimes}
         self.extra_symbols = sorted({g.get("symbol", "BTCUSDT") for g in self.gates.values()} - set(self.symbols))
         for g in self.gates.values():
-            self.max_warmup = max(self.max_warmup, 24 * (int(g.get("lookback_days", 14)) + 2))
+            if g.get("type", "btc_vol") == "btc_vol":
+                self.max_warmup = max(self.max_warmup, 24 * (int(g.get("lookback_days", 14)) + 2))
+        # btc_sma necesita ~200 días de historial: no se exige a TODAS las monedas (el perpetuo no lo tiene); se pasa aparte en
+        # replay(gate_series={"BTCUSDT": velas}). `gate_history_bars` dice cuánto historial previo debe cargarse de esa serie.
+        self.gate_history_bars = max([24 * (int(g.get("sma_days", 200)) + 5) for g in self.gates.values() if g.get("type") == "btc_sma"] or [0])
         self._gate_arr: dict = {}
         # Presupuesto de rotación mensual (× capital inicial del bot, notional operado por mes calendario UTC)
         self._turn_budget = {bid: float(rt.bot.risk["max_turnover_month"]) for bid, rt in self.runtimes.items()
@@ -221,18 +225,19 @@ class Engine:
         arr = self._gate_arr.get(rt.bot.id)
         if arr is None:
             return True
+        lab = "de tendencia" if self.gates[rt.bot.id].get("type") == "btc_sma" else "de volatilidad"
         on = bool(arr[i])
         if rt.gate_on is None:
             rt.gate_on = on
             if on:
-                self._events.append((ctx.ts, rt.bot.id, "info", "Interruptor de volatilidad: encendido al inicio"))
+                self._events.append((ctx.ts, rt.bot.id, "info", f"Interruptor {lab}: encendido al inicio"))
             return on
         if on and not rt.gate_on:
             rt.bot.reset()
-            self._events.append((ctx.ts, rt.bot.id, "info", "Interruptor de volatilidad: ENCENDIDO (el bot arranca de cero)"))
+            self._events.append((ctx.ts, rt.bot.id, "info", f"Interruptor {lab}: ENCENDIDO (el bot arranca de cero)"))
         elif not on and rt.gate_on:
             rt.bot.on_halt(ctx)
-            self._events.append((ctx.ts, rt.bot.id, "info", "Interruptor de volatilidad: APAGADO (liquida y espera)"))
+            self._events.append((ctx.ts, rt.bot.id, "info", f"Interruptor {lab}: APAGADO (liquida y espera)"))
         rt.gate_on = on
         return on
 
@@ -357,14 +362,31 @@ class Engine:
                              f"todo liquidado, pausa de {int(pr.get('cooldown_bars', 168)) * self.bar_ms // 86_400_000} días y reanuda solo"))
 
     # ------------------------------------------------------------------ REPLAY
-    def replay(self, frames: dict[str, pd.DataFrame], progress: Optional[Callable[[str], None]] = print, start_ts: Optional[int] = None) -> dict:
+    def replay(self, frames: dict[str, pd.DataFrame], progress: Optional[Callable[[str], None]] = print, start_ts: Optional[int] = None,
+               gate_series: Optional[dict] = None) -> dict:
         idx, fr = align(frames)
         arrays = self.prepare_arrays(fr)
         for bid, g in self.gates.items():
-            if g.get("type", "btc_vol") != "btc_vol":
-                raise ValueError(f"Tipo de interruptor desconocido: {g.get('type')}")
-            self._gate_arr[bid] = btc_vol_gate(fr[g.get("symbol", "BTCUSDT")]["close"].to_numpy(dtype=float), idx,
-                                               int(g.get("lookback_days", 14)), float(g.get("threshold", 0.40)), self.bar_ms)
+            typ, sym = g.get("type", "btc_vol"), g.get("symbol", "BTCUSDT")
+            if typ not in ("btc_vol", "btc_sma"):
+                raise ValueError(f"Tipo de interruptor desconocido: {typ}")
+            ext = (gate_series or {}).get(sym)
+            if typ == "btc_sma" and ext is None:
+                raise ValueError("btc_sma necesita replay(gate_series={símbolo: velas}) con ~200 días de historial previo")
+            if ext is not None:                              # serie propia (más larga que la común): se evalúa y se proyecta a las barras comunes
+                src_ts = np.asarray(ext.index, dtype=np.int64)
+                src_close = ext["close"].to_numpy(dtype=float)
+            else:
+                src_ts, src_close = np.asarray(idx, dtype=np.int64), fr[sym]["close"].to_numpy(dtype=float)
+            if typ == "btc_vol":
+                arr = btc_vol_gate(src_close, src_ts, int(g.get("lookback_days", 14)), float(g.get("threshold", 0.40)), self.bar_ms)
+            else:
+                arr = btc_sma_gate(src_close, src_ts, int(g.get("sma_days", 200)), self.bar_ms)
+            if ext is not None:
+                if src_ts[0] > idx[0]:
+                    raise ValueError("La serie del interruptor empieza después de la primera barra común")
+                arr = arr[np.searchsorted(src_ts, np.asarray(idx, dtype=np.int64), side="right") - 1]
+            self._gate_arr[bid] = arr
         start = self.max_warmup + 1
         if start_ts is not None:                           # arranque por FECHA (los huecos de datos no lo corren): primera barra ≥ start_ts
             start = max(start, int(np.searchsorted(np.asarray(idx, dtype=np.int64), int(start_ts), side="left")))

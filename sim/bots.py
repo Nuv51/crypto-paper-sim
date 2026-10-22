@@ -986,6 +986,13 @@ class IndexBot(Bot):
     def init_state(self) -> dict:
         return {"supply": {}, "started_ts": 0, "last_rb_ts": 0, "phase": "idle", "rb_ts": 0, "n_rebalances": 0, "weights": {}}
 
+    def reset(self) -> None:
+        """Reinicio (p. ej. tras un interruptor de régimen): vuelve a comprar el índice, pero CONSERVA los suministros fijados el día 0
+        (si se recalcularan con los precios de hoy, los pesos de capitalización quedarían distorsionados)."""
+        supply = self.st.get("supply") or {}
+        super().reset()
+        self.st["supply"] = dict(supply)
+
     # --- pesos y tamaños ------------------------------------------------------------
     def _weights(self, ctx: Ctx) -> dict:
         p = self.p
@@ -1029,7 +1036,8 @@ class IndexBot(Bot):
                 bad = [s for s in self.symbols if not (_ok(ctx.price(s)) and ctx.price(s) > 0)]
                 if bad:
                     return                                         # sin precio válido de alguna moneda: espera a la siguiente vela
-                st["supply"] = {s: self.caps_usd[s] / ctx.price(s) for s in self.symbols}
+                if not st["supply"]:                               # solo el día 0 (tras un reinicio se conservan)
+                    st["supply"] = {s: self.caps_usd[s] / ctx.price(s) for s in self.symbols}
             st["started_ts"] = st["last_rb_ts"] = ctx.ts
             tg = self._targets(ctx)
             self._submit_buys(ctx, tg, "index_init")

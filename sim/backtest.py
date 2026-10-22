@@ -220,6 +220,7 @@ def run_backtest(cfg, sim: dict, out_dir: str, start: str = "2025-01-01", end: s
         feed = feed or HistoricFeed(cache_dir=out / "cache")
         warm = eng.max_warmup + 1
         log(f"{sim['name']}: {len(eng.symbols)} símbolos, velas de {cfg.INTERVAL}, calentamiento {warm} velas, {start} → {end}")
+        injected = frames is not None
         if frames is None:
             frames = load_frames(feed, eng.symbols + list(getattr(eng, "extra_symbols", [])), cfg.INTERVAL, start_ms, end_ms, warm + 240, log)   # +10 días de margen por huecos del exchange
         label = f"Binance · velas históricas {start} → {end} (backtest en frío)"
@@ -229,7 +230,18 @@ def run_backtest(cfg, sim: dict, out_dir: str, start: str = "2025-01-01", end: s
         ledger.set_meta("portfolio_capital", cfg.PORTFOLIO_CAPITAL)
         ledger.set_meta("config_sig", config_signature(cfg.BOTS, cfg.PORTFOLIO_CAPITAL, cfg.PORTFOLIO_RISK))
         ledger.set_meta("sim", json.dumps(sim, ensure_ascii=False))
-        info = eng.replay(frames, progress=lambda m: log(m), start_ts=start_ms)
+        gate_series = None
+        if getattr(eng, "gate_history_bars", 0):
+            gsyms = sorted({g.get("symbol", "BTCUSDT") for g in eng.gates.values() if g.get("type") == "btc_sma"})
+            if injected:                                        # pruebas: las velas inyectadas ya traen la serie larga
+                gate_series = {k: v for k, v in frames.items() if k in gsyms}
+            else:
+                gate_series = {}
+                for gs in gsyms:                                # historial largo SOLO de la serie del interruptor (no de todas las monedas)
+                    gate_series[gs] = feed.closed_range(gs, cfg.INTERVAL, start_ms - eng.gate_history_bars * INTERVAL_MS[cfg.INTERVAL], end_ms)
+                    log(f"  serie del interruptor {gs}: {len(gate_series[gs])} velas desde "
+                        f"{pd.Timestamp(int(gate_series[gs].index[0]), unit='ms', tz='UTC'):%Y-%m-%d}")
+        info = eng.replay(frames, progress=lambda m: log(m), start_ts=start_ms, gate_series=gate_series)
         if info["first_ts"] != start_ms:
             raise RuntimeError(f"El backtest no empezó en {start}: primera vela simulada {info['first_ts']} (faltan datos de alguna moneda al inicio)")
         if info["last_ts"] != end_ms - INTERVAL_MS[cfg.INTERVAL]:
