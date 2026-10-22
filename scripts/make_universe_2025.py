@@ -18,12 +18,25 @@ Nada aquí mira precios de 2025 para decidir quién entra (solo se exige que exi
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-IN = ROOT / "backtest_2025" / "inputs"
-OUT = ROOT / "backtest_2025"
 RENAMED_TODAY = {"TON": "GRAM"}           # CoinGecko lista Toncoin como GRAM hoy
+
+# Periodo por parámetro: `python scripts/make_universe_2025.py [2025|2026]`. 2025 = backtest original; 2026 = reserva (holdout).
+PERIODS = {
+    "2025": dict(dir="backtest_2025", cmc="caps_cmc_2025-01-01.json", asof="2025-01-01", first_max="2024-01-01", min_days=360,
+                 config="config_index_2025.py", label="2025-01-01", period="año 2025 completo"),
+    "2026": dict(dir="backtest_2026", cmc="caps_cmc_2026-01-01.json", asof="2026-01-01", first_max="2025-01-01", min_days=280,
+                 config="config_index_2026.py", label="2026-01-01", period="2026-01-01 → 2026-10-11 (hasta el 10 de octubre)"),
+}
+CFG = dict(PERIODS["2025"])
+
+# Fuera del universo por regla: estables, tokens de fondos/bonos, oro tokenizado y tokens de OTROS exchanges (BNB se conserva).
+EXCLUDE = {"USDT", "USDC", "USDS", "USDE", "DAI", "USD1", "FDUSD", "USDG", "PYUSD", "RLUSD", "USDY", "USYC", "BUIDL", "USDF", "USD0",
+           "TUSD", "EURC", "XAUT", "PAXG", "KAU", "LEO", "OKB", "CRO", "BGB", "WBT", "GT", "KCS", "HT", "MX", "WLFI_USD", "USDD", "FRAX",
+           "LUSD", "GUSD", "USDP", "EURI", "AEUR", "XUSD", "BFUSD", "WBTC", "WBETH", "STETH", "WSTETH", "CBBTC", "WEETH", "SUSDE", "SUSDS"}
 
 
 def tier(vol: float) -> int:
@@ -31,17 +44,24 @@ def tier(vol: float) -> int:
 
 
 def build():
+    IN = ROOT / CFG["dir"] / "inputs"
     uni = json.loads((IN / "binance_pit2025.json").read_text())
-    cmc = json.loads((IN / "caps_cmc_2025-01-01.json").read_text())["caps_usd"]
+    cmc = json.loads((IN / CFG["cmc"]).read_text())["caps_usd"]
     today = json.loads((IN / "caps_coingecko_2026-10-20.json").read_text())
     ranked, excluded = [], []
     for base, v in uni.items():
+        v = dict(v)
+        v.setdefault("close_2024", v.get("close_pre"))
+        v.setdefault("vol30_2024", v.get("vol30_pre"))
+        v.setdefault("days_2025", v.get("days_period", 0))
+        if base in EXCLUDE:
+            excluded.append((base, "estable, fondo, oro tokenizado o token de otro exchange (regla 3)", None)); continue
         if v.get("status") != "OK" or not v.get("close_2024"):
             excluded.append((base, "no cotizaba en Binance spot antes de 2025 o ya no existe", None)); continue
-        if v["first_day"] > "2024-01-01":
-            excluded.append((base, f"historial < 365 días al 2025-01-01 (listada {v['first_day']})", None)); continue
-        if v["days_2025"] < 360:
-            excluded.append((base, f"dejó de cotizar o tiene huecos en 2025 ({v['days_2025']} días; última {v['last_day']})", None)); continue
+        if v["first_day"] > CFG["first_max"]:
+            excluded.append((base, f"historial < 365 días al {CFG['label']} (listada {v['first_day']})", None)); continue
+        if v["days_2025"] < CFG["min_days"]:
+            excluded.append((base, f"dejó de cotizar o tiene huecos en el periodo ({v['days_2025']} días; última {v.get('last_day')})", None)); continue
         if base in cmc:
             cap, src = float(cmc[base]), "cmc"
         else:
@@ -56,9 +76,12 @@ def build():
 
 
 def main():
+    if len(sys.argv) > 1:
+        CFG.update(PERIODS[sys.argv[1]])
     ranked, excluded = build()
     top50 = ranked[:50]
-    meta = dict(as_of="2025-01-01", n_candidates=len(ranked) + len(excluded), top50=top50,
+    OUT = ROOT / CFG["dir"]
+    meta = dict(as_of=CFG["asof"], n_candidates=len(ranked) + len(excluded), top50=top50,
                 next_in_line=ranked[50:60], excluded=[dict(base=b, reason=r) for b, r, _ in excluded])
     (OUT / "universe_2025.json").write_text(json.dumps(meta, indent=1, ensure_ascii=False))
     caps = "\n".join(f'    "{r["symbol"]}": {r["cap"] / 1e9:.3f}e9,  # {r["cap_source"]}' for r in top50)
@@ -66,11 +89,11 @@ def main():
     src = (ROOT / "config_index.py").read_text()
     head, rest = src.split("PORTFOLIO_CAPITAL = 30_000.0", 1)
     tail = "def _slip(symbols):" + rest.split("def _slip(symbols):", 1)[1]
-    doc = '''"""Índice pasivo — BACKTEST EN FRÍO 2025 (generado por scripts/make_universe_2025.py; no editar a mano).
+    doc = f'''"""Índice pasivo — BACKTEST EN FRÍO ({CFG["period"]}) (generado por scripts/make_universe_2025.py; no editar a mano).
 
 Mismos tres bots, mismos parámetros y mismas reglas de ejecución que `config_index.py`, pero con el universo y las
-capitalizaciones tal como se habrían visto el 2025-01-01 (ver BACKTEST_2025.md). Capitalización: exacta de CoinMarketCap
-para las monedas de su Top-20 de ese día; para el resto, estimada como (cap de hoy / precio de hoy) × precio del 2024-12-31
+capitalizaciones tal como se habrían visto el {CFG["label"]} (ver BACKTEST_2025.md). Capitalización: exacta de CoinMarketCap
+para las monedas de su Top-20 de ese día; para el resto, estimada como (cap de hoy / precio de hoy) × precio del cierre previo
 (aproximación: supone el mismo suministro circulante; sobrestima monedas con desbloqueos grandes desde entonces).
 """
 '''
@@ -79,12 +102,12 @@ PORTFOLIO_CAPITAL = 30_000.0      # 3 bots × 10,000 USDT FICTICIOS
 INTERVAL = "1h"
 PORTFOLIO_RISK = dict(max_drawdown=None, cooldown_bars=168)
 
-# Capitalización estimada al 2025-01-01 en USD, de mayor a menor.
+# Capitalización al inicio del periodo en USD, de mayor a menor.
 CAPS_USD = {{
 {caps}
 }}
 
-# Deslizamiento (bps) según el volumen diario promedio de los 30 días previos al 2025-01-01.
+# Deslizamiento (bps) según el volumen diario promedio de los 30 días previos al inicio.
 SLIPPAGE_BPS = {{
 {slip}
 }}
@@ -99,7 +122,7 @@ _PARAMS = dict(rebalance_hours=720, cash_buffer=0.005, min_trade_usdt=8.0, min_w
 
 '''
     cfg = doc + body + tail
-    (ROOT / "config_index_2025.py").write_text(cfg)
+    (ROOT / CFG["config"]).write_text(cfg)
     print(f"{len(ranked)} elegibles, {len(excluded)} excluidas; Top-50 escrito")
     for i, r in enumerate(top50, 1):
         print(i, r["base"], f'{r["cap"]/1e9:.2f}B', r["cap_source"], r["slippage_bps"])

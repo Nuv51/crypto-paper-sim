@@ -13,19 +13,27 @@ on:
         default: "actual"
         type: choice
         options: [actual, pit2025]
+      asof:
+        description: "(solo pit2025) inicio del periodo YYYY-MM-DD"
+        default: "2025-01-01"
+        type: string
+      end:
+        description: "(solo pit2025) fin del periodo, exclusivo YYYY-MM-DD"
+        default: "2026-01-01"
+        type: string
 permissions:
   contents: write
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - run: pip install requests
       - name: Sondeo
         run: |
           if [ "${{ inputs.modo }}" = "pit2025" ]; then
-            python3 scripts/universe_2025.py --candidates "${{ inputs.candidates }}" --out universe_check.json
+            python3 scripts/universe_2025.py --candidates "${{ inputs.candidates }}" --asof "${{ inputs.asof }}" --end "${{ inputs.end }}" --out universe_check.json
           else
             python3 scripts/universe_check.py --candidates "${{ inputs.candidates }}" --out universe_check.json
           fi
