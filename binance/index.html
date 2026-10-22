@@ -47,6 +47,13 @@ h1, h2, h3, p { margin: 0; }
 a.stamp { text-decoration: none; color: var(--accent); border-color: var(--accent); }
 .stamp { display: inline-flex; align-items: center; gap: 8px; font: 500 11.5px var(--font); letter-spacing: .06em; text-transform: uppercase;
   padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink2); }
+.simnav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-top: 14px; }
+.simnav:empty { display: none; }
+.simnav .lbl { font: 500 11px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+.simnav a { font: 500 13px var(--font); text-decoration: none; color: var(--ink2); padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); white-space: nowrap; }
+.simnav a:hover { border-color: var(--accent); color: var(--ink); }
+.simnav a[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); cursor: default; }
+@media (max-width: 560px) { .simnav { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; } .simnav .lbl { display: none; } }
 .banner { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 13px;
   background: var(--surface); border: 1px solid var(--line); border-left-width: 4px; min-width: 0; }
 .banner b { font-weight: 600; }
@@ -219,12 +226,13 @@ details pre { margin: 6px 0 2px; font: 400 11.5px var(--mono); white-space: pre-
 </style>
 
 <div class="wrap" id="app">
+  <nav class="simnav" id="sim-nav" aria-label="Cambiar de simulador"></nav>
   <div class="top">
     <div style="min-width:0">
       <h1 id="h1">Simulador de bots cripto</h1>
       <p class="sub" id="sub">Cargando…</p>
     </div>
-    <span class="topr"><span id="sim-links"></span><span class="stamp" id="stamp">Simulación · dinero ficticio</span></span>
+    <span class="topr"><span class="stamp" id="stamp">Simulación · dinero ficticio</span></span>
   </div>
   <div id="banners"></div>
   <div class="tabs" role="tablist" id="tabs">
@@ -514,7 +522,7 @@ function smTile(l, v, dl, extra) { return '<div class="sm-tile"><div class="l">'
 /* ------------------------------------------------------------------ crecimiento: portafolio vs BTC y ETH por periodo */
 var PERIODS = [['1d', 'Día', 1], ['7d', 'Semana', 7], ['30d', 'Mes', 30], ['90d', '3 meses', 90], ['365d', 'Año', 365], ['all', 'Inicio', 0]];
 var HOUR_MS = 3600000, DAY_MS = 86400000;
-var FAMILY_COLOR = { neutral: 'var(--s3)', rango: 'var(--s4)', tendencia: 'var(--s7)', acumulacion: 'var(--s1)', indice: 'var(--s2)' };
+var FAMILY_COLOR = { neutral: 'var(--s3)', rango: 'var(--s4)', tendencia: 'var(--s7)', acumulacion: 'var(--s1)', indice: 'var(--s2)', efectivo: 'var(--cash)' };
 function idxAtOrBefore(ts, t) { var lo = 0, hi = ts.length - 1, r = -1; while (lo <= hi) { var m = (lo + hi) >> 1; if (ts[m] <= t) { r = m; lo = m + 1; } else hi = m - 1; } return r; }
 /* velas por hora para ventanas de hasta 30 días y por día para las más largas */
 function benchFor(B, sym, spanMs) {
@@ -1010,7 +1018,7 @@ function emptyHtml(status) {
   return '<div class="empty"><h2>Aún no hay datos</h2><p>' + (status && status.ok === false ? 'La primera corrida no pudo completarse: ' + esc(status.message) : 'La primera corrida programada publicará aquí el tablero.') + '</p></div>';
 }
 
-var api = { buildPanels: buildPanels, bannersHtml: bannersHtml, subHtml: subHtml, emptyHtml: emptyHtml, REG: REG, niceTicks: niceTicks, lineChart: lineChart, barChart: barChart, coneChart: coneChart };
+var api = { simNavHtml: simNavHtml, buildPanels: buildPanels, bannersHtml: bannersHtml, subHtml: subHtml, emptyHtml: emptyHtml, REG: REG, niceTicks: niceTicks, lineChart: lineChart, barChart: barChart, coneChart: coneChart };
 if (TEST) { globalThis.__dashApi = api; return; }
 
 /* ------------------------------------------------------------------ DOM */
@@ -1071,6 +1079,27 @@ function setTab(t, push) {
   if (push) { try { history.replaceState(null, '', '#' + t); } catch (e) { /* sin historial en el visor */ } }
   render();
 }
+/* Botones arriba para cambiar de simulador (mismo orden que el registro; el actual queda resaltado). Conservan la pestaña abierta. */
+function navName(e) { var known = { binance: 'Actual', activo: 'Dinámico', indice: 'Indexado', ajustado: 'Ajustado V1' }; if (!e.name && known[e.dir]) return known[e.dir]; var n = (e.name || e.dir || '').replace(/^Simulador\s+/i, ''); return n ? n.charAt(0).toUpperCase() + n.slice(1) : e.dir; }
+function simNavHtml(list, myId, myDir) {
+  return '<span class="lbl">Simulador</span>' + list.map(function (e) {
+    var cur = e.id === myId || e.dir === myDir;
+    return '<a href="../' + esc(e.dir) + '/" data-dir="' + esc(e.dir) + '"' + (cur ? ' aria-current="page"' : '') + '>' + esc(navName(e)) + '</a>';
+  }).join('');
+}
+function renderSimNav(list) {
+  var nav = $('#sim-nav'); if (!nav || !Array.isArray(list) || list.length < 2) return;
+  nav.innerHTML = simNavHtml(list, D && D.sim && D.sim.id, location.pathname.replace(/\/+$/, '').split('/').pop() || '');
+  var cur = nav.querySelector('a[aria-current="page"]');
+  if (cur && cur.scrollIntoView) { try { nav.scrollLeft = Math.max(0, cur.offsetLeft - 16); } catch (e) { /* sin scroll */ } }     // en móvil, deja a la vista el simulador actual
+  nav.querySelectorAll('a').forEach(function (a) {
+    a.addEventListener('click', function (ev) {
+      if (a.getAttribute('aria-current') === 'page') { ev.preventDefault(); return; }
+      if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button) return;          // abrir en pestaña nueva funciona normal
+      ev.preventDefault(); location.href = '../' + a.dataset.dir + '/#' + state.tab;
+    });
+  });
+}
 /* Descubre los demás simuladores en el sitio publicado (carpetas hermanas) con el registro ../sims.json; si no existe, usa
    los conocidos y, en una copia suelta, data/other.json. Cada uno que responda se agrega a la comparación. */
 function loadSims() {
@@ -1082,8 +1111,7 @@ function loadSims() {
     var myId = D.sim && D.sim.id;
     list.forEach(function (e, i) { if (e.id === myId) state.selfOrder = i; });
     var others = list.filter(function (e) { return e.id !== myId && e.dir !== myId; });
-    var links = $('#sim-links');
-    if (published && others.length) { links.innerHTML = others.map(function (e) { return '<a class="stamp" href="../' + esc(e.dir) + '/">' + esc(e.name ? e.name.replace(/^Simulador\s+/i, '') : e.dir) + ' →</a>'; }).join(' '); }
+    if (published) renderSimNav(list);
     var jobs = others.map(function (e, k) { return get('../' + e.dir + '/data/dashboard.json').then(function (x) { return x && x.kpis ? { d: x, order: list.indexOf(e) } : null; }); });
     if (!published) jobs.push(get('data/other.json').then(function (x) { return x && x.kpis ? { d: x, order: 99 } : null; }));
     Promise.all(jobs).then(function (res) {

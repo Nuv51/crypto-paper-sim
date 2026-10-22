@@ -16,5 +16,11 @@
   "id": "indice",
   "name": "Simulador indexado",
   "desc": "Cartera pasiva: 3 índices (Top-25 y Top-50 por capitalización, Top-25 igual peso) con rebalanceo mensual; sin señales"
+ },
+ {
+  "dir": "ajustado",
+  "id": "ajustado",
+  "name": "Simulador Ajustado V1",
+  "desc": "Núcleo de bajo costo que salió de los backtests V2/V3: DCA 20 %, índice Top-25 trimestral 30 %, carry BTC 25 %, carry ETH 15 % y 10 % en efectivo; sin satélites ni filtro"
  }
 ]
