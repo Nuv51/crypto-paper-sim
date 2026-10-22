@@ -43,7 +43,9 @@ FAMILIES = [
     ("acumulacion", "Acumulación", ("dca",),
      "Compra periódica de monto fijo, sin señales ni stop. Es acumulación, no una ventaja estadística."),
     ("indice", "Índice pasivo", ("index",),
-     "Compran el mercado (Top-25/Top-50) y rebalancean cada mes. Sin señales: sirven de vara para medir si los bots activos pagan su complejidad."),
+     "Compran el mercado (Top-25/Top-50) y rebalancean periódicamente. Sin señales: sirven de vara para medir si los bots activos pagan su complejidad."),
+    ("efectivo", "Efectivo", ("cash",),
+     "Reserva sin invertir: no opera ni rinde. Se incluye para que el ROI cuente el capital completo."),
 ]
 
 

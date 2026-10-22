@@ -25,6 +25,9 @@ SIMS = {
     "config_index": dict(id="indice", name="Simulador indexado", other="binance",
                          desc="Cartera pasiva: 3 índices (Top-25 y Top-50 por capitalización, Top-25 igual peso) con rebalanceo mensual; sin señales",
                          window=400, keep_bars=400),
+    "config_adjusted": dict(id="ajustado", name="Simulador Ajustado V1", other="binance",
+                            desc="Núcleo de bajo costo que salió de los backtests V2/V3: DCA 20 %, índice Top-25 trimestral 30 %, carry BTC 25 %, carry ETH 15 % y 10 % en efectivo; sin satélites ni filtro",
+                            window=400, keep_bars=400),
 }
 
 
@@ -38,7 +41,7 @@ def main() -> int:
     ap.add_argument("--state", help="ruta del ledger.json anterior")
     ap.add_argument("--out", required=True, help="carpeta de salida")
     ap.add_argument("--source", choices=["binance", "synthetic"], default="binance")
-    ap.add_argument("--config", default="config", choices=sorted(SIMS), help="módulo de configuración (config | config_active | config_index)")
+    ap.add_argument("--config", default="config", choices=sorted(SIMS), help="módulo de configuración (config | config_active | config_index | config_adjusted)")
     ap.add_argument("--capital", type=float, default=None, help="por defecto, el PORTFOLIO_CAPITAL de la configuración")
     ap.add_argument("--synthetic-advance", type=int, default=24, help="(solo synthetic) velas nuevas por corrida")
     a = ap.parse_args()

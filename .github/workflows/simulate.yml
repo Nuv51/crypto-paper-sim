@@ -1,9 +1,10 @@
 name: simulate
 
-# Corre TRES simulaciones (dinero FICTICIO) cada hora y guarda estado + tablero de cada una en la rama `sim-data`:
+# Corre CUATRO simulaciones (dinero FICTICIO) cada hora y guarda estado + tablero de cada una en la rama `sim-data`:
 #   · simulador ACTUAL    → carpeta binance/ (velas de 1 h, config.py)
 #   · simulador DINÁMICO  → carpeta activo/  (velas de 15 min, config_active.py)
 #   · simulador INDEXADO  → carpeta indice/  (velas de 1 h, config_index.py: 3 carteras pasivas, rebalanceo mensual)
+#   · simulador AJUSTADO V1 → carpeta ajustado/ (velas de 1 h, config_adjusted.py: núcleo de bajo costo de los backtests V2/V3, 10,000 USDT)
 # Los bots deciden al CIERRE de cada vela; si una corrida se retrasa o falla, la siguiente procesa todas las velas
 # pendientes en orden, así que el resultado no depende de cuándo corre. Cada simulación falla por separado: si una
 # no puede leer datos, las otras igual se guardan.
@@ -21,7 +22,7 @@ on:
         description: "Reiniciar desde cero (necesario si cambias bots o parámetros de ESA simulación). Por defecto no reinicia ninguna"
         default: "ninguno"
         type: choice
-        options: [ninguno, activo, actual, indice]
+        options: [ninguno, activo, actual, indice, ajustado]
 
 permissions:
   contents: write
@@ -92,6 +93,18 @@ jobs:
           echo "code=$?" >> "$GITHUB_OUTPUT"
           { echo "### Simulador indexado (${SOURCE})"; echo; cat "$RUNNER_TEMP/summary_idx.txt"; echo; cat "$RUNNER_TEMP/table_idx.md"; } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Simulador Ajustado V1 (núcleo de bajo costo, velas de 1 h)
+        id: adj
+        run: |
+          set +e
+          FRESH=$([ "$REINICIAR" = "ajustado" ] && echo true || echo false)
+          DIR=$([ "$SOURCE" = "binance" ] && echo ajustado || echo "ajustado-${SOURCE}")
+          SUMMARY_FILE="$RUNNER_TEMP/summary_adj.txt" NOTIFY_FILE="$RUNNER_TEMP/notify_adj.txt" TABLE_FILE="$RUNNER_TEMP/table_adj.md" \
+            STORE=store SIM_DIR="$DIR" CONFIG=config_adjusted FRESH="$FRESH" bash scripts/ci_run.sh
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          { echo "### Simulador Ajustado V1 (${SOURCE})"; echo; cat "$RUNNER_TEMP/summary_adj.txt"; echo; cat "$RUNNER_TEMP/table_adj.md";
+            if [ -s "$RUNNER_TEMP/notify_adj.txt" ]; then echo; echo '**Novedades**'; echo; echo '```'; cat "$RUNNER_TEMP/notify_adj.txt"; echo '```'; fi; } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Universo del indexado sigue operando en Binance (solo avisa)
         id: uni
         if: env.SOURCE == 'binance'
@@ -157,6 +170,7 @@ jobs:
           CODE: ${{ steps.sim.outputs.code }}
           CODE_DYN: ${{ steps.dyn.outputs.code }}
           CODE_IDX: ${{ steps.idx.outputs.code }}
+          CODE_ADJ: ${{ steps.adj.outputs.code }}
         run: |
           [ -z "$NTFY_TOPIC" ] && exit 0
           PAGES="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/${SOURCE}/"
@@ -168,6 +182,10 @@ jobs:
           if [ "$CODE_IDX" != "0" ]; then
             curl -fsS -H "Title: Simulador indexado - FALLO" -H "Priority: high" -H "Tags: warning" \
                  -d "$(cat "$RUNNER_TEMP/summary_idx.txt")" "https://ntfy.sh/${NTFY_TOPIC}" || true
+          fi
+          if [ "$CODE_ADJ" != "0" ]; then
+            curl -fsS -H "Title: Simulador Ajustado V1 - FALLO" -H "Priority: high" -H "Tags: warning" \
+                 -d "$(cat "$RUNNER_TEMP/summary_adj.txt")" "https://ntfy.sh/${NTFY_TOPIC}" || true
           fi
           if [ "$CODE" != "0" ]; then
             curl -fsS -H "Title: Simulador cripto - FALLO" -H "Priority: high" -H "Tags: warning" \
@@ -185,5 +203,5 @@ jobs:
         run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/simulate.yml/enable" || true
 
       - name: Marcar fallo si algún simulador no corrió
-        if: steps.sim.outputs.code != '0' || steps.dyn.outputs.code != '0' || steps.idx.outputs.code != '0'
+        if: steps.sim.outputs.code != '0' || steps.dyn.outputs.code != '0' || steps.idx.outputs.code != '0' || steps.adj.outputs.code != '0'
         run: exit 1

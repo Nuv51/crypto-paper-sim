@@ -167,6 +167,28 @@ pasivas con 10,000 USDT ficticios cada una, sin señales ni stops: compran el í
   - *Muestras cortas no son evidencia:* un índice mide el mercado; unas semanas no dicen si una forma de ponderar es mejor que otra.
 - **Reiniciar:** Run workflow → `reiniciar = indice`. Cambiar cualquier parámetro o el universo exige reiniciar (a propósito).
 
+## Simulador Ajustado V1 (el candidato que salió de los backtests V2/V3)
+
+Cuarto simulador en vivo (carpeta `ajustado/`, config `config_adjusted.py`, velas de 1 h, **10,000 USDT ficticios**). Es el núcleo de bajo costo de
+`BACKTEST_V3_RESULTADOS.md` (variante "V3-ref": sin satélites, sin estables y sin el filtro de tendencia, que no pasó el criterio D5), puesto a
+correr hacia adelante, que es la única prueba no contaminada por los años ya vistos.
+
+| Bot | Estrategia | Plataforma | Capital |
+|---|---|---|---:|
+| a01 | DCA semanal BTC+ETH (3 % del capital del bot por compra) | Bitso | 20 % |
+| a02 | Índice Top-25 por capitalización (tope 30 %), rebalanceo cada 90 días | Binance | 30 % |
+| a03 | Carry BTC (largo spot + corto perpetuo) | KuCoin | 25 % |
+| a04 | Carry ETH (umbral 3 % APR, permanencia mínima 20 días) | KuCoin | 15 % |
+| a05 | Efectivo (no opera) | — | 10 % |
+
+- Los pesos y parámetros son los de V3-ref y **no se afinan durante la prueba**. El efectivo es una línea explícita para que el ROI y el drawdown cuenten los 10,000 completos, como en los backtests.
+- Universo del índice: el mismo congelado del simulador indexado (Top-25 de CoinGecko al 2026-10-20), no el de los backtests.
+- **Solapamiento con los otros simuladores (a propósito):** a01 = el DCA del actual; a02 = el Top-25 del indexado pero trimestral; a03/a04 = carry como el del actual y el dinámico. Lo distinto es la mezcla y los pesos, así que se espera que se parezca mucho al indexado en los días de mercado fuerte.
+- Con el funding de KuCoin de 2025-2026 el carry casi no opera (en el backtest de reserva rindió ≈ 0): hasta que el funding suba, ese 40 % es capital ocioso. Es una de las cosas que esta prueba mide.
+- Reiniciarlo: `reiniciar=ajustado` en el flujo `simulate`. Falla por separado de los demás.
+
+**Tablero:** cada tablero tiene arriba botones para cambiar de simulador (Actual · Dinámico · Indexado · Ajustado V1); conservan la pestaña abierta. La pestaña **Comparar** pone a los cuatro en la misma gráfica (ROI sobre el periodo en común) y en la misma tabla; los simuladores nuevos aparecen solos vía `sims.json`.
+
 ## Ejecución automática con GitHub Actions
 
 `.github/workflows/simulate.yml` corre el simulador cada hora (y a mano: **Actions → simulate → Run workflow**).

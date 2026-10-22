@@ -4,7 +4,7 @@
 
 Las páginas de cada tablero leen ../sims.json para comparar TODOS los simuladores; así, al agregar uno nuevo (una carpeta nueva con
 su tablero) aparece solo en la pestaña Comparar de todos, sin editar ninguna página. Se omiten las carpetas de prueba con datos
-inventados (synthetic*, *-synthetic). Orden estable: primero los históricos (binance, activo, indice), luego los demás por nombre;
+inventados (synthetic*, *-synthetic). Orden estable: primero los históricos (binance, activo, indice, ajustado), luego los demás por nombre;
 el orden fija el color de cada simulador en las gráficas, así que no cambia entre tableros.
 """
 from __future__ import annotations
@@ -13,7 +13,7 @@ import json
 import sys
 from pathlib import Path
 
-PRIORITY = ["binance", "activo", "indice"]
+PRIORITY = ["binance", "activo", "indice", "ajustado"]
 
 
 def build(store: str | Path) -> list[dict]:

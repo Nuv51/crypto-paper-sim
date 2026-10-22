@@ -1070,9 +1070,26 @@ class IndexBot(Bot):
         return f"{n} de {len(self.symbols)} monedas en cartera · {st['n_rebalances']} rebalanceos · último {day}"
 
 
+# ======================================================================================
+# Efectivo (reserva) — no opera
+# ======================================================================================
+class CashBot(Bot):
+    """Reserva en efectivo: no compra ni vende nada. Existe para que el capital que una cartera deja sin invertir cuente
+    en el equity, el ROI y el drawdown (igual que en los backtests V2/V3, donde el efectivo ocioso cuenta). Necesita un
+    símbolo solo para que el motor le dé velas; nunca abre posiciones."""
+    kind = "cash"
+    strategy_label = "Efectivo · reserva sin invertir"
+
+    def on_bar(self, ctx: Ctx) -> None:
+        return
+
+    def status_detail(self, wallet: PaperWallet) -> str:
+        return "En efectivo (no opera)"
+
+
 BOT_CLASSES = {"carry": CarryBot, "stable": StableBot, "dca": DcaBot, "grid": GridBot,
                "meanrev": MeanReversionBot, "mm": MarketMakerBot, "trend": TrendBot,
-               "breakout": BreakoutBot, "ml": MLBot, "xrp_rail": XrpRailBot, "index": IndexBot}
+               "breakout": BreakoutBot, "ml": MLBot, "xrp_rail": XrpRailBot, "index": IndexBot, "cash": CashBot}
 
 
 def build_bot(spec: dict, bar_ms: int) -> Bot:
