@@ -1,0 +1,78 @@
+name: backtest-2025
+# Backtest en frío del 2025 (ver BACKTEST_2025.md). Flujo APARTE: no usa la rama sim-data, no detiene ni modifica los simuladores
+# en vivo y no aparece en su pestaña Comparar. Corrida única: si ya hay resultados, se niega a repetir salvo que se pida explícitamente.
+on:
+  workflow_dispatch:
+    inputs:
+      repetir:
+        description: "Repetir aunque ya existan resultados (anótalo en BACKTEST_2025.md)"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: backtest-2025
+  cancel-in-progress: false
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Una sola corrida
+        run: |
+          if git ls-remote --exit-code --heads "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" backtest-2025 >/dev/null 2>&1 && [ "${{ inputs.repetir }}" != "true" ]; then
+            echo "Ya existen resultados en la rama backtest-2025. Corrida única (BACKTEST_2025.md): usa 'repetir' solo si hay que corregir un fallo técnico."
+            exit 1
+          fi
+  run:
+    needs: guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        sim: [actual, dinamico, indexado]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-ci.txt
+      - name: Backtest ${{ matrix.sim }}
+        run: python -u backtest_run.py --sim ${{ matrix.sim }} --out out/${{ matrix.sim }}
+      - name: Limpiar caché
+        if: always()
+        run: rm -rf out/${{ matrix.sim }}/cache out/${{ matrix.sim }}/work.db*
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bt-${{ matrix.sim }}
+          path: out/${{ matrix.sim }}
+  report:
+    needs: run
+    if: always() && needs.run.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          path: res
+      - name: Informe
+        run: |
+          mkdir -p pub
+          for s in actual dinamico indexado; do
+            [ -d res/bt-$s ] && mkdir -p pub/$s && cp res/bt-$s/* pub/$s/ || true
+          done
+          python scripts/backtest_report.py pub pub/informe.md
+          cat pub/informe.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Guardar en la rama backtest-2025
+        run: |
+          cd pub
+          git init -q -b backtest-2025
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Backtest 2025: resultados (corrida ${{ github.run_id }}, código ${{ github.sha }})"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" backtest-2025

@@ -295,3 +295,12 @@ una capa HTTP simulada con el formato real de cada API.
 
 Revisa la documentación oficial de cada uno para los límites vigentes. Empieza con llaves **sin permiso de retiro**, con
 whitelist de IP, y con capital que estés dispuesto a perder por completo.
+
+## Backtest en frío 2025
+
+Reproduce el año 2025 completo con los mismos tres simuladores (actual, dinámico, indexado), sin tocar parámetros y con el universo del
+indexado reconstruido al 2025-01-01. Las reglas y las métricas están fijadas ANTES de correrlo en [`BACKTEST_2025.md`](BACKTEST_2025.md).
+
+- Flujo aparte `backtest-2025` (GitHub Actions, manual, **corrida única**): no usa `sim-data`, no detiene ni modifica los simuladores en vivo y no aparece en su pestaña Comparar. Resultados en la rama `backtest-2025` (`informe.md` y `summary.json` / `dashboard.json` por simulador).
+- Código: `sim/backtest.py` (descarga histórica y corrida), `backtest_run.py` (uno por vez), `scripts/make_universe_2025.py` (universo y `config_index_2025.py`), `scripts/backtest_report.py` (informe).
+- Reserva: enero–octubre de 2026 no se corre; será la segunda validación.
