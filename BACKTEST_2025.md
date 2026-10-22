@@ -59,3 +59,18 @@ Lectura principal: ROI y caída máxima de cada simulador **frente a BTC**, no e
 - Resultados completos en la rama `backtest-2025` (`informe.md`, `summary.json` y `dashboard.json` por simulador). No se cambió ningún parámetro.
 - Referencias del periodo: BTC −6.33 % · ETH −10.97 % · mercado (canasta de las 10 mayores) −9.18 %.
 - Resultado: actual −17.09 % · dinámico −36.44 % · indexado −27.67 % (Top-25 cap −16.01 %, Top-50 cap −18.44 %, Top-25 igual peso −48.57 %).
+
+---
+## Enmienda: Reserva (holdout) 2026 — escrita ANTES de correrla
+Segunda validación fuera de muestra, pedida el 2026-10-21: **2026-01-01 00:00 UTC → 2026-10-11 00:00 UTC (exclusivo; es decir, hasta el 10 de octubre inclusive)**. Se corre con las mismas reglas del pre-registro, cambiando solo lo que el cambio de fechas obliga:
+- **Mismos tres simuladores y parámetros**, sin ajustes tras ver el resultado de 2025 (en el repositorio no cambió ningún parámetro de bot entre una corrida y otra; solo se agregaron archivos de backtest).
+- **Universo del indexado reconstruido al 2026-01-01** (`config_index_2026.py`, generado por `scripts/make_universe_2025.py 2026`): mismas reglas (≥ 365 días de historial antes del inicio, vela diaria en el periodo, sin estables/fondos/oro/tokens de otros exchanges), ahora con ≥ 280 de los 283 días del periodo. Capitalización exacta de CoinMarketCap del 2026-01-01 para las monedas de su Top-20 y estimada para el resto con el mismo método. Entradas en `backtest_2026/inputs/`; monedas excluidas y razón en `backtest_2026/universe_2025.json` (nombre heredado).
+- **Mismas cifras**: ROI, caída máxima, Sharpe, comisiones, operaciones; contra BTC, ETH y la canasta de mercado del mismo periodo.
+- Flujo aparte `backtest-2026` (rama de resultados `backtest-2026`), corrida única, sin tocar los simuladores en vivo.
+- Después se comparan 2025 y 2026 lado a lado. **Ninguna conclusión de esa comparación cambia parámetros**; cualquier idea nueva se probará en un periodo todavía no visto (los simuladores en vivo desde 2026-10-16).
+
+Contaminación declarada, peor que en 2025:
+- Las monedas de los bots activos (`config.py`, `config_active.py`) se escogieron en octubre de 2026 viendo el mercado de ese año; el 2026 ya no es "ciego" para esas elecciones.
+- Se vieron los resultados de 2025 antes de definir esta prueba (sin retocar nada), y los primeros días de datos en vivo (desde 2026-10-16, fuera de este periodo).
+- Siguen los sesgos del pre-registro (supervivencia residual, capitalización estimada, deslizamiento optimista, XRP no evaluable). Ejemplo concreto: TON (Top-30 al inicio) dejó de cotizar en Binance en junio de 2026 y queda fuera por la regla del periodo completo.
+- Por eso este periodo es una **validación más débil** que un forward test real; el simulador en vivo sigue siendo la prueba limpia.

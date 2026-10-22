@@ -1,0 +1,20 @@
+{
+ "fuente": "CoinMarketCap, p\u00e1gina hist\u00f3rica 2026-01-01 (solo las 20 primeras filas traen capitalizaci\u00f3n; se omiten estables, LEO y CC por regla/sin par en Binance)",
+ "caps_usd": {
+  "BTC": 1772003239617,
+  "ETH": 362132263774,
+  "BNB": 118872423547,
+  "XRP": 113946412178,
+  "SOL": 71386255763,
+  "TRX": 27132131280,
+  "DOGE": 21300421452,
+  "ADA": 12803437553,
+  "BCH": 11831784501,
+  "LINK": 8912259122,
+  "ZEC": 8644085665,
+  "HYPE": 8212113992,
+  "XMR": 7739894758,
+  "XLM": 6752647859,
+  "LTC": 6123313948
+ }
+}

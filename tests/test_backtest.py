@@ -125,3 +125,20 @@ def test_universe_rules_are_applied():
 
 def test_ms_parses_utc_dates():
     assert ms("2025-01-01") == 1735689600000 and ms("2026-01-01") == 1767225600000
+
+
+def test_holdout_2026_universe_and_cli():
+    import config_index_2026 as c26
+    import backtest_run
+    assert len(c26.TOP50) == 50 and c26.TOP25 == c26.TOP50[:25]
+    caps = [c26.CAPS_USD[s] for s in c26.TOP50]
+    assert caps == sorted(caps, reverse=True) and 1.7e12 < caps[0] < 1.8e12       # BTC al 2026-01-01
+    assert set(c26.SLIPPAGE_BPS) == set(c26.TOP50)
+    assert not {"USDCUSDT", "FDUSDUSDT", "USDEUSDT", "XAUTUSDT", "PAXGUSDT", "USD1USDT"} & set(c26.TOP50)
+    assert [b["params"] for b in c26.BOTS] == [b["params"] for b in config_index.BOTS]
+    stored = json.loads((ROOT / "backtest_2026" / "universe_2025.json").read_text())
+    assert [r["symbol"] for r in stored["top50"]] == list(c26.TOP50) and stored["as_of"] == "2026-01-01"
+    assert all(r["first_day"] <= "2025-01-01" for r in stored["top50"])             # ≥ 365 días de historial al inicio
+    s26 = backtest_run.sims_for("2026")
+    assert s26["indexado"][0] == "config_index_2026" and s26["actual"][0] == "config" and s26["dinamico"][0] == "config_active"
+    assert s26["actual"][1]["id"] == "bt26-actual" and backtest_run.sims_for("2025")["actual"][1]["id"] == "bt-actual"

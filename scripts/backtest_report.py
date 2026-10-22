@@ -15,14 +15,15 @@ def fmt(x, nd=2, suf=""):
     return "—" if x is None else f"{x:+.{nd}f}{suf}" if suf == "%" else f"{x:,.{nd}f}{suf}"
 
 
-def build(root: Path) -> str:
+def build(root: Path, period: str = "2025") -> str:
     sums = {}
     for name in ORDER:
         f = root / name / "summary.json"
         if f.exists():
             sums[name] = json.loads(f.read_text(encoding="utf-8"))
-    L = ["# Backtest en frío 2025 — resultados", "",
-         "Periodo 2025-01-01 → 2026-01-01 (UTC). Dinero ficticio, parámetros sin tocar, corrida única. "
+    span = "2025-01-01 → 2026-01-01" if period == "2025" else "2026-01-01 → 2026-10-10 (inclusive)"
+    L = [f"# Backtest en frío {period} — resultados", "",
+         f"Periodo {span} (UTC). Dinero ficticio, parámetros sin tocar, corrida única. "
          "Es *cómo se habrían comportado estas reglas*, no una promesa ni una prueba de rentabilidad. Sesgos declarados en BACKTEST_2025.md.", ""]
     any_s = next(iter(sums.values()), None)
     if any_s:
@@ -44,5 +45,5 @@ def build(root: Path) -> str:
 
 
 if __name__ == "__main__":
-    Path(sys.argv[2]).write_text(build(Path(sys.argv[1])), encoding="utf-8")
+    Path(sys.argv[2]).write_text(build(Path(sys.argv[1]), sys.argv[3] if len(sys.argv) > 3 else "2025"), encoding="utf-8")
     print("informe escrito")
