@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-YEARS = range(2019, 2025)
+YEARS = range(2019, 2027)
 
 
 def test_twins_identical_except_gate_and_capital_within_budget():

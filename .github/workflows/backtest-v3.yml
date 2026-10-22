@@ -1,0 +1,80 @@
+name: backtest-v3
+# Backtest en frío V3 (ver BACKTEST_V3.md). Flujo APARTE: no usa la rama sim-data ni toca los simuladores en vivo.
+# Corrida única por grupo: si ya hay resultados en la rama del grupo, se niega a repetir salvo `repetir` (solo por fallo técnico, anotado).
+on:
+  workflow_dispatch:
+    inputs:
+      grupo:
+        description: "principal = 2019-2024 · reserva = 2025-2026"
+        type: choice
+        options: [principal, reserva]
+        default: principal
+      repetir:
+        description: "Repetir aunque ya existan resultados (anótalo en BACKTEST_V3.md; solo por fallo técnico)"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: backtest-v3-${{ inputs.grupo }}
+  cancel-in-progress: false
+env:
+  RAMA: ${{ inputs.grupo == 'reserva' && 'backtest-v3-reserva' || 'backtest-v3' }}
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Una sola corrida
+        run: |
+          if git ls-remote --exit-code --heads "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" "$RAMA" >/dev/null 2>&1 && [ "${{ inputs.repetir }}" != "true" ]; then
+            echo "Ya existen resultados en la rama $RAMA. Corrida única: usa 'repetir' solo si hay que corregir un fallo técnico."
+            exit 1
+          fi
+  run:
+    needs: guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        year: ${{ fromJSON(inputs.grupo == 'reserva' && '[2025, 2026]' || '[2019, 2020, 2021, 2022, 2023, 2024]') }}
+        variant: [v3, ref]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-ci.txt
+      - name: Backtest ${{ matrix.variant }} ${{ matrix.year }}
+        run: python -u backtest_v3_run.py --year ${{ matrix.year }} --variant ${{ matrix.variant }} --out out/${{ matrix.variant }}-${{ matrix.year }} --export out/${{ matrix.variant }}-${{ matrix.year }}/tables 2>&1 | tee out.log; exit ${PIPESTATUS[0]}
+      - name: Limpiar caché
+        if: always()
+        run: |
+          d=out/${{ matrix.variant }}-${{ matrix.year }}
+          mkdir -p $d
+          cp out.log $d/run.log || true
+          rm -rf $d/cache $d/work.db*
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: btv3-${{ matrix.variant }}-${{ matrix.year }}
+          path: out/${{ matrix.variant }}-${{ matrix.year }}
+  publish:
+    needs: run
+    if: always() && needs.run.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: res
+      - name: Guardar en la rama de resultados
+        run: |
+          mkdir -p pub
+          for d in res/btv3-*; do n=${d#res/btv3-}; mkdir -p pub/$n && cp -r $d/* pub/$n/ || true; done
+          cd pub
+          git init -q -b "$RAMA"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Backtest V3 (${{ inputs.grupo }}): resultados (corrida ${{ github.run_id }}, código ${{ github.sha }})"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" "$RAMA"
