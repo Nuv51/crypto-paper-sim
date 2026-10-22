@@ -1,7 +1,9 @@
 name: probe-v2
-# Sondeo manual (solo lectura): disponibilidad de datos 2019-2024 desde los runners. No guarda nada.
+# Sondeo manual (solo lectura): disponibilidad de datos 2019-2024 desde los runners. Guarda el resumen en la rama `probe-v2`.
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -9,4 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pip install requests pandas
-      - run: python3 scripts/probe_v2.py
+      - run: python3 scripts/probe_v2.py | tee probe_v2.txt
+      - name: Guardar resumen en la rama probe-v2
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan probe-v2
+          git rm -rf --quiet . || true
+          git add -f probe_v2.txt
+          git commit -q -m "probe-v2: resultado del sondeo"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" probe-v2
