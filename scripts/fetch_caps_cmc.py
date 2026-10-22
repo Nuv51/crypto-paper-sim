@@ -24,6 +24,31 @@ def find_lists(node, path=""):
     elif isinstance(node, dict):
         for k, v in node.items():
             yield from find_lists(v, f"{path}.{k}")
+    elif isinstance(node, str) and node[:1] in "{[" and len(node) > 500:      # JSON incrustado como texto (p. ej. props.initialState)
+        try:
+            yield from find_lists(json.loads(node), path + "<json>")
+        except ValueError:
+            pass
+
+
+def tree(node, path="", depth=0, out=None):
+    """Resumen de claves para depurar cuando no se encuentra la lista."""
+    out = [] if out is None else out
+    if depth > 6:
+        return out
+    if isinstance(node, dict):
+        for k, v in list(node.items())[:15]:
+            out.append(f"{path}.{k}: {type(v).__name__}" + (f"({len(v)})" if hasattr(v, "__len__") and not isinstance(v, str) else ""))
+            tree(v, f"{path}.{k}", depth + 1, out)
+    elif isinstance(node, list) and node:
+        out.append(f"{path}[0]: {type(node[0]).__name__}" + (f" keys={sorted(node[0])[:12]}" if isinstance(node[0], dict) else ""))
+        tree(node[0], f"{path}[0]", depth + 1, out)
+    elif isinstance(node, str) and node[:1] in "{[" and len(node) > 500:
+        try:
+            tree(json.loads(node), path + "<json>", depth + 1, out)
+        except ValueError:
+            pass
+    return out
 
 
 def mcap(item):
@@ -58,7 +83,7 @@ def parse(html):
         if sum(c is not None for c in caps) >= 50 and (best is None or len(lst) > len(best[1])):
             best = (path, lst)
     if not best:
-        return None, "listas encontradas: " + json.dumps(info)[:1500]
+        return None, "listas encontradas: " + json.dumps(info)[:1500] + "\nARBOL:\n" + "\n".join(tree(data)[:120])
     return best, "ruta " + best[0]
 
 
