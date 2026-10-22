@@ -62,6 +62,18 @@ def parse(html):
     return best, "ruta " + best[0]
 
 
+def parse_table(html):
+    """Respaldo: la tabla HTML de la página (Top-100 del día): símbolo, nombre y capitalización por fila."""
+    rows = []
+    for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", html, re.S):
+        sym = re.search(r'cmc-table__cell--sort-by__symbol"[^>]*><div[^>]*>([^<]+)</div>', tr)
+        cap = re.search(r'cmc-table__cell--sort-by__market-cap"[^>]*><div[^>]*>\$?([\d,\.]+)</div>', tr)
+        nm = re.search(r'cmc-table__column-name--name[^>]*>([^<]+)</a>', tr)
+        if sym and cap:
+            rows.append(dict(symbol=sym.group(1).strip(), name=nm.group(1).strip() if nm else "", marketCap=float(cap.group(1).replace(",", ""))))
+    return rows
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dates", required=True)
@@ -76,7 +88,11 @@ def main():
             print(d, "HTTP", r.status_code); ok = False; continue
         best, msg = parse(r.text)
         if not best:
-            print(d, "no pude leer:", msg); ok = False; continue
+            tab = parse_table(r.text)
+            if len(tab) >= 50:
+                best, msg = ("tabla HTML", tab), "tabla HTML"
+            else:
+                print(d, "no pude leer:", msg, "| tabla:", len(tab)); ok = False; continue
         rows = []
         for x in best[1]:
             c = mcap(x)
