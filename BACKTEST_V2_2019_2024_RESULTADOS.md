@@ -8,7 +8,7 @@ Pre-registro: `BACKTEST_V2_2019_2024.md` (criterios fijados antes de correr). C�
 |---|---|---|---|
 | C1 | Caída máx. ≤ 40 % cada año | −43.9 % (2019), −45.0 % (2021); los otros cuatro entre −16.8 % y −33.8 % | ✗ |
 | C2 | ROI > 0 en ≥ 4 de 6 años | 5 de 6 (solo 2022 negativo) | ✓ |
-| C3 | Comisiones + deslizamiento < 1.5 % del capital por año | 2.3 % a 4.8 % (solo comisiones: 1.05 % a 1.85 %; superan 1.5 % en 2019-2021) | ✗ |
+| C3 | Comisiones + deslizamiento < 1.5 % del capital por año | 1.4 % a 2.5 %; solo 2024 cumple (1.36 %); solo comisiones: 1.05 % a 1.85 % | ✗ |
 | C4 | Caída máx. menor que la de BTC en ≥ 5 de 6 años | 6 de 6 | ✓ |
 | C5 | El interruptor aporta (B − A > 0 y B gana ≥ 8 de 12) | suma B − A = +23 USDT, B gana 4, empata 2, pierde 6 | ✗ |
 | C6 | Ningún satélite pierde > 25 % de su capital | peor caso −21.8 % | ✓ |
@@ -41,7 +41,7 @@ Encadenado 2019-2024: V2 +468 % vs BTC +2,428 %. V2 superó a BTC en ROI en 2021
 
 - **El núcleo es beta.** Índice + DCA explican casi todo el PnL (y casi toda la caída: el índice llegó a −62 % a −70 % de caída propia en 2019-2022). El carry y las estables aportan estabilidad, no volumen.
 - **Los satélites perdieron en 4 de 6 años** (suma −467 sobre 2,000 de capital). Antes de costos suman +321; los costos suman 788. Es la misma lección que V1: el costo se come lo que la señal produce.
-- **Costos:** 234 a 480 USDT por año. Lo más caro por capital: el carry (≈ 100-146 USDT por año sobre 1,250 y 750 de capital) y los satélites (86-161 por año sobre 2,000). En 2019 las estables gastaron 88 para ganar 13.
+- **Costos:** 136 a 245 USDT por año. Los satélites concentran los costos (86-161 por año sobre 2,000 de capital). El carry es barato: 5-34 USDT por año por bot y +256, +404, −17, +55, +129 USDT en 2020-2024 (ROI 0 a +23 % sobre su capital, caída máxima ≤ 3 %). En 2019 las estables gastaron 88 de costos con ganancia bruta de ~101 (neto +13).
 - **Carry BTC en 2022:** 0 operaciones (el funding no cumplió el umbral de entrada), el capital estuvo ocioso.
 
 ## 4. El interruptor de volatilidad
@@ -69,4 +69,7 @@ Funcionaron: ninguna pérdida de satélite pasó de −21.8 %. La tendencia se r
 1. La estructura *low cost* sí ganó dinero en 5 de 6 años con un ciclo completo, pero eso es mayormente beta de cripto con algo de amortiguación; no mejoró el Sharpe de BTC salvo en 2021.
 2. Los dos activos que añadían "edge" (satélites, interruptor) no lo demostraron: pierden en neto y el interruptor no discrimina con ese umbral.
 3. Lo que sí agrega valor demostrable es la **gestión de riesgo** (topes duros) y la **disciplina de medición** (pre-registro, gemelos, criterios numéricos).
-4. Para el siguiente paso, la prueba limpia es el **paper trading en vivo** (desde 2026-10-16), no más backtests sobre estos años. Cualquier variante nueva (menos peso en índice, filtro de tendencia sobre el núcleo, menos rotación del carry) se pre-registra antes y se prueba solo hacia adelante.
+4. Para el siguiente paso, la prueba limpia es el **paper trading en vivo** (desde 2026-10-16), no más backtests sobre estos años. Cualquier variante nueva (menos peso en índice, filtro de tendencia sobre el núcleo, más peso al carry) se pre-registra antes y se prueba solo hacia adelante.
+
+
+**Corrección (2026-10-22).** La primera versión de este análisis contaba las filas de funding del carry como operaciones al estimar el deslizamiento, lo que inflaba sus costos y los totales (234-480 USDT por año en vez de 136-245). Corregido en `backtest_v2/analysis/analyze.py`; las conclusiones sobre satélites, interruptor y núcleo no cambian, pero el carry **no** es caro: es el componente más consistente.

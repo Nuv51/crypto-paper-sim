@@ -16,6 +16,8 @@ def maxdd(s):
 
 def slip_bps(cfg, bot_id, sym):
     b = {x['id']: x for x in cfg.BOTS}[bot_id]
+    if sym.endswith('~PERP'):
+        return b.get('params', {}).get('perp_slip_bps', 2.0)
     m = b.get('slippage_map_bps') or {}
     return m.get(sym, b.get('slippage_bps', 5))
 
@@ -38,8 +40,8 @@ for y in YEARS:
     ew = np.mean([bars[bars.symbol == s].set_index('ts').close.reindex(btc.index).ffill() / bars[bars.symbol == s].open.iloc[0] for s in syms if (bars.symbol == s).any()], axis=0)
     daily = tot.copy(); daily.index = pd.to_datetime(daily.index, unit='ms'); d = daily.resample('1D').last().pct_change().dropna()
     sharpe = float(d.mean() / d.std() * np.sqrt(365)) if d.std() > 0 else None
-    tr = tr.copy()
-    tr['slip'] = [n * slip_bps(cfg, b, s) / 1e4 for n, b, s in zip(tr.notional, tr.bot_id, tr.symbol.str.replace('~PERP', '', regex=False))]
+    tr = tr[tr.reason != 'funding'].copy()      # las filas de funding no son operaciones: no pagan comisión ni deslizamiento
+    tr['slip'] = [n * slip_bps(cfg, b, s) / 1e4 for n, b, s in zip(tr.notional, tr.bot_id, tr.symbol)]
     fees = tr.groupby('bot_id').fee.sum(); slip = tr.groupby('bot_id').slip.sum()
     last = w.iloc[-1]
     for b in cfg.BOTS:
