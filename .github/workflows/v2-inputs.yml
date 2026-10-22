@@ -8,7 +8,7 @@ on:
         description: "caps = solo capitalizaciones · pit = además el sondeo de Binance (usa las caps ya guardadas)"
         type: choice
         default: caps
-        options: [caps, pit]
+        options: [caps, pit, debug]
 permissions:
   contents: write
 jobs:
@@ -23,6 +23,17 @@ jobs:
         run: |
           mkdir -p out
           python3 scripts/fetch_caps_cmc.py --dates 2018-12-30,2019-12-29,2020-12-27,2021-12-26,2022-12-25,2023-12-31 --out out 2>&1 | tee out/log.txt
+          exit ${PIPESTATUS[0]}
+      - name: Depuración de la estructura de la página de CoinMarketCap
+        if: ${{ inputs.paso == 'debug' }}
+        run: |
+          mkdir -p out
+          python3 scripts/debug_cmc.py 2>&1 | tee out/log.txt
+      - name: Sondeo de Binance punto-en-el-tiempo (usa backtest_v2/inputs/caps_cmc_*.json del repositorio)
+        if: ${{ inputs.paso == 'pit' }}
+        run: |
+          mkdir -p out
+          python3 scripts/pit_v2.py --inputs backtest_v2/inputs --out out 2>&1 | tee out/log.txt
           exit ${PIPESTATUS[0]}
       - name: Guardar en la rama v2-inputs
         if: always()
