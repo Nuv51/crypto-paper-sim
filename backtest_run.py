@@ -45,12 +45,13 @@ def main() -> int:
     ap.add_argument("--period", choices=["2025", "2026"], default="2025", help="2025 = backtest original · 2026 = reserva (ene 1 → oct 10)")
     ap.add_argument("--start", default=None)
     ap.add_argument("--end", default=None)
+    ap.add_argument("--export", default=None, help="carpeta donde volcar las tablas completas (análisis posterior)")
     a = ap.parse_args()
     a.start = a.start or ("2025-01-01" if a.period == "2025" else "2026-01-01")
     a.end = a.end or ("2026-01-01" if a.period == "2025" else "2026-10-11")
     module, ident = sims_for(a.period)[a.sim]
     cfg = importlib.import_module(module)
-    s = run_backtest(cfg, ident, a.out, a.start, a.end)
+    s = run_backtest(cfg, ident, a.out, a.start, a.end, export_dir=a.export)
     print(f"OK {ident['name']}: ROI {s['roi']:+.2f}% · caída máx {s['max_dd']:.2f}% · {s['n_trades']} operaciones · comisiones {s['fees']:.2f}")
     return 0
 

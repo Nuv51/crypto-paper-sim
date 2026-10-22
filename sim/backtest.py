@@ -122,7 +122,7 @@ def _clean(x):
 
 
 def run_backtest(cfg, sim: dict, out_dir: str, start: str = "2025-01-01", end: str = "2026-01-01", feed: Optional[HistoricFeed] = None,
-                 frames: Optional[dict] = None, log=print) -> dict:
+                 frames: Optional[dict] = None, log=print, export_dir: Optional[str] = None) -> dict:
     """Corre el backtest de una configuración (módulo con BOTS, INTERVAL, PORTFOLIO_CAPITAL, PORTFOLIO_RISK) y escribe
     out_dir/dashboard.json y out_dir/summary.json. `frames` permite inyectar datos (pruebas)."""
     out = Path(out_dir)
@@ -160,11 +160,21 @@ def run_backtest(cfg, sim: dict, out_dir: str, start: str = "2025-01-01", end: s
         bench_roi = buy_and_hold(feed, start_ms, end_ms, log) if hasattr(feed, "closed_range") else {}
         summary = summarize(dash, data, info, sim, bench_roi)
         (out / "summary.json").write_text(json.dumps(_clean(summary), indent=1, ensure_ascii=False), encoding="utf-8")
+        if export_dir:                                  # solo lectura, después del resultado: no altera nada de la corrida
+            export_tables(ledger.con, Path(export_dir))
         return summary
     finally:
         ledger.close()
         for ext in ("", "-wal", "-shm"):
             Path(str(db) + ext).unlink(missing_ok=True)
+
+
+def export_tables(con, out: Path) -> None:
+    """Vuelca las tablas completas del libro (alta resolución) para el análisis posterior."""
+    import pandas as pd
+    out.mkdir(parents=True, exist_ok=True)
+    for t in ("bots", "trades", "equity", "attrib", "events", "bars", "meta"):
+        pd.read_sql_query(f"SELECT * FROM {t}", con).to_csv(out / f"{t}.csv.gz", index=False, compression="gzip")
 
 
 def buy_and_hold(feed, start_ms: int, end_ms: int, log=print) -> dict:
