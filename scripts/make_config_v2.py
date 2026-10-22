@@ -59,10 +59,19 @@ def build(year: int) -> str:
     if len(rows) < MIN_ELIGIBLE:
         raise SystemExit(f"{year}: solo {len(rows)} monedas elegibles (< {MIN_ELIGIBLE}); el backtest de ese año no se corre")
     top25 = rows[:25]
-    stables = ["USDCUSDT"]
-    fd = pit.get("FDUSD", {})
-    if fd.get("status") == "OK" and (date(year, 1, 1) - date.fromisoformat(fd["first_day"])).days >= 60:
-        stables.append("FDUSDUSDT")
+    # Estables del bot v04: de USDC/TUSD/BUSD/PAX/USDP/FDUSD, las que cotizan TODO el año y tenían ≥30 días de historial; hasta 2,
+    # las de mayor volumen de los 30 días previos (USDC dejó de cotizar contra USDT en Binance durante partes de 2022 y 2023).
+    asof = date(year, 1, 1)
+    nd = 366 if year % 4 == 0 else 365
+    cand = []
+    for b in ("USDC", "TUSD", "BUSD", "PAX", "USDP", "FDUSD"):
+        v = pit.get(b) or {}
+        if v.get("status") == "OK" and v.get("vol30_pre") and (asof - date.fromisoformat(v["first_day"])).days >= 30 and v.get("days_period", 0) >= nd - 5:
+            cand.append((v["vol30_pre"], b + "USDT"))
+    cand.sort(reverse=True)
+    stables = [s_ for _, s_ in cand[:2]]
+    if not stables:
+        raise SystemExit(f"{year}: ninguna estable cotiza todo el año")
     trend = [r["symbol"] for r in rows if r["base"] not in ("BTC", "ETH", "BNB")][:2]
     carry = year >= CARRY_FROM
     meta = dict(year=year, snapshot=SNAP[year], n_eligible=len(rows), index=[r["symbol"] for r in top25], stables=stables, trend=trend,

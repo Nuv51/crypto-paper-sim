@@ -3,7 +3,7 @@
   python scripts/pit_v2.py --years 2019,2020,... --inputs backtest_v2/inputs --out OUT
 
 Para cada año: candidatas = Top-120 por capitalización de la foto de CoinMarketCap anterior al 1 de enero (sin estables ni
-tokens de otros exchanges), más USDC/FDUSD (para el bot de estables) y BTC/ETH. Por moneda <M>USDT usa solo datos de Binance
+tokens de otros exchanges), más las estables candidatas USDC/FDUSD/TUSD/BUSD/PAX/USDP (para el bot de estables) y BTC/ETH. Por moneda <M>USDT usa solo datos de Binance
 (reutiliza scripts/universe_2025.py): primera vela, velas diarias del año, cierre previo y liquidez de los 30 días previos.
 No mira precios del año para decidir quién entra: solo si la moneda existe y cotiza todo el año.
 """
@@ -37,7 +37,7 @@ def main():
             if sym in EXCLUDE or sym in MORE_EXCLUDE:
                 continue
             cands.append(ALIAS.get(sym, sym))
-        for must in ("BTC", "ETH", "USDC", "FDUSD"):
+        for must in ("BTC", "ETH", "USDC", "FDUSD", "TUSD", "BUSD", "PAX", "USDP"):
             if must not in cands:
                 cands.append(must)
         t0, t1 = to_ms(f"{y}-01-01"), to_ms(f"{y + 1}-01-01")
