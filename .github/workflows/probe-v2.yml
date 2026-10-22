@@ -1,0 +1,12 @@
+name: probe-v2
+# Sondeo manual (solo lectura): disponibilidad de datos 2019-2024 desde los runners. No guarda nada.
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install requests pandas
+      - run: python3 scripts/probe_v2.py
