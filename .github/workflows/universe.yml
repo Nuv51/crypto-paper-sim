@@ -8,6 +8,11 @@ on:
         description: "Monedas candidatas separadas por coma (sin USDT)"
         required: true
         type: string
+      modo:
+        description: "actual = estado de hoy en Binance · pit2025 = datos para armar el universo del 2025-01-01"
+        default: "actual"
+        type: choice
+        options: [actual, pit2025]
 permissions:
   contents: write
 jobs:
@@ -17,7 +22,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pip install requests
-      - run: python3 scripts/universe_check.py --candidates "${{ inputs.candidates }}" --out universe_check.json
+      - name: Sondeo
+        run: |
+          if [ "${{ inputs.modo }}" = "pit2025" ]; then
+            python3 scripts/universe_2025.py --candidates "${{ inputs.candidates }}" --out universe_check.json
+          else
+            python3 scripts/universe_check.py --candidates "${{ inputs.candidates }}" --out universe_check.json
+          fi
       - name: Guardar resultado en la rama universe
         run: |
           git config user.name "github-actions[bot]"
