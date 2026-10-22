@@ -20,7 +20,7 @@ jobs:
       - run: pip install requests pandas
       - name: Capitalizaciones (foto de CoinMarketCap ≤ 1 de enero de cada año)
         if: ${{ inputs.paso == 'caps' }}
-        run: python3 scripts/fetch_caps_cmc.py --dates 2018-12-30,2019-12-29,2020-12-27,2021-12-26,2023-01-01,2023-12-31 --out out
+        run: python3 scripts/fetch_caps_cmc.py --dates 2018-12-30,2019-12-29,2020-12-27,2021-12-26,2022-12-25,2023-12-31 --out out
       - name: Guardar en la rama v2-inputs
         if: always()
         run: |

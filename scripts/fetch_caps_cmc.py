@@ -2,7 +2,7 @@
 
   python scripts/fetch_caps_cmc.py --dates 2018-12-30,2019-12-29,... --out DIR
 
-Usa la foto semanal (domingo) más reciente ANTERIOR o igual al 1 de enero de cada año, para no mirar nada posterior al inicio.
+Usa la foto semanal (domingo) más reciente ESTRICTAMENTE ANTERIOR al 1 de enero de cada año, para no mirar nada posterior al inicio.
 Escribe DIR/caps_cmc_<fecha>.json = {"date", "n", "caps_usd": {SIMBOLO: cap}, "rank": {SIMBOLO: n}, "names": {SIMBOLO: nombre}}
 y imprime un resumen (si la estructura de la página cambia, imprime las rutas para ajustar el lector; nunca inventa datos).
 """
