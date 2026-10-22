@@ -1,0 +1,821 @@
+{
+ "BTC": {
+  "status": "OK",
+  "first_day": "2017-08-17",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 7195.23,
+  "close_pre": 7195.23,
+  "vol30_2024": 300434711.0,
+  "vol30_pre": 300434711.0,
+  "last_close": 81502.3,
+  "last_day": "2026-10-22"
+ },
+ "ETH": {
+  "status": "OK",
+  "first_day": "2017-08-17",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 129.16,
+  "close_pre": 129.16,
+  "vol30_2024": 38005665.0,
+  "vol30_pre": 38005665.0,
+  "last_close": 2397.16,
+  "last_day": "2026-10-22"
+ },
+ "XRP": {
+  "status": "OK",
+  "first_day": "2018-05-04",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.19295,
+  "close_pre": 0.19295,
+  "vol30_2024": 14252129.0,
+  "vol30_pre": 14252129.0,
+  "last_close": 1.3194,
+  "last_day": "2026-10-22"
+ },
+ "BCH": {
+  "status": "OK",
+  "first_day": "2019-11-28",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 204.52,
+  "close_pre": 204.52,
+  "vol30_2024": 11179343.0,
+  "vol30_pre": 11179343.0,
+  "last_close": 273.4,
+  "last_day": "2026-10-22"
+ },
+ "LTC": {
+  "status": "OK",
+  "first_day": "2017-12-13",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 41.3,
+  "close_pre": 41.3,
+  "vol30_2024": 11045798.0,
+  "vol30_pre": 11045798.0,
+  "last_close": 58.69,
+  "last_day": "2026-10-22"
+ },
+ "EOS": {
+  "status": "OK",
+  "first_day": "2018-05-28",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 2.5833,
+  "close_pre": 2.5833,
+  "vol30_2024": 12525035.0,
+  "vol30_pre": 12525035.0,
+  "last_close": 0.7799,
+  "last_day": "2025-05-26"
+ },
+ "BNB": {
+  "status": "OK",
+  "first_day": "2017-11-06",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 13.7161,
+  "close_pre": 13.7161,
+  "vol30_2024": 17446315.0,
+  "vol30_pre": 17446315.0,
+  "last_close": 730.7,
+  "last_day": "2026-10-22"
+ },
+ "BSV": {
+  "status": "NO_EXISTE"
+ },
+ "XLM": {
+  "status": "OK",
+  "first_day": "2018-05-31",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.04495,
+  "close_pre": 0.04495,
+  "vol30_2024": 1773041.0,
+  "vol30_pre": 1773041.0,
+  "last_close": 0.1763,
+  "last_day": "2026-10-22"
+ },
+ "TRX": {
+  "status": "OK",
+  "first_day": "2018-06-11",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.0133,
+  "close_pre": 0.0133,
+  "vol30_2024": 15301800.0,
+  "vol30_pre": 15301800.0,
+  "last_close": 0.3303,
+  "last_day": "2026-10-22"
+ },
+ "XTZ": {
+  "status": "OK",
+  "first_day": "2019-09-24",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 1.3533,
+  "close_pre": 1.3533,
+  "vol30_2024": 4733925.0,
+  "vol30_pre": 4733925.0,
+  "last_close": 0.3033,
+  "last_day": "2026-10-22"
+ },
+ "ADA": {
+  "status": "OK",
+  "first_day": "2018-04-17",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.03285,
+  "close_pre": 0.03285,
+  "vol30_2024": 3228921.0,
+  "vol30_pre": 3228921.0,
+  "last_close": 0.2134,
+  "last_day": "2026-10-22"
+ },
+ "ATOM": {
+  "status": "OK",
+  "first_day": "2019-04-29",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 4.227,
+  "close_pre": 4.227,
+  "vol30_2024": 5350790.0,
+  "vol30_pre": 5350790.0,
+  "last_close": 1.701,
+  "last_day": "2026-10-22"
+ },
+ "XMR": {
+  "status": "OK",
+  "first_day": "2019-03-15",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 44.69,
+  "close_pre": 44.69,
+  "vol30_2024": 2057080.0,
+  "vol30_pre": 2057080.0,
+  "last_close": 118.7,
+  "last_day": "2024-02-20"
+ },
+ "LINK": {
+  "status": "OK",
+  "first_day": "2019-01-16",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 1.7673,
+  "close_pre": 1.7673,
+  "vol30_2024": 7039967.0,
+  "vol30_pre": 7039967.0,
+  "last_close": 11.955,
+  "last_day": "2026-10-22"
+ },
+ "NEO": {
+  "status": "OK",
+  "first_day": "2017-11-20",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 8.678,
+  "close_pre": 8.678,
+  "vol30_2024": 1642369.0,
+  "vol30_pre": 1642369.0,
+  "last_close": 2.188,
+  "last_day": "2026-10-22"
+ },
+ "MIN": {
+  "status": "NO_EXISTE"
+ },
+ "ETC": {
+  "status": "OK",
+  "first_day": "2018-06-12",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 4.4945,
+  "close_pre": 4.4945,
+  "vol30_2024": 4663346.0,
+  "vol30_pre": 4663346.0,
+  "last_close": 7.72,
+  "last_day": "2026-10-22"
+ },
+ "999": {
+  "status": "NO_EXISTE"
+ },
+ "HEDG": {
+  "status": "NO_EXISTE"
+ },
+ "IOTA": {
+  "status": "OK",
+  "first_day": "2018-05-31",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.1596,
+  "close_pre": 0.1596,
+  "vol30_2024": 825774.0,
+  "vol30_pre": 825774.0,
+  "last_close": 0.0446,
+  "last_day": "2026-10-22"
+ },
+ "MKR": {
+  "status": "OK",
+  "first_day": "2020-07-23",
+  "days_2025": 162,
+  "days_period": 162,
+  "last_close": 1813.7,
+  "last_day": "2025-09-15"
+ },
+ "DASH": {
+  "status": "OK",
+  "first_day": "2019-03-28",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 41.16,
+  "close_pre": 41.16,
+  "vol30_2024": 1355304.0,
+  "vol30_pre": 1355304.0,
+  "last_close": 49.68,
+  "last_day": "2026-10-22"
+ },
+ "ONT": {
+  "status": "OK",
+  "first_day": "2018-06-08",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.5185,
+  "close_pre": 0.5185,
+  "vol30_2024": 1775081.0,
+  "vol30_pre": 1775081.0,
+  "last_close": 0.05203,
+  "last_day": "2026-10-22"
+ },
+ "VET": {
+  "status": "OK",
+  "first_day": "2018-07-25",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.005242,
+  "close_pre": 0.005242,
+  "vol30_2024": 8906717.0,
+  "vol30_pre": 8906717.0,
+  "last_close": 0.007024,
+  "last_day": "2026-10-22"
+ },
+ "XEM": {
+  "status": "OK",
+  "first_day": "2020-11-24",
+  "days_2025": 38,
+  "days_period": 38,
+  "last_close": 0.01596,
+  "last_day": "2024-06-17"
+ },
+ "BAT": {
+  "status": "OK",
+  "first_day": "2019-03-04",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.1803,
+  "close_pre": 0.1803,
+  "vol30_2024": 1307063.0,
+  "vol30_pre": 1307063.0,
+  "last_close": 0.1682,
+  "last_day": "2026-10-22"
+ },
+ "INO": {
+  "status": "NO_EXISTE"
+ },
+ "DOGE": {
+  "status": "OK",
+  "first_day": "2019-07-05",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.0020135,
+  "close_pre": 0.0020135,
+  "vol30_2024": 242439.0,
+  "vol30_pre": 242439.0,
+  "last_close": 0.07897,
+  "last_day": "2026-10-22"
+ },
+ "ZEC": {
+  "status": "OK",
+  "first_day": "2019-03-21",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 27.54,
+  "close_pre": 27.54,
+  "vol30_2024": 2178348.0,
+  "vol30_pre": 2178348.0,
+  "last_close": 1228.99,
+  "last_day": "2026-10-22"
+ },
+ "SNX": {
+  "status": "OK",
+  "first_day": "2020-07-09",
+  "days_2025": 176,
+  "days_period": 176,
+  "last_close": 0.212,
+  "last_day": "2026-10-22"
+ },
+ "INB": {
+  "status": "NO_EXISTE"
+ },
+ "DCR": {
+  "status": "OK",
+  "first_day": "2020-07-30",
+  "days_2025": 155,
+  "days_period": 155,
+  "last_close": 15.37,
+  "last_day": "2026-10-22"
+ },
+ "QTUM": {
+  "status": "OK",
+  "first_day": "2018-03-19",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 1.612,
+  "close_pre": 1.612,
+  "vol30_2024": 1149317.0,
+  "vol30_pre": 1149317.0,
+  "last_close": 0.853,
+  "last_day": "2026-10-22"
+ },
+ "THR": {
+  "status": "NO_EXISTE"
+ },
+ "THX": {
+  "status": "NO_EXISTE"
+ },
+ "ZRX": {
+  "status": "OK",
+  "first_day": "2019-02-28",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.1815,
+  "close_pre": 0.1815,
+  "vol30_2024": 180908.0,
+  "vol30_pre": 180908.0,
+  "last_close": 0.1067,
+  "last_day": "2026-10-22"
+ },
+ "RVN": {
+  "status": "OK",
+  "first_day": "2019-09-25",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.02295,
+  "close_pre": 0.02295,
+  "vol30_2024": 1504731.0,
+  "vol30_pre": 1504731.0,
+  "last_close": 0.001393,
+  "last_day": "2026-10-22"
+ },
+ "ALGO": {
+  "status": "OK",
+  "first_day": "2019-06-22",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.2168,
+  "close_pre": 0.2168,
+  "vol30_2024": 1470901.0,
+  "vol30_pre": 1470901.0,
+  "last_close": 0.108,
+  "last_day": "2026-10-22"
+ },
+ "PZM": {
+  "status": "NO_EXISTE"
+ },
+ "CNX": {
+  "status": "NO_EXISTE"
+ },
+ "BDX": {
+  "status": "NO_EXISTE"
+ },
+ "HOT": {
+  "status": "OK",
+  "first_day": "2019-02-18",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.0006257,
+  "close_pre": 0.0006257,
+  "vol30_2024": 262554.0,
+  "vol30_pre": 262554.0,
+  "last_close": 0.000368,
+  "last_day": "2026-10-22"
+ },
+ "CENNZ": {
+  "status": "NO_EXISTE"
+ },
+ "REP": {
+  "status": "OK",
+  "first_day": "2020-06-12",
+  "days_2025": 203,
+  "days_period": 203,
+  "last_close": 4.73,
+  "last_day": "2022-12-22"
+ },
+ "WAVES": {
+  "status": "OK",
+  "first_day": "2019-01-18",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 1.0089,
+  "close_pre": 1.0089,
+  "vol30_2024": 1983194.0,
+  "vol30_pre": 1983194.0,
+  "last_close": 1.076,
+  "last_day": "2024-06-17"
+ },
+ "SEELE": {
+  "status": "NO_EXISTE"
+ },
+ "BTG": {
+  "status": "OK",
+  "first_day": "2021-04-16",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 17.65,
+  "last_day": "2022-10-24"
+ },
+ "OMG": {
+  "status": "OK",
+  "first_day": "2019-04-03",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.6058,
+  "close_pre": 0.6058,
+  "vol30_2024": 91484.0,
+  "vol30_pre": 91484.0,
+  "last_close": 0.383,
+  "last_day": "2024-06-17"
+ },
+ "LUNA": {
+  "status": "OK",
+  "first_day": "2020-08-21",
+  "days_2025": 133,
+  "days_period": 133,
+  "last_close": 0.0431,
+  "last_day": "2026-10-22"
+ },
+ "ZB": {
+  "status": "NO_EXISTE"
+ },
+ "XNO": {
+  "status": "OK",
+  "first_day": "2022-01-28",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.335,
+  "last_day": "2026-10-22"
+ },
+ "XIN": {
+  "status": "NO_EXISTE"
+ },
+ "ABBC": {
+  "status": "NO_EXISTE"
+ },
+ "THETA": {
+  "status": "OK",
+  "first_day": "2019-04-10",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.08684,
+  "close_pre": 0.08684,
+  "vol30_2024": 381606.0,
+  "vol30_pre": 381606.0,
+  "last_close": 0.1946,
+  "last_day": "2026-10-22"
+ },
+ "KBC": {
+  "status": "NO_EXISTE"
+ },
+ "MOF": {
+  "status": "NO_EXISTE"
+ },
+ "CCA": {
+  "status": "NO_EXISTE"
+ },
+ "FST": {
+  "status": "NO_EXISTE"
+ },
+ "LSK": {
+  "status": "OK",
+  "first_day": "2020-02-06",
+  "days_2025": 330,
+  "days_period": 330,
+  "last_close": 0.1813,
+  "last_day": "2026-10-22"
+ },
+ "DGB": {
+  "status": "OK",
+  "first_day": "2020-07-20",
+  "days_2025": 165,
+  "days_period": 165,
+  "last_close": 0.0038,
+  "last_day": "2026-10-22"
+ },
+ "BTM": {
+  "status": "NO_EXISTE"
+ },
+ "SXP": {
+  "status": "OK",
+  "first_day": "2020-07-20",
+  "days_2025": 165,
+  "days_period": 165,
+  "last_close": 0.0022,
+  "last_day": "2026-04-01"
+ },
+ "ENJ": {
+  "status": "OK",
+  "first_day": "2019-04-18",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.08043,
+  "close_pre": 0.08043,
+  "vol30_2024": 1327448.0,
+  "vol30_pre": 1327448.0,
+  "last_close": 0.02653,
+  "last_day": "2026-10-22"
+ },
+ "BCD": {
+  "status": "NO_EXISTE"
+ },
+ "FAB": {
+  "status": "NO_EXISTE"
+ },
+ "MCO": {
+  "status": "OK",
+  "first_day": "2019-11-19",
+  "days_2025": 297,
+  "days_period": 297,
+  "close_2024": 4.016,
+  "close_pre": 4.016,
+  "vol30_2024": 89482.0,
+  "vol30_pre": 89482.0,
+  "last_close": 2.744,
+  "last_day": "2020-10-23"
+ },
+ "GAP": {
+  "status": "NO_EXISTE"
+ },
+ "EON": {
+  "status": "NO_EXISTE"
+ },
+ "KMD": {
+  "status": "OK",
+  "first_day": "2020-08-11",
+  "days_2025": 143,
+  "days_period": 143,
+  "last_close": 0.0163,
+  "last_day": "2025-07-04"
+ },
+ "BTT": {
+  "status": "OK",
+  "first_day": "2019-01-31",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.0002872,
+  "close_pre": 0.0002872,
+  "vol30_2024": 5229697.0,
+  "vol30_pre": 5229697.0,
+  "last_close": 0.002777,
+  "last_day": "2022-01-17"
+ },
+ "ZEN": {
+  "status": "OK",
+  "first_day": "2020-07-06",
+  "days_2025": 179,
+  "days_period": 179,
+  "last_close": 5.969,
+  "last_day": "2026-10-22"
+ },
+ "IOST": {
+  "status": "OK",
+  "first_day": "2019-03-22",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.004676,
+  "close_pre": 0.004676,
+  "vol30_2024": 2587029.0,
+  "vol30_pre": 2587029.0,
+  "last_close": 0.000858,
+  "last_day": "2026-10-22"
+ },
+ "ICX": {
+  "status": "OK",
+  "first_day": "2018-06-13",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.1139,
+  "close_pre": 0.1139,
+  "vol30_2024": 190318.0,
+  "vol30_pre": 190318.0,
+  "last_close": 0.00841,
+  "last_day": "2026-09-03"
+ },
+ "VSYS": {
+  "status": "NO_EXISTE"
+ },
+ "XVG": {
+  "status": "OK",
+  "first_day": "2021-06-06",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.002488,
+  "last_day": "2026-10-22"
+ },
+ "SC": {
+  "status": "OK",
+  "first_day": "2020-07-06",
+  "days_2025": 179,
+  "days_period": 179,
+  "last_close": 0.000895,
+  "last_day": "2026-10-22"
+ },
+ "BXK": {
+  "status": "NO_EXISTE"
+ },
+ "NOAH": {
+  "status": "NO_EXISTE"
+ },
+ "NEXO": {
+  "status": "OK",
+  "first_day": "2022-04-29",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.814,
+  "last_day": "2026-10-22"
+ },
+ "EKT": {
+  "status": "NO_EXISTE"
+ },
+ "BCN": {
+  "status": "NO_EXISTE"
+ },
+ "MONA": {
+  "status": "NO_EXISTE"
+ },
+ "NRG": {
+  "status": "NO_EXISTE"
+ },
+ "HC": {
+  "status": "OK",
+  "first_day": "2019-09-25",
+  "days_2025": 315,
+  "days_period": 315,
+  "close_2024": 1.1026,
+  "close_pre": 1.1026,
+  "vol30_2024": 43774.0,
+  "vol30_pre": 43774.0,
+  "last_close": 0.8423,
+  "last_day": "2020-11-10"
+ },
+ "BRZE": {
+  "status": "NO_EXISTE"
+ },
+ "MB": {
+  "status": "NO_EXISTE"
+ },
+ "STEEM": {
+  "status": "OK",
+  "first_day": "2022-04-22",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.05219,
+  "last_day": "2026-10-22"
+ },
+ "ZIL": {
+  "status": "OK",
+  "first_day": "2019-02-19",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.00447,
+  "close_pre": 0.00447,
+  "vol30_2024": 435504.0,
+  "vol30_pre": 435504.0,
+  "last_close": 0.002081,
+  "last_day": "2026-10-22"
+ },
+ "DX": {
+  "status": "NO_EXISTE"
+ },
+ "QC": {
+  "status": "NO_EXISTE"
+ },
+ "QNT": {
+  "status": "OK",
+  "first_day": "2021-07-29",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 191.85,
+  "last_day": "2026-10-22"
+ },
+ "SLV": {
+  "status": "NO_EXISTE"
+ },
+ "BOTX": {
+  "status": "NO_EXISTE"
+ },
+ "BTS": {
+  "status": "OK",
+  "first_day": "2020-02-06",
+  "days_2025": 330,
+  "days_period": 330,
+  "last_close": 0.0054,
+  "last_day": "2023-12-07"
+ },
+ "FXC": {
+  "status": "NO_EXISTE"
+ },
+ "ARDR": {
+  "status": "OK",
+  "first_day": "2020-05-15",
+  "days_2025": 231,
+  "days_period": 231,
+  "last_close": 0.02096,
+  "last_day": "2026-07-10"
+ },
+ "AE": {
+  "status": "NO_EXISTE"
+ },
+ "XET": {
+  "status": "NO_EXISTE"
+ },
+ "JUL": {
+  "status": "NO_EXISTE"
+ },
+ "MATIC": {
+  "status": "OK",
+  "first_day": "2019-04-26",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.01379,
+  "close_pre": 0.01379,
+  "vol30_2024": 17826805.0,
+  "vol30_pre": 17826805.0,
+  "last_close": 0.3794,
+  "last_day": "2024-09-10"
+ },
+ "LA": {
+  "status": "OK",
+  "first_day": "2025-07-09",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.0542,
+  "last_day": "2026-10-22"
+ },
+ "ETN": {
+  "status": "NO_EXISTE"
+ },
+ "STRAT": {
+  "status": "OK",
+  "first_day": "2020-02-19",
+  "days_2025": 268,
+  "days_period": 268,
+  "last_close": 0.4904,
+  "last_day": "2020-11-12"
+ },
+ "MANA": {
+  "status": "OK",
+  "first_day": "2020-08-06",
+  "days_2025": 148,
+  "days_period": 148,
+  "last_close": 0.0823,
+  "last_day": "2026-10-22"
+ },
+ "DGD": {
+  "status": "NO_EXISTE"
+ },
+ "TOMO": {
+  "status": "OK",
+  "first_day": "2019-08-24",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 0.4403,
+  "close_pre": 0.4403,
+  "vol30_2024": 2802396.0,
+  "vol30_pre": 2802396.0,
+  "last_close": 1.3819,
+  "last_day": "2023-11-20"
+ },
+ "BCZERO": {
+  "status": "NO_EXISTE"
+ },
+ "USDC": {
+  "status": "OK",
+  "first_day": "2018-12-15",
+  "days_2025": 366,
+  "days_period": 366,
+  "close_2024": 1.0036,
+  "close_pre": 1.0036,
+  "vol30_2024": 5390932.0,
+  "vol30_pre": 5390932.0,
+  "last_close": 1.00083,
+  "last_day": "2026-10-22"
+ },
+ "FDUSD": {
+  "status": "OK",
+  "first_day": "2023-07-26",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.9982,
+  "last_day": "2026-10-22"
+ }
+}

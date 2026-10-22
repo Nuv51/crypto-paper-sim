@@ -1,0 +1,544 @@
+{
+ "year": 2019,
+ "snapshot": "2018-12-30",
+ "n_eligible": 15,
+ "index": [
+  "BTCUSDT",
+  "XRPUSDT",
+  "ETHUSDT",
+  "EOSUSDT",
+  "XLMUSDT",
+  "LTCUSDT",
+  "TRXUSDT",
+  "ADAUSDT",
+  "IOTAUSDT",
+  "BNBUSDT",
+  "ETCUSDT",
+  "NEOUSDT",
+  "QTUMUSDT",
+  "ONTUSDT",
+  "ICXUSDT"
+ ],
+ "stables": [
+  "USDCUSDT"
+ ],
+ "trend": [
+  "XRPUSDT",
+  "EOSUSDT"
+ ],
+ "carry": false,
+ "excluded": [
+  {
+   "base": "BCH",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-11-28)"
+  },
+  {
+   "base": "USDT",
+   "reason": "estable, fondo, token de otro exchange o símbolo reutilizado"
+  },
+  {
+   "base": "BSV",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "XMR",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-03-15)"
+  },
+  {
+   "base": "DASH",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-03-28)"
+  },
+  {
+   "base": "XEM",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-11-24)"
+  },
+  {
+   "base": "MKR",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-07-23)"
+  },
+  {
+   "base": "ZEC",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-03-21)"
+  },
+  {
+   "base": "WAVES",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-01-18)"
+  },
+  {
+   "base": "XTZ",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-09-24)"
+  },
+  {
+   "base": "DOGE",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-07-05)"
+  },
+  {
+   "base": "USDC",
+   "reason": "estable, fondo, token de otro exchange o símbolo reutilizado"
+  },
+  {
+   "base": "BTG",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2021-04-16)"
+  },
+  {
+   "base": "VET",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2018-07-25)"
+  },
+  {
+   "base": "TUSD",
+   "reason": "estable, fondo, token de otro exchange o símbolo reutilizado"
+  },
+  {
+   "base": "OMG",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-04-03)"
+  },
+  {
+   "base": "ZIL",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-02-19)"
+  },
+  {
+   "base": "ZRX",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-02-28)"
+  },
+  {
+   "base": "DCR",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-07-30)"
+  },
+  {
+   "base": "BAT",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-03-04)"
+  },
+  {
+   "base": "LSK",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-02-06)"
+  },
+  {
+   "base": "PAX",
+   "reason": "estable, fondo, token de otro exchange o símbolo reutilizado"
+  },
+  {
+   "base": "BCD",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "BCN",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "XNO",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2022-01-28)"
+  },
+  {
+   "base": "DGB",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-07-20)"
+  },
+  {
+   "base": "STRAT",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-02-19)"
+  },
+  {
+   "base": "XVG",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2021-06-06)"
+  },
+  {
+   "base": "BTS",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-02-06)"
+  },
+  {
+   "base": "SC",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-07-06)"
+  },
+  {
+   "base": "LINK",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-01-16)"
+  },
+  {
+   "base": "AE",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "KMD",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-08-11)"
+  },
+  {
+   "base": "GUSD",
+   "reason": "estable, fondo, token de otro exchange o símbolo reutilizado"
+  },
+  {
+   "base": "REP",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-06-12)"
+  },
+  {
+   "base": "R",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "PPT",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "STEEM",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2022-04-22)"
+  },
+  {
+   "base": "BTM",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "FCT",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "AOA",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "NPXS",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-08-13)"
+  },
+  {
+   "base": "SAI",
+   "reason": "estable, fondo, token de otro exchange o símbolo reutilizado"
+  },
+  {
+   "base": "IOST",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-03-22)"
+  },
+  {
+   "base": "GNT",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "ETN",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "HOT",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-02-18)"
+  },
+  {
+   "base": "SNT",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2023-05-19)"
+  },
+  {
+   "base": "CNX",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "MAID",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "PIVX",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2023-11-16)"
+  },
+  {
+   "base": "KCS",
+   "reason": "estable, fondo, token de otro exchange o símbolo reutilizado"
+  },
+  {
+   "base": "HT",
+   "reason": "estable, fondo, token de otro exchange o símbolo reutilizado"
+  },
+  {
+   "base": "ARDR",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-05-15)"
+  },
+  {
+   "base": "BCZERO",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "INB",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "MANA",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-08-06)"
+  },
+  {
+   "base": "MGO",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "WTC",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-04-07)"
+  },
+  {
+   "base": "NEXO",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2022-04-29)"
+  },
+  {
+   "base": "DCN",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "DGTX",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "ARK",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2023-09-22)"
+  },
+  {
+   "base": "ODE",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "POLY",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2021-09-09)"
+  },
+  {
+   "base": "MONA",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "QASH",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "AION",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-02-19)"
+  },
+  {
+   "base": "BNT",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-02-06)"
+  },
+  {
+   "base": "DGD",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "MXM",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "ELA",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "MCO",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-11-19)"
+  },
+  {
+   "base": "RDD",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "WAN",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-08-27)"
+  },
+  {
+   "base": "HC",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-09-25)"
+  },
+  {
+   "base": "LKY",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "BTCP",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "XZC",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-04-07)"
+  },
+  {
+   "base": "WAXP",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2021-08-23)"
+  },
+  {
+   "base": "VERI",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "EURS",
+   "reason": "estable, fondo, token de otro exchange o símbolo reutilizado"
+  },
+  {
+   "base": "THETA",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-04-10)"
+  },
+  {
+   "base": "RVN",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-09-25)"
+  },
+  {
+   "base": "QKC",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2023-03-17)"
+  },
+  {
+   "base": "MOAC",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "MITH",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-04-19)"
+  },
+  {
+   "base": "GXC",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "LRC",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-06-12)"
+  },
+  {
+   "base": "EDR",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "ELF",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2021-09-08)"
+  },
+  {
+   "base": "ZEN",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2020-07-06)"
+  },
+  {
+   "base": "POWR",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2021-11-17)"
+  },
+  {
+   "base": "ETP",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "PAY",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "ENJ",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2019-04-18)"
+  },
+  {
+   "base": "CRO",
+   "reason": "estable, fondo, token de otro exchange o símbolo reutilizado"
+  },
+  {
+   "base": "NXT",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "GBC",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "KIN",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "XPX",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "NAS",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "BOS",
+   "reason": "no existe en Binance spot USDT"
+  },
+  {
+   "base": "SYS",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2021-09-24)"
+  },
+  {
+   "base": "LOOM",
+   "reason": "historial < 180 días al 2019-01-01 (listada 2023-03-24)"
+  }
+ ],
+ "top25": [
+  {
+   "base": "BTC",
+   "cap": 67475512827.39381,
+   "first_day": "2017-08-17",
+   "slippage_bps": 5
+  },
+  {
+   "base": "XRP",
+   "cap": 15076740856.332554,
+   "first_day": "2018-05-04",
+   "slippage_bps": 8
+  },
+  {
+   "base": "ETH",
+   "cap": 14560066114.185757,
+   "first_day": "2017-08-17",
+   "slippage_bps": 8
+  },
+  {
+   "base": "EOS",
+   "cap": 2430234521.465576,
+   "first_day": "2018-05-28",
+   "slippage_bps": 15
+  },
+  {
+   "base": "XLM",
+   "cap": 2250048215.077842,
+   "first_day": "2018-05-31",
+   "slippage_bps": 25
+  },
+  {
+   "base": "LTC",
+   "cap": 1912263647.7747033,
+   "first_day": "2017-12-13",
+   "slippage_bps": 25
+  },
+  {
+   "base": "TRX",
+   "cap": 1329143863.297081,
+   "first_day": "2018-06-11",
+   "slippage_bps": 15
+  },
+  {
+   "base": "ADA",
+   "cap": 1122116467.7236443,
+   "first_day": "2018-04-17",
+   "slippage_bps": 25
+  },
+  {
+   "base": "IOTA",
+   "cap": 1002877280.2279669,
+   "first_day": "2018-05-31",
+   "slippage_bps": 40
+  },
+  {
+   "base": "BNB",
+   "cap": 784234811.6032133,
+   "first_day": "2017-11-06",
+   "slippage_bps": 25
+  },
+  {
+   "base": "ETC",
+   "cap": 568817905.1340125,
+   "first_day": "2018-06-12",
+   "slippage_bps": 25
+  },
+  {
+   "base": "NEO",
+   "cap": 527716102.54284996,
+   "first_day": "2017-11-20",
+   "slippage_bps": 25
+  },
+  {
+   "base": "QTUM",
+   "cap": 206333378.4183128,
+   "first_day": "2018-03-19",
+   "slippage_bps": 40
+  },
+  {
+   "base": "ONT",
+   "cap": 180991086.65063316,
+   "first_day": "2018-06-08",
+   "slippage_bps": 25
+  },
+  {
+   "base": "ICX",
+   "cap": 116145564.49728966,
+   "first_day": "2018-06-13",
+   "slippage_bps": 40
+  }
+ ]
+}

@@ -1,0 +1,771 @@
+{
+ "BTC": {
+  "status": "OK",
+  "first_day": "2017-08-17",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 3702.9,
+  "close_pre": 3702.9,
+  "vol30_2024": 190229410.0,
+  "vol30_pre": 190229410.0,
+  "last_close": 81548.02,
+  "last_day": "2026-10-22"
+ },
+ "XRP": {
+  "status": "OK",
+  "first_day": "2018-05-04",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 0.34849,
+  "close_pre": 0.34849,
+  "vol30_2024": 35478292.0,
+  "vol30_pre": 35478292.0,
+  "last_close": 1.3204,
+  "last_day": "2026-10-22"
+ },
+ "ETH": {
+  "status": "OK",
+  "first_day": "2017-08-17",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 131.45,
+  "close_pre": 131.45,
+  "vol30_2024": 67349472.0,
+  "vol30_pre": 67349472.0,
+  "last_close": 2399.41,
+  "last_day": "2026-10-22"
+ },
+ "BCH": {
+  "status": "OK",
+  "first_day": "2019-11-28",
+  "days_2025": 34,
+  "days_period": 34,
+  "last_close": 273.6,
+  "last_day": "2026-10-22"
+ },
+ "EOS": {
+  "status": "OK",
+  "first_day": "2018-05-28",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 2.5326,
+  "close_pre": 2.5326,
+  "vol30_2024": 28828649.0,
+  "vol30_pre": 28828649.0,
+  "last_close": 0.7799,
+  "last_day": "2025-05-26"
+ },
+ "XLM": {
+  "status": "OK",
+  "first_day": "2018-05-31",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 0.11002,
+  "close_pre": 0.11002,
+  "vol30_2024": 6287727.0,
+  "vol30_pre": 6287727.0,
+  "last_close": 0.1765,
+  "last_day": "2026-10-22"
+ },
+ "LTC": {
+  "status": "OK",
+  "first_day": "2017-12-13",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 29.9,
+  "close_pre": 29.9,
+  "vol30_2024": 5960086.0,
+  "vol30_pre": 5960086.0,
+  "last_close": 58.69,
+  "last_day": "2026-10-22"
+ },
+ "BSV": {
+  "status": "NO_EXISTE"
+ },
+ "TRX": {
+  "status": "OK",
+  "first_day": "2018-06-11",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 0.01868,
+  "close_pre": 0.01868,
+  "vol30_2024": 12558426.0,
+  "vol30_pre": 12558426.0,
+  "last_close": 0.3304,
+  "last_day": "2026-10-22"
+ },
+ "ADA": {
+  "status": "OK",
+  "first_day": "2018-04-17",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 0.04054,
+  "close_pre": 0.04054,
+  "vol30_2024": 7134005.0,
+  "vol30_pre": 7134005.0,
+  "last_close": 0.2137,
+  "last_day": "2026-10-22"
+ },
+ "IOTA": {
+  "status": "OK",
+  "first_day": "2018-05-31",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 0.349,
+  "close_pre": 0.349,
+  "vol30_2024": 1419559.0,
+  "vol30_pre": 1419559.0,
+  "last_close": 0.0445,
+  "last_day": "2026-10-22"
+ },
+ "XMR": {
+  "status": "OK",
+  "first_day": "2019-03-15",
+  "days_2025": 292,
+  "days_period": 292,
+  "last_close": 118.7,
+  "last_day": "2024-02-20"
+ },
+ "BNB": {
+  "status": "OK",
+  "first_day": "2017-11-06",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 6.1111,
+  "close_pre": 6.1111,
+  "vol30_2024": 8767394.0,
+  "vol30_pre": 8767394.0,
+  "last_close": 731.41,
+  "last_day": "2026-10-22"
+ },
+ "DASH": {
+  "status": "OK",
+  "first_day": "2019-03-28",
+  "days_2025": 279,
+  "days_period": 279,
+  "last_close": 49.78,
+  "last_day": "2026-10-22"
+ },
+ "XEM": {
+  "status": "OK",
+  "first_day": "2020-11-24",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.01596,
+  "last_day": "2024-06-17"
+ },
+ "ETC": {
+  "status": "OK",
+  "first_day": "2018-06-12",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 4.9798,
+  "close_pre": 4.9798,
+  "vol30_2024": 4895657.0,
+  "vol30_pre": 4895657.0,
+  "last_close": 7.74,
+  "last_day": "2026-10-22"
+ },
+ "NEO": {
+  "status": "OK",
+  "first_day": "2017-11-20",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 7.409,
+  "close_pre": 7.409,
+  "vol30_2024": 5778148.0,
+  "vol30_pre": 5778148.0,
+  "last_close": 2.191,
+  "last_day": "2026-10-22"
+ },
+ "MKR": {
+  "status": "OK",
+  "first_day": "2020-07-23",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 1813.7,
+  "last_day": "2025-09-15"
+ },
+ "ZEC": {
+  "status": "OK",
+  "first_day": "2019-03-21",
+  "days_2025": 286,
+  "days_period": 286,
+  "last_close": 1232.87,
+  "last_day": "2026-10-22"
+ },
+ "WAVES": {
+  "status": "OK",
+  "first_day": "2019-01-18",
+  "days_2025": 348,
+  "days_period": 348,
+  "last_close": 1.076,
+  "last_day": "2024-06-17"
+ },
+ "XTZ": {
+  "status": "OK",
+  "first_day": "2019-09-24",
+  "days_2025": 99,
+  "days_period": 99,
+  "last_close": 0.3036,
+  "last_day": "2026-10-22"
+ },
+ "DOGE": {
+  "status": "OK",
+  "first_day": "2019-07-05",
+  "days_2025": 180,
+  "days_period": 180,
+  "last_close": 0.07902,
+  "last_day": "2026-10-22"
+ },
+ "BTG": {
+  "status": "OK",
+  "first_day": "2021-04-16",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 17.65,
+  "last_day": "2022-10-24"
+ },
+ "VET": {
+  "status": "OK",
+  "first_day": "2018-07-25",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 0.003927,
+  "close_pre": 0.003927,
+  "vol30_2024": 1847802.0,
+  "vol30_pre": 1847802.0,
+  "last_close": 0.00704,
+  "last_day": "2026-10-22"
+ },
+ "QTUM": {
+  "status": "OK",
+  "first_day": "2018-03-19",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 2.122,
+  "close_pre": 2.122,
+  "vol30_2024": 1220228.0,
+  "vol30_pre": 1220228.0,
+  "last_close": 0.854,
+  "last_day": "2026-10-22"
+ },
+ "OMG": {
+  "status": "OK",
+  "first_day": "2019-04-03",
+  "days_2025": 273,
+  "days_period": 273,
+  "last_close": 0.383,
+  "last_day": "2024-06-17"
+ },
+ "ZIL": {
+  "status": "OK",
+  "first_day": "2019-02-19",
+  "days_2025": 316,
+  "days_period": 316,
+  "last_close": 0.002083,
+  "last_day": "2026-10-22"
+ },
+ "ONT": {
+  "status": "OK",
+  "first_day": "2018-06-08",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 0.5808,
+  "close_pre": 0.5808,
+  "vol30_2024": 3144080.0,
+  "vol30_pre": 3144080.0,
+  "last_close": 0.05208,
+  "last_day": "2026-10-22"
+ },
+ "ZRX": {
+  "status": "OK",
+  "first_day": "2019-02-28",
+  "days_2025": 307,
+  "days_period": 307,
+  "last_close": 0.1067,
+  "last_day": "2026-10-22"
+ },
+ "DCR": {
+  "status": "OK",
+  "first_day": "2020-07-30",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 15.37,
+  "last_day": "2026-10-22"
+ },
+ "BAT": {
+  "status": "OK",
+  "first_day": "2019-03-04",
+  "days_2025": 303,
+  "days_period": 303,
+  "last_close": 0.1684,
+  "last_day": "2026-10-22"
+ },
+ "LSK": {
+  "status": "OK",
+  "first_day": "2020-02-06",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.1815,
+  "last_day": "2026-10-22"
+ },
+ "BCD": {
+  "status": "NO_EXISTE"
+ },
+ "BCN": {
+  "status": "NO_EXISTE"
+ },
+ "XNO": {
+  "status": "OK",
+  "first_day": "2022-01-28",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.335,
+  "last_day": "2026-10-22"
+ },
+ "DGB": {
+  "status": "OK",
+  "first_day": "2020-07-20",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.00381,
+  "last_day": "2026-10-22"
+ },
+ "STRAT": {
+  "status": "OK",
+  "first_day": "2020-02-19",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.4904,
+  "last_day": "2020-11-12"
+ },
+ "ICX": {
+  "status": "OK",
+  "first_day": "2018-06-13",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 0.2338,
+  "close_pre": 0.2338,
+  "vol30_2024": 1780917.0,
+  "vol30_pre": 1780917.0,
+  "last_close": 0.00841,
+  "last_day": "2026-09-03"
+ },
+ "XVG": {
+  "status": "OK",
+  "first_day": "2021-06-06",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.002489,
+  "last_day": "2026-10-22"
+ },
+ "BTS": {
+  "status": "OK",
+  "first_day": "2020-02-06",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.0054,
+  "last_day": "2023-12-07"
+ },
+ "SC": {
+  "status": "OK",
+  "first_day": "2020-07-06",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.000895,
+  "last_day": "2026-10-22"
+ },
+ "LINK": {
+  "status": "OK",
+  "first_day": "2019-01-16",
+  "days_2025": 350,
+  "days_period": 350,
+  "last_close": 11.965,
+  "last_day": "2026-10-22"
+ },
+ "AE": {
+  "status": "NO_EXISTE"
+ },
+ "KMD": {
+  "status": "OK",
+  "first_day": "2020-08-11",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.0163,
+  "last_day": "2025-07-04"
+ },
+ "REP": {
+  "status": "OK",
+  "first_day": "2020-06-12",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 4.73,
+  "last_day": "2022-12-22"
+ },
+ "R": {
+  "status": "NO_EXISTE"
+ },
+ "PPT": {
+  "status": "NO_EXISTE"
+ },
+ "STEEM": {
+  "status": "OK",
+  "first_day": "2022-04-22",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.05229,
+  "last_day": "2026-10-22"
+ },
+ "BTM": {
+  "status": "NO_EXISTE"
+ },
+ "FCT": {
+  "status": "NO_EXISTE"
+ },
+ "AOA": {
+  "status": "NO_EXISTE"
+ },
+ "NPXS": {
+  "status": "OK",
+  "first_day": "2019-08-13",
+  "days_2025": 141,
+  "days_period": 141,
+  "last_close": 0.0070301,
+  "last_day": "2021-04-05"
+ },
+ "IOST": {
+  "status": "OK",
+  "first_day": "2019-03-22",
+  "days_2025": 285,
+  "days_period": 285,
+  "last_close": 0.000863,
+  "last_day": "2026-10-22"
+ },
+ "GNT": {
+  "status": "NO_EXISTE"
+ },
+ "ETN": {
+  "status": "NO_EXISTE"
+ },
+ "HOT": {
+  "status": "OK",
+  "first_day": "2019-02-18",
+  "days_2025": 317,
+  "days_period": 317,
+  "last_close": 0.000368,
+  "last_day": "2026-10-22"
+ },
+ "SNT": {
+  "status": "OK",
+  "first_day": "2023-05-19",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.0272,
+  "last_day": "2025-04-16"
+ },
+ "CNX": {
+  "status": "NO_EXISTE"
+ },
+ "MAID": {
+  "status": "NO_EXISTE"
+ },
+ "PIVX": {
+  "status": "OK",
+  "first_day": "2023-11-16",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.0097,
+  "last_day": "2026-08-17"
+ },
+ "ARDR": {
+  "status": "OK",
+  "first_day": "2020-05-15",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.02096,
+  "last_day": "2026-07-10"
+ },
+ "BCZERO": {
+  "status": "NO_EXISTE"
+ },
+ "INB": {
+  "status": "NO_EXISTE"
+ },
+ "MANA": {
+  "status": "OK",
+  "first_day": "2020-08-06",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.0824,
+  "last_day": "2026-10-22"
+ },
+ "MGO": {
+  "status": "NO_EXISTE"
+ },
+ "WTC": {
+  "status": "OK",
+  "first_day": "2020-04-07",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.0103,
+  "last_day": "2023-12-07"
+ },
+ "NEXO": {
+  "status": "OK",
+  "first_day": "2022-04-29",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.812,
+  "last_day": "2026-10-22"
+ },
+ "DCN": {
+  "status": "NO_EXISTE"
+ },
+ "DGTX": {
+  "status": "NO_EXISTE"
+ },
+ "ARK": {
+  "status": "OK",
+  "first_day": "2023-09-22",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.1765,
+  "last_day": "2026-10-22"
+ },
+ "ODE": {
+  "status": "NO_EXISTE"
+ },
+ "POLY": {
+  "status": "OK",
+  "first_day": "2021-09-09",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.2696,
+  "last_day": "2022-10-10"
+ },
+ "MONA": {
+  "status": "NO_EXISTE"
+ },
+ "QASH": {
+  "status": "NO_EXISTE"
+ },
+ "AION": {
+  "status": "OK",
+  "first_day": "2020-02-19",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.00943,
+  "last_day": "2023-02-27"
+ },
+ "BNT": {
+  "status": "OK",
+  "first_day": "2020-02-06",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.3066,
+  "last_day": "2026-10-22"
+ },
+ "DGD": {
+  "status": "NO_EXISTE"
+ },
+ "MXM": {
+  "status": "NO_EXISTE"
+ },
+ "ELA": {
+  "status": "NO_EXISTE"
+ },
+ "MCO": {
+  "status": "OK",
+  "first_day": "2019-11-19",
+  "days_2025": 43,
+  "days_period": 43,
+  "last_close": 2.744,
+  "last_day": "2020-10-23"
+ },
+ "RDD": {
+  "status": "NO_EXISTE"
+ },
+ "WAN": {
+  "status": "OK",
+  "first_day": "2019-08-27",
+  "days_2025": 127,
+  "days_period": 127,
+  "last_close": 0.0543,
+  "last_day": "2026-04-23"
+ },
+ "HC": {
+  "status": "OK",
+  "first_day": "2019-09-25",
+  "days_2025": 98,
+  "days_period": 98,
+  "last_close": 0.8423,
+  "last_day": "2020-11-10"
+ },
+ "LKY": {
+  "status": "NO_EXISTE"
+ },
+ "BTCP": {
+  "status": "NO_EXISTE"
+ },
+ "XZC": {
+  "status": "OK",
+  "first_day": "2020-04-07",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 4.446,
+  "last_day": "2021-01-25"
+ },
+ "WAXP": {
+  "status": "OK",
+  "first_day": "2021-08-23",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.00452,
+  "last_day": "2026-10-22"
+ },
+ "VERI": {
+  "status": "NO_EXISTE"
+ },
+ "THETA": {
+  "status": "OK",
+  "first_day": "2019-04-10",
+  "days_2025": 266,
+  "days_period": 266,
+  "last_close": 0.1951,
+  "last_day": "2026-10-22"
+ },
+ "RVN": {
+  "status": "OK",
+  "first_day": "2019-09-25",
+  "days_2025": 98,
+  "days_period": 98,
+  "last_close": 0.001393,
+  "last_day": "2026-10-22"
+ },
+ "QKC": {
+  "status": "OK",
+  "first_day": "2023-03-17",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.002356,
+  "last_day": "2026-10-22"
+ },
+ "MOAC": {
+  "status": "NO_EXISTE"
+ },
+ "MITH": {
+  "status": "OK",
+  "first_day": "2019-04-19",
+  "days_2025": 257,
+  "days_period": 257,
+  "last_close": 0.00345,
+  "last_day": "2022-12-22"
+ },
+ "GXC": {
+  "status": "NO_EXISTE"
+ },
+ "LRC": {
+  "status": "OK",
+  "first_day": "2020-06-12",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.01879,
+  "last_day": "2026-04-01"
+ },
+ "EDR": {
+  "status": "NO_EXISTE"
+ },
+ "ELF": {
+  "status": "OK",
+  "first_day": "2021-09-08",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.2272,
+  "last_day": "2025-04-16"
+ },
+ "ZEN": {
+  "status": "OK",
+  "first_day": "2020-07-06",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 5.997,
+  "last_day": "2026-10-22"
+ },
+ "POWR": {
+  "status": "OK",
+  "first_day": "2021-11-17",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.0498,
+  "last_day": "2026-10-22"
+ },
+ "ETP": {
+  "status": "NO_EXISTE"
+ },
+ "PAY": {
+  "status": "NO_EXISTE"
+ },
+ "ENJ": {
+  "status": "OK",
+  "first_day": "2019-04-18",
+  "days_2025": 258,
+  "days_period": 258,
+  "last_close": 0.02661,
+  "last_day": "2026-10-22"
+ },
+ "NXT": {
+  "status": "NO_EXISTE"
+ },
+ "GBC": {
+  "status": "NO_EXISTE"
+ },
+ "KIN": {
+  "status": "NO_EXISTE"
+ },
+ "XPX": {
+  "status": "NO_EXISTE"
+ },
+ "NAS": {
+  "status": "NO_EXISTE"
+ },
+ "BOS": {
+  "status": "NO_EXISTE"
+ },
+ "SYS": {
+  "status": "OK",
+  "first_day": "2021-09-24",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.00223,
+  "last_day": "2026-05-27"
+ },
+ "LOOM": {
+  "status": "OK",
+  "first_day": "2023-03-24",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.04831,
+  "last_day": "2024-08-26"
+ },
+ "USDC": {
+  "status": "OK",
+  "first_day": "2018-12-15",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 1.0023,
+  "close_pre": 1.0023,
+  "vol30_2024": 3003366.0,
+  "vol30_pre": 3003366.0,
+  "last_close": 1.00082,
+  "last_day": "2026-10-22"
+ },
+ "FDUSD": {
+  "status": "OK",
+  "first_day": "2023-07-26",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.9982,
+  "last_day": "2026-10-22"
+ }
+}
