@@ -1,0 +1,34 @@
+name: v2-inputs
+# Entradas del backtest V2 2019-2024 (solo lectura): capitalizaciones de CoinMarketCap al inicio de cada año y
+# sondeo punto-en-el-tiempo de Binance spot para sus candidatas. Guarda todo en la rama `v2-inputs`.
+on:
+  workflow_dispatch:
+    inputs:
+      paso:
+        description: "caps = solo capitalizaciones · pit = además el sondeo de Binance (usa las caps ya guardadas)"
+        type: choice
+        default: caps
+        options: [caps, pit]
+permissions:
+  contents: write
+jobs:
+  inputs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install requests pandas
+      - name: Capitalizaciones (foto de CoinMarketCap ≤ 1 de enero de cada año)
+        if: ${{ inputs.paso == 'caps' }}
+        run: python3 scripts/fetch_caps_cmc.py --dates 2018-12-30,2019-12-29,2020-12-27,2021-12-26,2023-01-01,2023-12-31 --out out
+      - name: Guardar en la rama v2-inputs
+        if: always()
+        run: |
+          mkdir -p out
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan v2-inputs
+          git rm -rf --quiet . || true
+          git add -f out
+          git commit -q -m "v2-inputs: ${{ inputs.paso }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" v2-inputs
