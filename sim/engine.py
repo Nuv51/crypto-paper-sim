@@ -12,6 +12,7 @@ Todo es automático: ninguna regla de riesgo espera una acción manual.
 """
 from __future__ import annotations
 
+import calendar
 import json
 import math
 import time
@@ -23,6 +24,7 @@ from .bots import Bot, Ctx, build_bot
 from .broker import PaperWallet
 from .data import INTERVAL_MS
 from .exchanges import get_exchange
+from .gates import btc_vol_gate
 from .ledger import Ledger
 
 
@@ -41,6 +43,7 @@ class BotRuntime:
         self.warned = False            # ya se avisó que el bot va cerca de su límite
         self.expo: dict = {}           # cantidad expuesta al precio al cierre de la barra anterior (para la atribución)
         self.last_marks: dict = {}     # cierres de la barra anterior
+        self.gate_on: Optional[bool] = None   # interruptor de régimen (None = aún sin evaluar)
 
 
 def align(frames: dict[str, pd.DataFrame]) -> tuple[list[int], dict[str, pd.DataFrame]]:
@@ -74,6 +77,16 @@ class Engine:
             raise ValueError("Ningún bot seleccionado")
         self.symbols = sorted({s for rt in self.runtimes.values() for s in rt.bot.symbols})
         self.max_warmup = max(rt.bot.warmup for rt in self.runtimes.values())
+        # Interruptores de régimen (opcionales; solo REPLAY): cfg["gate"] = {"type": "btc_vol", "symbol", "lookback_days", "threshold"}
+        self.gates = {c["id"]: c["gate"] for c in bots_cfg if c.get("gate") and c["id"] in self.runtimes}
+        self.extra_symbols = sorted({g.get("symbol", "BTCUSDT") for g in self.gates.values()} - set(self.symbols))
+        for g in self.gates.values():
+            self.max_warmup = max(self.max_warmup, 24 * (int(g.get("lookback_days", 14)) + 2))
+        self._gate_arr: dict = {}
+        # Presupuesto de rotación mensual (× capital inicial del bot, notional operado por mes calendario UTC)
+        self._turn_budget = {bid: float(rt.bot.risk["max_turnover_month"]) for bid, rt in self.runtimes.items()
+                             if rt.bot.risk.get("max_turnover_month")}
+        self._turn: dict = {}
         self._trades: list[tuple] = []
         self._equity: list[tuple] = []
         self._events: list[tuple] = []
@@ -159,6 +172,7 @@ class Engine:
                 for f in w.process_bar(ts, sym, o, h, l, c):
                     self._trades.append((f.ts, f.bot_id, f.exchange, f.symbol, f.side, f.kind, f.qty,
                                          f.price, f.notional, f.fee, f.realized_pnl, f.reason, f.tag))
+                    self._turn_add(bid, ts, f.notional)
                     bot.on_fill(f, ctx)
 
             bot.mark(ctx, rows)                                       # 1b) patas fuera de spot (perp, funding, arb)
@@ -172,7 +186,9 @@ class Engine:
 
             self._risk_check(rt, ctx, eq)                             # 3) riesgo del bot
 
-            if rt.status == "active" and i >= bot.warmup:             # 4) estrategia
+            self._turnover_check(rt, ctx)                            # 3b) presupuesto de rotación (si lo tiene)
+
+            if rt.status == "active" and i >= bot.warmup and self._gate_open(rt, ctx, i):   # 4) estrategia
                 bot.on_bar(ctx)
                 self._drain_extra(w)
 
@@ -195,11 +211,73 @@ class Engine:
         for f in w.drain_extra_fills():
             self._trades.append((f.ts, f.bot_id, f.exchange, f.symbol, f.side, f.kind, f.qty,
                                  f.price, f.notional, f.fee, f.realized_pnl, f.reason, f.tag))
+            self._turn_add(f.bot_id, f.ts, f.notional)
+
+    # ------------------------------------------------------------------ interruptor de régimen y presupuesto de rotación
+    def _gate_open(self, rt: BotRuntime, ctx: Ctx, i: int) -> bool:
+        """True si el bot puede decidir en esta barra. Sin interruptor configurado, siempre True (comportamiento de siempre).
+        Al apagarse el interruptor se liquida la posición y se cancelan las órdenes; al encenderse el bot arranca de cero."""
+        arr = self._gate_arr.get(rt.bot.id)
+        if arr is None:
+            return True
+        on = bool(arr[i])
+        if rt.gate_on is None:
+            rt.gate_on = on
+            if on:
+                self._events.append((ctx.ts, rt.bot.id, "info", "Interruptor de volatilidad: encendido al inicio"))
+            return on
+        if on and not rt.gate_on:
+            rt.bot.reset()
+            self._events.append((ctx.ts, rt.bot.id, "info", "Interruptor de volatilidad: ENCENDIDO (el bot arranca de cero)"))
+        elif not on and rt.gate_on:
+            rt.bot.on_halt(ctx)
+            self._events.append((ctx.ts, rt.bot.id, "info", "Interruptor de volatilidad: APAGADO (liquida y espera)"))
+        rt.gate_on = on
+        return on
+
+    @staticmethod
+    def _month_key(ts: int) -> tuple:
+        g = time.gmtime(ts / 1000)
+        return (g.tm_year, g.tm_mon)
+
+    def _turn_add(self, bid: str, ts: int, notional: float) -> None:
+        if bid not in self._turn_budget:
+            return
+        key = self._month_key(ts)
+        cur = self._turn.get(bid)
+        if not cur or cur[0] != key:
+            cur = self._turn[bid] = [key, 0.0]
+        cur[1] += float(notional)
+
+    def _turnover_check(self, rt: BotRuntime, ctx: Ctx) -> None:
+        """Si el bot ya operó en el mes calendario más de `max_turnover_month` veces su capital inicial: liquida y se pausa hasta
+        el primer día del mes siguiente; luego reanuda solo (como el resto de las pausas)."""
+        bid = rt.bot.id
+        budget = self._turn_budget.get(bid)
+        cur = self._turn.get(bid)
+        if not budget or not cur or rt.status != "active" or cur[0] != self._month_key(ctx.ts):
+            return
+        if cur[1] < budget * rt.wallet.initial_cash:
+            return
+        y, m = cur[0]
+        nxt = calendar.timegm((y + (m == 12), 1 if m == 12 else m + 1, 1, 0, 0, 0))
+        rt.bot.on_halt(ctx)
+        rt.status, rt.pause_until = "paused", nxt * 1000
+        rt.reason = f"Presupuesto de rotación del mes agotado ({cur[1] / rt.wallet.initial_cash:.1f}× el capital): liquidado, pausa hasta el mes siguiente"
+        self._events.append((ctx.ts, bid, "alert", rt.reason))
 
     def _risk_check(self, rt: BotRuntime, ctx: Ctx, eq: float) -> None:
         """Control de riesgo de un bot. Sin pasos manuales: pausa y reanuda sola; si rompe el límite varias veces
         seguidas en poco tiempo, el bot se retira (queda registrado como resultado, no como pendiente)."""
         rk, bot, ts = rt.bot.risk, rt.bot, ctx.ts
+        ml = rk.get("max_loss_initial")           # tope de pérdida ACUMULADA desde el capital inicial (no desde el máximo): retira al bot
+        if ml and rt.status in ("active", "paused") and eq <= rt.wallet.initial_cash * (1 - float(ml)):
+            if rt.status == "active":
+                bot.on_halt(ctx)
+            rt.status = "retired"
+            rt.reason = f"Pérdida acumulada {1 - eq / rt.wallet.initial_cash:.1%} >= tope de {float(ml):.0%} del capital inicial: liquidado y retirado"
+            self._events.append((ts, bot.id, "alert", rt.reason))
+            return
         if rt.status == "paused" and ts >= rt.pause_until:
             rt.status, rt.reason, rt.peak, rt.warned = "active", "", eq, False
             bot.reset()
@@ -281,6 +359,11 @@ class Engine:
     def replay(self, frames: dict[str, pd.DataFrame], progress: Optional[Callable[[str], None]] = print) -> dict:
         idx, fr = align(frames)
         arrays = self.prepare_arrays(fr)
+        for bid, g in self.gates.items():
+            if g.get("type", "btc_vol") != "btc_vol":
+                raise ValueError(f"Tipo de interruptor desconocido: {g.get('type')}")
+            self._gate_arr[bid] = btc_vol_gate(fr[g.get("symbol", "BTCUSDT")]["close"].to_numpy(dtype=float), idx,
+                                               int(g.get("lookback_days", 14)), float(g.get("threshold", 0.40)), self.bar_ms)
         start = self.max_warmup + 1
         if start >= len(idx) - 1:
             raise ValueError(f"Historial insuficiente: {len(idx)} barras comunes, se necesitan > {start + 1}")
@@ -305,6 +388,8 @@ class Engine:
 
     # ------------------------------------------------------------------ LIVE
     def process_new(self, frames: dict[str, pd.DataFrame], cmc=None) -> int:
+        if self.gates:
+            raise NotImplementedError("Los interruptores de régimen solo funcionan en REPLAY (backtests)")
         idx, fr = align(frames)
         if len(idx) < self.max_warmup + 2:
             raise ValueError(f"Muy pocas barras ({len(idx)}) para el calentamiento ({self.max_warmup})")

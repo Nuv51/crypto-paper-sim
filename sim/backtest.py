@@ -84,6 +84,89 @@ class HistoricFeed(MarketFeed):
         return df
 
 
+UM_MONTHLY = "https://data.binance.vision/data/futures/um/monthly"
+
+
+def _months(start_ms: int, end_ms: int) -> list[str]:
+    a, b = pd.Timestamp(start_ms, unit="ms", tz="UTC"), pd.Timestamp(end_ms - 1, unit="ms", tz="UTC")
+    return [f"{p.year:04d}-{p.month:02d}" for p in pd.period_range(a.strftime("%Y-%m"), b.strftime("%Y-%m"), freq="M")]
+
+
+def parse_um_klines(raw: bytes) -> pd.DataFrame:
+    """CSV (con o sin encabezado) del archivo mensual de futuros USD-M de Binance: open_time, open, high, low, close, volume, ..."""
+    import io
+    df = pd.read_csv(io.BytesIO(raw), header=None)
+    if not str(df.iloc[0, 0]).lstrip("-").isdigit():
+        df = df.iloc[1:]
+    df = df.iloc[:, :6].copy()
+    df.columns = ["ts", "open", "high", "low", "close", "volume"]
+    df["ts"] = df["ts"].astype("int64")
+    df[COLS] = df[COLS].astype(float)
+    return df.set_index("ts")[COLS]
+
+
+def parse_um_funding(raw: bytes) -> dict[int, float]:
+    """CSV del archivo mensual de funding: calc_time(ms), [funding_interval_hours], last_funding_rate -> {ms de la hora: tasa por periodo}."""
+    import io
+    df = pd.read_csv(io.BytesIO(raw), header=None)
+    if not str(df.iloc[0, 0]).lstrip("-").isdigit():
+        df = df.iloc[1:]
+    out: dict[int, float] = {}
+    for t, r in zip(df.iloc[:, 0].astype("int64"), df.iloc[:, -1].astype(float)):
+        out[int(t) // 3_600_000 * 3_600_000] = float(r)
+    return out
+
+
+class ArchiveHistoricFeed(HistoricFeed):
+    """Igual que HistoricFeed, pero el perpetuo y el funding salen del archivo público de futuros USD-M de Binance
+    (data.binance.vision), porque KuCoin no entrega historial antiguo. Solo velas de 1 h. Si faltan barras al INICIO del rango
+    pedido (el archivo empieza en enero de 2020), se rellenan con el precio spot y funding vacío, hasta 40 días (solo es
+    calentamiento: el carry no opera sin 3 observaciones de funding). Si falta más, falla en voz alta."""
+
+    def _get_zip(self, url: str, name: str):
+        import io, zipfile
+        cache = Path(self.cache_dir) / "um"
+        cache.mkdir(parents=True, exist_ok=True)
+        f = cache / name
+        if not f.exists():
+            r = self.session.get(url, timeout=self.timeout)
+            if r.status_code == 404:
+                return None
+            r.raise_for_status()
+            f.write_bytes(r.content)
+        with zipfile.ZipFile(io.BytesIO(f.read_bytes())) as z:
+            return z.read(z.namelist()[0])
+
+    def _perp_range(self, symbol: str, interval: str, start_ms: int, end_ms: int) -> pd.DataFrame:
+        if interval != "1h":
+            raise ValueError("El perpetuo del archivo de Binance está implementado solo para velas de 1 h")
+        step, base = INTERVAL_MS[interval], symbol[: -len("~PERP")]
+        kl, fund = [], {}
+        for ym in _months(start_ms, end_ms):
+            raw = self._get_zip(f"{UM_MONTHLY}/klines/{base}/1h/{base}-1h-{ym}.zip", f"{base}-1h-{ym}.zip")
+            if raw is not None:
+                kl.append(parse_um_klines(raw))
+            raw = self._get_zip(f"{UM_MONTHLY}/fundingRate/{base}/{base}-fundingRate-{ym}.zip", f"{base}-fundingRate-{ym}.zip")
+            if raw is not None:
+                fund.update(parse_um_funding(raw))
+            time.sleep(self.pause)
+        if not kl:
+            raise RuntimeError(f"El archivo de Binance no tiene velas del perpetuo {base} en el rango")
+        df = pd.concat(kl)
+        df = df[~df.index.duplicated(keep="last")].sort_index()
+        df = df[(df.index >= start_ms) & (df.index + step <= end_ms)].copy()
+        first = int(df.index[0])
+        if first > start_ms:
+            gap = first - start_ms
+            if gap > 40 * 86_400_000:
+                raise RuntimeError(f"El perpetuo {base} empieza el {pd.Timestamp(first, unit='ms', tz='UTC'):%Y-%m-%d}: faltan {gap // 86_400_000} días al inicio")
+            spot = self.closed_range(base, interval, start_ms, first)
+            spot = spot[spot.index < first][COLS]
+            df = pd.concat([spot, df])
+        df["funding"] = [fund.get(int(t), np.nan) for t in df.index]
+        return df
+
+
 class RangeView:
     """Presenta un rango ya descargado con la misma interfaz que usa `benchmarks_from_feed` (últimas n velas cerradas)."""
     pause = 0
@@ -138,7 +221,7 @@ def run_backtest(cfg, sim: dict, out_dir: str, start: str = "2025-01-01", end: s
         warm = eng.max_warmup + 1
         log(f"{sim['name']}: {len(eng.symbols)} símbolos, velas de {cfg.INTERVAL}, calentamiento {warm} velas, {start} → {end}")
         if frames is None:
-            frames = load_frames(feed, eng.symbols, cfg.INTERVAL, start_ms, end_ms, warm, log)
+            frames = load_frames(feed, eng.symbols + list(getattr(eng, "extra_symbols", [])), cfg.INTERVAL, start_ms, end_ms, warm, log)
         label = f"Binance · velas históricas {start} → {end} (backtest en frío)"
         ledger.set_meta("source", label)
         ledger.set_meta("mode", "backtest")
