@@ -1,0 +1,71 @@
+name: backtest-v2
+# Backtest en frío V2 · Reestructurado low cost, 2019-2024 (ver BACKTEST_V2_2019_2024.md). Flujo APARTE: no usa la rama sim-data, no toca
+# los simuladores en vivo. Corrida única: si ya hay resultados en la rama backtest-v2, se niega a repetir salvo que se pida explícitamente.
+on:
+  workflow_dispatch:
+    inputs:
+      repetir:
+        description: "Repetir aunque ya existan resultados (anótalo en BACKTEST_V2_2019_2024.md; solo por fallo técnico)"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: backtest-v2
+  cancel-in-progress: false
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Una sola corrida
+        run: |
+          if git ls-remote --exit-code --heads "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" backtest-v2 >/dev/null 2>&1 && [ "${{ inputs.repetir }}" != "true" ]; then
+            echo "Ya existen resultados en la rama backtest-v2. Corrida única: usa 'repetir' solo si hay que corregir un fallo técnico."
+            exit 1
+          fi
+  run:
+    needs: guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        year: [2019, 2020, 2021, 2022, 2023, 2024]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-ci.txt
+      - name: Backtest V2 ${{ matrix.year }}
+        run: python -u backtest_v2_run.py --year ${{ matrix.year }} --out out/${{ matrix.year }} --export out/${{ matrix.year }}/tables 2>&1 | tee out-${{ matrix.year }}.log; exit ${PIPESTATUS[0]}
+      - name: Limpiar caché
+        if: always()
+        run: |
+          mkdir -p out/${{ matrix.year }}
+          cp out-${{ matrix.year }}.log out/${{ matrix.year }}/run.log || true
+          rm -rf out/${{ matrix.year }}/cache out/${{ matrix.year }}/work.db*
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: btv2-${{ matrix.year }}
+          path: out/${{ matrix.year }}
+  publish:
+    needs: run
+    if: always() && needs.run.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: res
+      - name: Guardar en la rama backtest-v2
+        run: |
+          mkdir -p pub
+          for d in res/btv2-*; do y=${d#res/btv2-}; mkdir -p pub/$y && cp -r $d/* pub/$y/ || true; done
+          cd pub
+          git init -q -b backtest-v2
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Backtest V2 2019-2024: resultados (corrida ${{ github.run_id }}, código ${{ github.sha }})"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" backtest-v2
