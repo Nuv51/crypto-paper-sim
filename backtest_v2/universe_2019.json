@@ -20,7 +20,8 @@
   "ICXUSDT"
  ],
  "stables": [
-  "USDCUSDT"
+  "PAXUSDT",
+  "TUSDUSDT"
  ],
  "trend": [
   "XRPUSDT",

@@ -8,7 +8,7 @@
   "close_pre": 3702.9,
   "vol30_2024": 190229410.0,
   "vol30_pre": 190229410.0,
-  "last_close": 81548.02,
+  "last_close": 81636.16,
   "last_day": "2026-10-22"
  },
  "XRP": {
@@ -20,7 +20,7 @@
   "close_pre": 0.34849,
   "vol30_2024": 35478292.0,
   "vol30_pre": 35478292.0,
-  "last_close": 1.3204,
+  "last_close": 1.3202,
   "last_day": "2026-10-22"
  },
  "ETH": {
@@ -32,7 +32,7 @@
   "close_pre": 131.45,
   "vol30_2024": 67349472.0,
   "vol30_pre": 67349472.0,
-  "last_close": 2399.41,
+  "last_close": 2398.4,
   "last_day": "2026-10-22"
  },
  "BCH": {
@@ -40,7 +40,7 @@
   "first_day": "2019-11-28",
   "days_2025": 34,
   "days_period": 34,
-  "last_close": 273.6,
+  "last_close": 274.0,
   "last_day": "2026-10-22"
  },
  "EOS": {
@@ -76,7 +76,7 @@
   "close_pre": 29.9,
   "vol30_2024": 5960086.0,
   "vol30_pre": 5960086.0,
-  "last_close": 58.69,
+  "last_close": 58.81,
   "last_day": "2026-10-22"
  },
  "BSV": {
@@ -91,7 +91,7 @@
   "close_pre": 0.01868,
   "vol30_2024": 12558426.0,
   "vol30_pre": 12558426.0,
-  "last_close": 0.3304,
+  "last_close": 0.3302,
   "last_day": "2026-10-22"
  },
  "ADA": {
@@ -103,7 +103,7 @@
   "close_pre": 0.04054,
   "vol30_2024": 7134005.0,
   "vol30_pre": 7134005.0,
-  "last_close": 0.2137,
+  "last_close": 0.2139,
   "last_day": "2026-10-22"
  },
  "IOTA": {
@@ -115,7 +115,7 @@
   "close_pre": 0.349,
   "vol30_2024": 1419559.0,
   "vol30_pre": 1419559.0,
-  "last_close": 0.0445,
+  "last_close": 0.0447,
   "last_day": "2026-10-22"
  },
  "XMR": {
@@ -135,7 +135,7 @@
   "close_pre": 6.1111,
   "vol30_2024": 8767394.0,
   "vol30_pre": 8767394.0,
-  "last_close": 731.41,
+  "last_close": 731.18,
   "last_day": "2026-10-22"
  },
  "DASH": {
@@ -143,7 +143,7 @@
   "first_day": "2019-03-28",
   "days_2025": 279,
   "days_period": 279,
-  "last_close": 49.78,
+  "last_close": 49.77,
   "last_day": "2026-10-22"
  },
  "XEM": {
@@ -175,7 +175,7 @@
   "close_pre": 7.409,
   "vol30_2024": 5778148.0,
   "vol30_pre": 5778148.0,
-  "last_close": 2.191,
+  "last_close": 2.188,
   "last_day": "2026-10-22"
  },
  "MKR": {
@@ -191,7 +191,7 @@
   "first_day": "2019-03-21",
   "days_2025": 286,
   "days_period": 286,
-  "last_close": 1232.87,
+  "last_close": 1230.23,
   "last_day": "2026-10-22"
  },
  "WAVES": {
@@ -207,7 +207,7 @@
   "first_day": "2019-09-24",
   "days_2025": 99,
   "days_period": 99,
-  "last_close": 0.3036,
+  "last_close": 0.3034,
   "last_day": "2026-10-22"
  },
  "DOGE": {
@@ -215,7 +215,7 @@
   "first_day": "2019-07-05",
   "days_2025": 180,
   "days_period": 180,
-  "last_close": 0.07902,
+  "last_close": 0.07904,
   "last_day": "2026-10-22"
  },
  "BTG": {
@@ -235,7 +235,7 @@
   "close_pre": 0.003927,
   "vol30_2024": 1847802.0,
   "vol30_pre": 1847802.0,
-  "last_close": 0.00704,
+  "last_close": 0.007052,
   "last_day": "2026-10-22"
  },
  "QTUM": {
@@ -247,7 +247,7 @@
   "close_pre": 2.122,
   "vol30_2024": 1220228.0,
   "vol30_pre": 1220228.0,
-  "last_close": 0.854,
+  "last_close": 0.853,
   "last_day": "2026-10-22"
  },
  "OMG": {
@@ -263,7 +263,7 @@
   "first_day": "2019-02-19",
   "days_2025": 316,
   "days_period": 316,
-  "last_close": 0.002083,
+  "last_close": 0.002084,
   "last_day": "2026-10-22"
  },
  "ONT": {
@@ -275,7 +275,7 @@
   "close_pre": 0.5808,
   "vol30_2024": 3144080.0,
   "vol30_pre": 3144080.0,
-  "last_close": 0.05208,
+  "last_close": 0.05213,
   "last_day": "2026-10-22"
  },
  "ZRX": {
@@ -283,7 +283,7 @@
   "first_day": "2019-02-28",
   "days_2025": 307,
   "days_period": 307,
-  "last_close": 0.1067,
+  "last_close": 0.1068,
   "last_day": "2026-10-22"
  },
  "DCR": {
@@ -299,7 +299,7 @@
   "first_day": "2019-03-04",
   "days_2025": 303,
   "days_period": 303,
-  "last_close": 0.1684,
+  "last_close": 0.1685,
   "last_day": "2026-10-22"
  },
  "LSK": {
@@ -307,7 +307,7 @@
   "first_day": "2020-02-06",
   "days_2025": 0,
   "days_period": 0,
-  "last_close": 0.1815,
+  "last_close": 0.1825,
   "last_day": "2026-10-22"
  },
  "BCD": {
@@ -321,7 +321,7 @@
   "first_day": "2022-01-28",
   "days_2025": 0,
   "days_period": 0,
-  "last_close": 0.335,
+  "last_close": 0.334,
   "last_day": "2026-10-22"
  },
  "DGB": {
@@ -329,7 +329,7 @@
   "first_day": "2020-07-20",
   "days_2025": 0,
   "days_period": 0,
-  "last_close": 0.00381,
+  "last_close": 0.00379,
   "last_day": "2026-10-22"
  },
  "STRAT": {
@@ -357,7 +357,7 @@
   "first_day": "2021-06-06",
   "days_2025": 0,
   "days_period": 0,
-  "last_close": 0.002489,
+  "last_close": 0.002497,
   "last_day": "2026-10-22"
  },
  "BTS": {
@@ -373,7 +373,7 @@
   "first_day": "2020-07-06",
   "days_2025": 0,
   "days_period": 0,
-  "last_close": 0.000895,
+  "last_close": 0.000897,
   "last_day": "2026-10-22"
  },
  "LINK": {
@@ -381,7 +381,7 @@
   "first_day": "2019-01-16",
   "days_2025": 350,
   "days_period": 350,
-  "last_close": 11.965,
+  "last_close": 11.992,
   "last_day": "2026-10-22"
  },
  "AE": {
@@ -414,7 +414,7 @@
   "first_day": "2022-04-22",
   "days_2025": 0,
   "days_period": 0,
-  "last_close": 0.05229,
+  "last_close": 0.05238,
   "last_day": "2026-10-22"
  },
  "BTM": {
@@ -439,7 +439,7 @@
   "first_day": "2019-03-22",
   "days_2025": 285,
   "days_period": 285,
-  "last_close": 0.000863,
+  "last_close": 0.000865,
   "last_day": "2026-10-22"
  },
  "GNT": {
@@ -453,7 +453,7 @@
   "first_day": "2019-02-18",
   "days_2025": 317,
   "days_period": 317,
-  "last_close": 0.000368,
+  "last_close": 0.000367,
   "last_day": "2026-10-22"
  },
  "SNT": {
@@ -530,7 +530,7 @@
   "first_day": "2023-09-22",
   "days_2025": 0,
   "days_period": 0,
-  "last_close": 0.1765,
+  "last_close": 0.1769,
   "last_day": "2026-10-22"
  },
  "ODE": {
@@ -563,7 +563,7 @@
   "first_day": "2020-02-06",
   "days_2025": 0,
   "days_period": 0,
-  "last_close": 0.3066,
+  "last_close": 0.3063,
   "last_day": "2026-10-22"
  },
  "DGD": {
@@ -621,7 +621,7 @@
   "first_day": "2021-08-23",
   "days_2025": 0,
   "days_period": 0,
-  "last_close": 0.00452,
+  "last_close": 0.00453,
   "last_day": "2026-10-22"
  },
  "VERI": {
@@ -632,7 +632,7 @@
   "first_day": "2019-04-10",
   "days_2025": 266,
   "days_period": 266,
-  "last_close": 0.1951,
+  "last_close": 0.1961,
   "last_day": "2026-10-22"
  },
  "RVN": {
@@ -640,7 +640,7 @@
   "first_day": "2019-09-25",
   "days_2025": 98,
   "days_period": 98,
-  "last_close": 0.001393,
+  "last_close": 0.001395,
   "last_day": "2026-10-22"
  },
  "QKC": {
@@ -648,7 +648,7 @@
   "first_day": "2023-03-17",
   "days_2025": 0,
   "days_period": 0,
-  "last_close": 0.002356,
+  "last_close": 0.002348,
   "last_day": "2026-10-22"
  },
  "MOAC": {
@@ -689,7 +689,7 @@
   "first_day": "2020-07-06",
   "days_2025": 0,
   "days_period": 0,
-  "last_close": 5.997,
+  "last_close": 6.007,
   "last_day": "2026-10-22"
  },
  "POWR": {
@@ -697,7 +697,7 @@
   "first_day": "2021-11-17",
   "days_2025": 0,
   "days_period": 0,
-  "last_close": 0.0498,
+  "last_close": 0.0499,
   "last_day": "2026-10-22"
  },
  "ETP": {
@@ -711,7 +711,7 @@
   "first_day": "2019-04-18",
   "days_2025": 258,
   "days_period": 258,
-  "last_close": 0.02661,
+  "last_close": 0.02666,
   "last_day": "2026-10-22"
  },
  "NXT": {
@@ -757,7 +757,7 @@
   "close_pre": 1.0023,
   "vol30_2024": 3003366.0,
   "vol30_pre": 3003366.0,
-  "last_close": 1.00082,
+  "last_close": 1.00088,
   "last_day": "2026-10-22"
  },
  "FDUSD": {
@@ -767,5 +767,45 @@
   "days_period": 0,
   "last_close": 0.9982,
   "last_day": "2026-10-22"
+ },
+ "TUSD": {
+  "status": "OK",
+  "first_day": "2018-05-31",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 1.0012,
+  "close_pre": 1.0012,
+  "vol30_2024": 5949215.0,
+  "vol30_pre": 5949215.0,
+  "last_close": 0.9995,
+  "last_day": "2026-10-22"
+ },
+ "BUSD": {
+  "status": "OK",
+  "first_day": "2019-09-20",
+  "days_2025": 103,
+  "days_period": 103,
+  "last_close": 1.0003,
+  "last_day": "2023-12-15"
+ },
+ "PAX": {
+  "status": "OK",
+  "first_day": "2018-10-04",
+  "days_2025": 365,
+  "days_period": 365,
+  "close_2024": 0.9992,
+  "close_pre": 0.9992,
+  "vol30_2024": 8590768.0,
+  "vol30_pre": 8590768.0,
+  "last_close": 0.9996,
+  "last_day": "2021-09-06"
+ },
+ "USDP": {
+  "status": "OK",
+  "first_day": "2021-09-10",
+  "days_2025": 0,
+  "days_period": 0,
+  "last_close": 0.9997,
+  "last_day": "2026-09-24"
  }
 }

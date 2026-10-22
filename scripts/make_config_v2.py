@@ -70,8 +70,8 @@ def build(year: int) -> str:
             cand.append((v["vol30_pre"], b + "USDT"))
     cand.sort(reverse=True)
     stables = [s_ for _, s_ in cand[:2]]
-    if not stables:
-        raise SystemExit(f"{year}: ninguna estable cotiza todo el año")
+    # Si ninguna cotiza todo el año (2023: Binance dejó de listar USDC/TUSD/USDP/PAX contra USDT en marzo), el bot v04 se omite
+    # y su 10 % queda en efectivo (igual que el carry en 2019). El ROI titular sigue siendo sobre los 10,000 completos.
     trend = [r["symbol"] for r in rows if r["base"] not in ("BTC", "ETH", "BNB")][:2]
     carry = year >= CARRY_FROM
     meta = dict(year=year, snapshot=SNAP[year], n_eligible=len(rows), index=[r["symbol"] for r in top25], stables=stables, trend=trend,
@@ -100,6 +100,13 @@ def build(year: int) -> str:
     sat_risk = lambda mdd: f"dict(max_drawdown={mdd}, action=\"pause_and_resume\", cooldown_bars=168, max_strikes=3, strike_window_bars=720, max_loss_initial=0.20, max_turnover_month=4.0)"
     gate = 'dict(type="btc_vol", symbol="BTCUSDT", lookback_days=14, threshold=0.40)'
     trend_syms = json.dumps(trend)
+    stable_bot = ('''    dict(
+        id="v04_stable", kind="stable", name="Stablecoins · peg", exchange="binance", symbols=%s,
+        capital_pct=0.10, risk_level="bajo", vol_profile="Stablecoins (volatilidad mínima; riesgo de cola = de-peg)", slippage_bps=1,
+        differentiator="Núcleo: compra desvíos del peg y vende al volver. Igual a V1 b02 (umbral 0.30 %%); solo cambian las monedas disponibles cada año.",
+        params=dict(entry_dev=0.003, exit_dev=0.0005, stop_pct=0.01, guard_dev=0.015, depeg=0.02, depeg_bars=6, max_hold_bars=72),
+        risk=dict(max_drawdown=0.02, action="pause_and_resume", cooldown_bars=168, max_strikes=3, strike_window_bars=720),
+    ),''' % json.dumps(stables)) if stables else "    # Sin estable que cotice todo el año (2023): v04 omitido; su 10 %% queda en efectivo (ver BACKTEST_V2_2019_2024.md)."
     return f'''"""Simulador V2 · Reestructurado low cost — BACKTEST EN FRÍO {year} (generado por scripts/make_config_v2.py; no editar a mano).
 
 Universo y monedas decididos con la información del {year}-01-01 (foto de CoinMarketCap del {SNAP[year]}; Binance spot) según
@@ -126,13 +133,7 @@ BOTS = [
         differentiator="Núcleo: compra semanal de monto fijo, sin señales ni stop (acumulación, no 'edge'). Igual a V1 b03.",
         params=dict(interval_hours=168, contribution_pct=0.03), risk=dict(max_drawdown=0.45, action="flag_only"),
     ),{carry_bots}
-    dict(
-        id="v04_stable", kind="stable", name="Stablecoins · peg", exchange="binance", symbols={json.dumps(stables)},
-        capital_pct=0.10, risk_level="bajo", vol_profile="Stablecoins (volatilidad mínima; riesgo de cola = de-peg)", slippage_bps=1,
-        differentiator="Núcleo: compra desvíos del peg y vende al volver. Igual a V1 b02 (umbral 0.30 %); solo cambian las monedas disponibles cada año.",
-        params=dict(entry_dev=0.003, exit_dev=0.0005, stop_pct=0.01, guard_dev=0.015, depeg=0.02, depeg_bars=6, max_hold_bars=72),
-        risk=dict(max_drawdown=0.02, action="pause_and_resume", cooldown_bars=168, max_strikes=3, strike_window_bars=720),
-    ),
+{stable_bot}
     dict(
         id="v05_index_cap25", kind="index", name="Índice Top-25 (capitalización) · rebalanceo trimestral", exchange="binance",
         symbols=INDEX_SYMBOLS, caps_usd=dict(CAPS_USD), slippage_map_bps=dict(SLIPPAGE_BPS), slippage_bps=10,

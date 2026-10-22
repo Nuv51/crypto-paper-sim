@@ -30,7 +30,8 @@
   "HOTUSDT"
  ],
  "stables": [
-  "USDCUSDT"
+  "USDCUSDT",
+  "BUSDUSDT"
  ],
  "trend": [
   "XRPUSDT",

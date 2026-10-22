@@ -30,8 +30,8 @@
   "HBARUSDT"
  ],
  "stables": [
-  "USDCUSDT",
-  "FDUSDUSDT"
+  "FDUSDUSDT",
+  "USDCUSDT"
  ],
  "trend": [
   "SOLUSDT",

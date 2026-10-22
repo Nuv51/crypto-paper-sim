@@ -87,7 +87,7 @@ BOTS = [
         risk=dict(max_drawdown=0.05, action="pause_and_resume", cooldown_bars=672, max_strikes=3, strike_window_bars=2880),
     ),
     dict(
-        id="v04_stable", kind="stable", name="Stablecoins · peg", exchange="binance", symbols=["USDCUSDT"],
+        id="v04_stable", kind="stable", name="Stablecoins · peg", exchange="binance", symbols=["BUSDUSDT", "USDCUSDT"],
         capital_pct=0.10, risk_level="bajo", vol_profile="Stablecoins (volatilidad mínima; riesgo de cola = de-peg)", slippage_bps=1,
         differentiator="Núcleo: compra desvíos del peg y vende al volver. Igual a V1 b02 (umbral 0.30 %); solo cambian las monedas disponibles cada año.",
         params=dict(entry_dev=0.003, exit_dev=0.0005, stop_pct=0.01, guard_dev=0.015, depeg=0.02, depeg_bars=6, max_hold_bars=72),

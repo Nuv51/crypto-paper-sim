@@ -55,7 +55,7 @@ BOTS = [
     # Sin carry en este año: el archivo de futuros de Binance empieza en 2020-01 (ver BACKTEST_V2_2019_2024.md).
     # Su 20 % del capital queda en efectivo sin rendimiento; el ROI del portafolio se mide sobre los 10,000 completos.
     dict(
-        id="v04_stable", kind="stable", name="Stablecoins · peg", exchange="binance", symbols=["USDCUSDT"],
+        id="v04_stable", kind="stable", name="Stablecoins · peg", exchange="binance", symbols=["PAXUSDT", "TUSDUSDT"],
         capital_pct=0.10, risk_level="bajo", vol_profile="Stablecoins (volatilidad mínima; riesgo de cola = de-peg)", slippage_bps=1,
         differentiator="Núcleo: compra desvíos del peg y vende al volver. Igual a V1 b02 (umbral 0.30 %); solo cambian las monedas disponibles cada año.",
         params=dict(entry_dev=0.003, exit_dev=0.0005, stop_pct=0.01, guard_dev=0.015, depeg=0.02, depeg_bars=6, max_hold_bars=72),

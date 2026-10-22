@@ -29,9 +29,7 @@
   "VETUSDT",
   "NEARUSDT"
  ],
- "stables": [
-  "USDCUSDT"
- ],
+ "stables": [],
  "trend": [
   "XRPUSDT",
   "DOGEUSDT"
