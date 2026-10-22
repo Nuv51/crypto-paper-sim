@@ -1,0 +1,43 @@
+Backtest V2 · 2020: 29 símbolos, velas de 1h, calentamiento 385 velas, 2020-01-01 → 2021-01-01
+  ADAUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  ALGOUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  ATOMUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  BATUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  BNBUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  BTCUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  BTCUSDT~PERP: 9409 velas (2019-12-05 → 2020-12-31)
+  BUSDUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  DASHUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  DOGEUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  EOSUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  ETCUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  ETHUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  ETHUSDT~PERP: 9409 velas (2019-12-05 → 2020-12-31)
+  HOTUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  IOTAUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  LINKUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  LTCUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  NEOUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  ONTUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  QTUMUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  TRXUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  USDCUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  VETUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  XLMUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  XMRUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  XRPUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  ZECUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  ZRXUSDT: 9391 velas (2019-12-05 → 2020-12-31)
+  replay 1/8766 barras
+  replay 751/8766 barras
+  replay 1501/8766 barras
+  replay 2251/8766 barras
+  replay 3001/8766 barras
+  replay 3751/8766 barras
+  replay 4501/8766 barras
+  replay 5251/8766 barras
+  replay 6001/8766 barras
+  replay 6751/8766 barras
+  replay 7501/8766 barras
+  replay 8251/8766 barras
+OK Backtest V2 · 2020: ROI +128.33% · caída máx -32.94% · 2918 operaciones · comisiones 169.71
