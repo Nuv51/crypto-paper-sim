@@ -26,7 +26,7 @@ H1 (núcleo low cost) se cumple a medias: gana 5 de 6 años y cae menos que BTC,
 | 2023 | +42.5 % | −16.8 % | 1.67 | +155.6 % | −21.7 % | 2.34 | +90.8 % | +111.2 % |
 | 2024 | +33.4 % | −23.1 % | 1.12 | +121.3 % | −32.3 % | 1.68 | +46.3 % | +62.9 % |
 
-Encadenado 2019-2024: V2 +468 % vs BTC +2,428 %. Solo en 2021 V2 superó a BTC en ROI y en Sharpe. En 2022 perdió la mitad que BTC (−32 vs −64) pero con peor Sharpe.
+Encadenado 2019-2024: V2 +468 % vs BTC +2,428 %. V2 superó a BTC en ROI en 2021 y 2022 (en 2022 perdió la mitad: −32 vs −64) pero solo en 2021 superó su Sharpe.
 
 ## 3. De dónde sale el resultado (PnL en USDT)
 
