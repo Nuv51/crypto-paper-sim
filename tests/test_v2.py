@@ -177,3 +177,39 @@ def test_archive_feed_fills_leading_warmup_from_spot_but_refuses_big_gaps():
         assert "faltan" in str(e)
     else:
         raise AssertionError("debió negarse a rellenar un hueco grande")
+
+
+def test_gate_is_time_based_and_robust_to_data_gaps():
+    """Con huecos de datos (mantenimiento del exchange) el interruptor mira las mismas HORAS, no las mismas posiciones."""
+    import numpy as np
+    from sim.gates import btc_vol_gate
+    H = 3_600_000
+    n = 24 * 40
+    ts = np.arange(n, dtype=np.int64) * H
+    rng = np.random.default_rng(1)
+    close = 100 * np.exp(np.cumsum(rng.normal(0, 0.012, n)))
+    full = btc_vol_gate(close, ts, 14, 0.40)
+    keep = np.ones(n, dtype=bool)
+    keep[24 * 20 + 3: 24 * 20 + 9] = False                    # seis horas sin datos, lejos de las 23:00 que se leen
+    gap = btc_vol_gate(close[keep], ts[keep], 14, 0.40)
+    assert np.array_equal(gap, full[keep])
+    keep2 = np.ones(n, dtype=bool)
+    keep2[24 * 25: 24 * 25 + 2] = False                       # falta la vela de las 00:00: evalúa en la primera del día
+    g2 = btc_vol_gate(close[keep2], ts[keep2], 14, 0.40)
+    assert g2.shape == (keep2.sum(),) and g2[ts[keep2] < 24 * 25 * H].tolist() == full[ts < 24 * 25 * H].tolist()
+
+
+def test_replay_starts_on_the_date_even_when_warmup_has_gaps():
+    import tempfile
+    import numpy as np
+    from pathlib import Path
+    from sim.backtest import run_backtest
+    from tests.test_backtest import _cfg
+    from tests.test_index import frames
+    H = 3_600_000
+    fr = frames(240)
+    for s in fr:                                              # quita 5 horas en pleno calentamiento (todas las monedas, como un mantenimiento)
+        fr[s] = fr[s][~((fr[s].index >= 10 * H) & (fr[s].index < 15 * H))]
+    out = tempfile.mkdtemp(prefix="bt_")
+    s = run_backtest(_cfg(), dict(id="bt-t", name="t"), out, start="1970-01-04", end="1970-01-11", feed=object(), frames=fr, log=lambda *_: None)
+    assert s["first_ts"] == 72 * H and s["last_ts"] == 239 * H

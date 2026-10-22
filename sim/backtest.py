@@ -221,7 +221,7 @@ def run_backtest(cfg, sim: dict, out_dir: str, start: str = "2025-01-01", end: s
         warm = eng.max_warmup + 1
         log(f"{sim['name']}: {len(eng.symbols)} símbolos, velas de {cfg.INTERVAL}, calentamiento {warm} velas, {start} → {end}")
         if frames is None:
-            frames = load_frames(feed, eng.symbols + list(getattr(eng, "extra_symbols", [])), cfg.INTERVAL, start_ms, end_ms, warm, log)
+            frames = load_frames(feed, eng.symbols + list(getattr(eng, "extra_symbols", [])), cfg.INTERVAL, start_ms, end_ms, warm + 240, log)   # +10 días de margen por huecos del exchange
         label = f"Binance · velas históricas {start} → {end} (backtest en frío)"
         ledger.set_meta("source", label)
         ledger.set_meta("mode", "backtest")
@@ -229,7 +229,7 @@ def run_backtest(cfg, sim: dict, out_dir: str, start: str = "2025-01-01", end: s
         ledger.set_meta("portfolio_capital", cfg.PORTFOLIO_CAPITAL)
         ledger.set_meta("config_sig", config_signature(cfg.BOTS, cfg.PORTFOLIO_CAPITAL, cfg.PORTFOLIO_RISK))
         ledger.set_meta("sim", json.dumps(sim, ensure_ascii=False))
-        info = eng.replay(frames, progress=lambda m: log(m))
+        info = eng.replay(frames, progress=lambda m: log(m), start_ts=start_ms)
         if info["first_ts"] != start_ms:
             raise RuntimeError(f"El backtest no empezó en {start}: primera vela simulada {info['first_ts']} (faltan datos de alguna moneda al inicio)")
         if info["last_ts"] != end_ms - INTERVAL_MS[cfg.INTERVAL]:

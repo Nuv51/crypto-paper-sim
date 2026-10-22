@@ -18,6 +18,7 @@ import math
 import time
 from typing import Callable, Optional
 
+import numpy as np
 import pandas as pd
 
 from .bots import Bot, Ctx, build_bot
@@ -356,7 +357,7 @@ class Engine:
                              f"todo liquidado, pausa de {int(pr.get('cooldown_bars', 168)) * self.bar_ms // 86_400_000} días y reanuda solo"))
 
     # ------------------------------------------------------------------ REPLAY
-    def replay(self, frames: dict[str, pd.DataFrame], progress: Optional[Callable[[str], None]] = print) -> dict:
+    def replay(self, frames: dict[str, pd.DataFrame], progress: Optional[Callable[[str], None]] = print, start_ts: Optional[int] = None) -> dict:
         idx, fr = align(frames)
         arrays = self.prepare_arrays(fr)
         for bid, g in self.gates.items():
@@ -365,6 +366,8 @@ class Engine:
             self._gate_arr[bid] = btc_vol_gate(fr[g.get("symbol", "BTCUSDT")]["close"].to_numpy(dtype=float), idx,
                                                int(g.get("lookback_days", 14)), float(g.get("threshold", 0.40)), self.bar_ms)
         start = self.max_warmup + 1
+        if start_ts is not None:                           # arranque por FECHA (los huecos de datos no lo corren): primera barra ≥ start_ts
+            start = max(start, int(np.searchsorted(np.asarray(idx, dtype=np.int64), int(start_ts), side="left")))
         if start >= len(idx) - 1:
             raise ValueError(f"Historial insuficiente: {len(idx)} barras comunes, se necesitan > {start + 1}")
         cols = {s: [fr[s][c].to_numpy(dtype=float).tolist() for c in ("open", "high", "low", "close", "volume")]
