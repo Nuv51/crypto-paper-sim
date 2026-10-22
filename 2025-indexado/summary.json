@@ -1,0 +1,62 @@
+{
+ "sim": "bt-indexado",
+ "name": "Backtest 2025 · Simulador indexado",
+ "capital": 30000.0,
+ "equity": 21697.6605142072,
+ "pnl": -8302.3394857928,
+ "roi": -27.674464952642662,
+ "max_dd": -50.85825312408034,
+ "sharpe": -0.18875387895916887,
+ "fees": 47.45698679464412,
+ "n_trades": 491,
+ "btc_roi": -6.334722578438912,
+ "eth_roi": -10.969566598158064,
+ "market_roi": -9.178110164778353,
+ "first_ts": 1735689600000,
+ "last_ts": 1767222000000,
+ "bars": 8760,
+ "bots": [
+  {
+   "id": "i01_index_cap25",
+   "name": "Índice Top-25 (capitalización)",
+   "strategy": "Índice pasivo · rebalanceo periódico",
+   "capital": 10000.0,
+   "equity": 8399.009070818374,
+   "roi": -16.00990929181626,
+   "max_dd": -47.163559302632116,
+   "sharpe": -0.03297475343867386,
+   "n_trades": 95,
+   "fees": 14.384078110433874,
+   "status": "active",
+   "status_reason": ""
+  },
+  {
+   "id": "i02_index_cap50",
+   "name": "Índice Top-50 (capitalización)",
+   "strategy": "Índice pasivo · rebalanceo periódico",
+   "capital": 10000.0,
+   "equity": 8156.0740312132,
+   "roi": -18.43925968786799,
+   "max_dd": -47.594161001633275,
+   "sharpe": -0.07878630236435688,
+   "n_trades": 122,
+   "fees": 14.136477752347917,
+   "status": "active",
+   "status_reason": ""
+  },
+  {
+   "id": "i03_index_ew25",
+   "name": "Índice Top-25 (igual peso)",
+   "strategy": "Índice pasivo · rebalanceo periódico",
+   "capital": 10000.0,
+   "equity": 5142.577412175627,
+   "roi": -48.57422587824374,
+   "max_dd": -57.8523635379069,
+   "sharpe": -0.5660681568583479,
+   "n_trades": 274,
+   "fees": 18.936430931862336,
+   "status": "active",
+   "status_reason": "ALERTA (informativa, el bot sigue): Drawdown 51.5% >= límite 50%"
+  }
+ ]
+}

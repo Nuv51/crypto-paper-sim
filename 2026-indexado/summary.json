@@ -1,0 +1,62 @@
+{
+ "sim": "bt26-indexado",
+ "name": "Reserva 2026 · Simulador indexado",
+ "capital": 30000.0,
+ "equity": 28768.16556610588,
+ "pnl": -1231.8344338941206,
+ "roi": -4.106114779647063,
+ "max_dd": -46.550802869667905,
+ "sharpe": 0.14229765036416117,
+ "fees": 40.768678895159226,
+ "n_trades": 332,
+ "btc_roi": -5.3165375539329425,
+ "eth_roi": -15.652247068127135,
+ "market_roi": -8.197005562259518,
+ "first_ts": 1767225600000,
+ "last_ts": 1791673200000,
+ "bars": 6792,
+ "bots": [
+  {
+   "id": "i01_index_cap25",
+   "name": "Índice Top-25 (capitalización)",
+   "strategy": "Índice pasivo · rebalanceo periódico",
+   "capital": 10000.0,
+   "equity": 8925.8654542239,
+   "roi": -10.741345457760998,
+   "max_dd": -47.17953508200128,
+   "sharpe": -0.07043245405034197,
+   "n_trades": 65,
+   "fees": 11.533290826830804,
+   "status": "active",
+   "status_reason": ""
+  },
+  {
+   "id": "i02_index_cap50",
+   "name": "Índice Top-50 (capitalización)",
+   "strategy": "Índice pasivo · rebalanceo periódico",
+   "capital": 10000.0,
+   "equity": 8942.554836875193,
+   "roi": -10.574451631248072,
+   "max_dd": -47.249959996393855,
+   "sharpe": -0.06829479675835354,
+   "n_trades": 68,
+   "fees": 11.228991828187889,
+   "status": "active",
+   "status_reason": ""
+  },
+  {
+   "id": "i03_index_ew25",
+   "name": "Índice Top-25 (igual peso)",
+   "strategy": "Índice pasivo · rebalanceo periódico",
+   "capital": 10000.0,
+   "equity": 10899.745275006786,
+   "roi": 8.997452750067868,
+   "max_dd": -46.406439198153635,
+   "sharpe": 0.39422621103917205,
+   "n_trades": 199,
+   "fees": 18.006396240140532,
+   "status": "active",
+   "status_reason": ""
+  }
+ ]
+}
