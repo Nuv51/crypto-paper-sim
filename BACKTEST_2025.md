@@ -52,3 +52,10 @@ Lectura principal: ROI y caída máxima de cada simulador **frente a BTC**, no e
 - **Bot de arbitraje XRP:** no hay historial de libros de órdenes, así que no se puede medir; queda sin operar y se marca como no evaluable.
 - **Carry:** depende del histórico de funding de KuCoin Futures.
 - **Un solo año, un solo régimen:** el resultado describe 2025, no una expectativa.
+
+---
+## Registro de la corrida (agregado después de ejecutar)
+- Corrida única del flujo `backtest-2025` (run 39719015153, código 05ba936): terminó sin fallos técnicos ni reintentos; los tres simuladores empezaron en 2025-01-01 00:00 y terminaron en la última vela de 2025 (8,760 velas de 1 h; 35,039 de 15 min).
+- Resultados completos en la rama `backtest-2025` (`informe.md`, `summary.json` y `dashboard.json` por simulador). No se cambió ningún parámetro.
+- Referencias del periodo: BTC −6.33 % · ETH −10.97 % · mercado (canasta de las 10 mayores) −9.18 %.
+- Resultado: actual −17.09 % · dinámico −36.44 % · indexado −27.67 % (Top-25 cap −16.01 %, Top-50 cap −18.44 %, Top-25 igual peso −48.57 %).
