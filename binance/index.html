@@ -200,6 +200,11 @@ details pre { margin: 6px 0 2px; font: 400 11.5px var(--mono); white-space: pre-
 .sm-ctrl .seg button:disabled { opacity: .4; cursor: not-allowed; }
 .cmp { font-size: 12.5px; } .cmp th, .cmp td { padding: 6px 10px; }
 @media (max-width: 560px) { .cmp { font-size: 12px; } .cmp th, .cmp td { padding: 6px 6px; } .cmp th { font-size: 10px; letter-spacing: 0; } }
+.cmp td.best { font-weight: 600; color: var(--ink); } .cmp td.best::before { content: '▲ '; color: var(--good); font-size: 10px; }
+.cmp td.n.best::before { content: '▲\00a0'; }
+.cmp-win { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
+.cmp-win .chip { font: 500 12px var(--font); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; background: var(--surface); color: var(--ink2); }
+.cmp-win .chip b { color: var(--ink); }
 .cmp tr.cur td { background: var(--surface2); font-weight: 600; }
 .fam { display: flex; flex-direction: column; gap: 10px; }
 .fam-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
@@ -941,12 +946,43 @@ function simsList(d, st) {
   list.sort(function (x, y) { return x.order - y.order; });
   return list.map(function (x, i) { return { d: x.d, name: simShort(x.d), color: SIM_COLORS[i % SIM_COLORS.length], self: x.d === d }; });
 }
+/* periodos de la comparación (días); 'common' = desde que empezó el simulador más reciente */
+var CMP_PERIODS = [['common', 'Periodo en común', -1], ['1d', 'Día', 1], ['7d', 'Semana', 7], ['30d', 'Mes', 30], ['365d', 'Año', 365], ['1095d', '3 años', 1095], ['1825d', '5 años', 1825]];
+function cmpPeriod(st) { return CMP_PERIODS.filter(function (p) { return p[0] === st.cmpPer; })[0] || CMP_PERIODS[0]; }
+/* ventana [t0, t1] de la comparación y qué simuladores la cubren completa (los que llevan menos tiempo se omiten, no se inventan) */
+function cmpWindow(L, per) {
+  var t1 = Math.min.apply(null, L.map(function (x) { return x.d.kpis.last_ts; })), maxBar = Math.max.apply(null, L.map(function (x) { return x.d.bar_ms; }));
+  if (per[2] < 0) return { t0: Math.max.apply(null, L.map(function (x) { return x.d.kpis.first_ts; })), t1: t1, inc: L.slice(), out: [], maxBar: maxBar };
+  var t0 = t1 - per[2] * DAY_MS, inc = L.filter(function (x) { return x.d.kpis.first_ts <= t0 + maxBar; });
+  return { t0: t0, t1: t1, inc: inc, out: L.filter(function (x) { return inc.indexOf(x) < 0; }), maxBar: maxBar };
+}
+/* ROI, caída máxima y retorno/caída de UN simulador dentro de [t0, t1] (todo causal: con los puntos que ya existen) */
+function winMetrics(x, t0, t1) {
+  var S = x.d.series, i0 = idxAtOrBefore(S.ts, t0), i1 = idxAtOrBefore(S.ts, t1); if (i0 < 0) i0 = 0; if (i1 < i0) return null;
+  var base = S.total[i0], peak = base, dd = 0;
+  for (var i = i0; i <= i1; i++) { if (S.total[i] > peak) peak = S.total[i]; var q = S.total[i] / peak - 1; if (q < dd) dd = q; }
+  var roi = (S.total[i1] / base - 1) * 100, ddp = dd * 100, btc = null;
+  if (S.btc && fin(S.btc[i0]) && fin(S.btc[i1])) btc = (S.btc[i1] / S.btc[i0] - 1) * 100;
+  return { roi: roi, dd: ddp, calmar: ddp < -0.05 ? roi / Math.abs(ddp) : null, btc: btc };
+}
+/* máximo y mínimo históricos del equity: exactos si el JSON los trae; si no, de la serie del tablero */
+function hiLo(d) {
+  var K = d.kpis, S = d.series;
+  if (fin(K.equity_high) && fin(K.equity_low)) return { hi: K.equity_high, hiTs: K.equity_high_ts, lo: K.equity_low, loTs: K.equity_low_ts };
+  var hi = -Infinity, lo = Infinity, hiTs = null, loTs = null;
+  S.total.forEach(function (v, i) { if (v > hi) { hi = v; hiTs = S.ts[i]; } if (v < lo) { lo = v; loTs = S.ts[i]; } });
+  return { hi: hi, hiTs: hiTs, lo: lo, loTs: loTs };
+}
+function bestIdx(vals, higher) {                       /* índice del mejor valor; -1 si hay menos de 2 válidos o todos empatan */
+  var ok = vals.map(function (v, i) { return fin(v) ? i : -1; }).filter(function (i) { return i >= 0; });
+  if (ok.length < 2) return -1;
+  var b = ok.reduce(function (a, i) { return (higher ? vals[i] > vals[a] : vals[i] < vals[a]) ? i : a; }, ok[0]);
+  return ok.every(function (i) { return Math.abs(vals[i] - vals[b]) < 1e-9; }) ? -1 : b;
+}
 function panelComparar(d, st, w) {
   var L = simsList(d, st);
   if (L.length < 2) return '<div class="empty"><h2>Comparar simuladores</h2><p>Aún no hay datos de otros simuladores. Aparecerán aquí cuando tengan su primera corrida.</p></div>';
-  var n = L.length;
-  var t0 = Math.max.apply(null, L.map(function (x) { return x.d.kpis.first_ts; })), t1 = Math.min.apply(null, L.map(function (x) { return x.d.kpis.last_ts; })), span = t1 - t0;
-  var maxBar = Math.max.apply(null, L.map(function (x) { return x.d.bar_ms; }));
+  var n = L.length, per = cmpPeriod(st), W = cmpWindow(L, per), t0 = W.t0, t1 = W.t1, span = t1 - t0, maxBar = W.maxBar, inc = W.inc;
   var caps = L.map(function (x) { return x.d.kpis.capital; });
   var sameCap = caps.every(function (c) { return Math.abs(c - caps[0]) < 1; });
   var out = '<div class="banner info"><span><b>Misma prueba, ' + n + ' simuladores.</b> ' + L.map(function (x) { return '<b>' + esc(x.name) + '</b>' + (x.d.sim && x.d.sim.desc ? ': ' + esc(x.d.sim.desc) : ''); }).join('. ') + '. ' +
@@ -955,25 +991,96 @@ function panelComparar(d, st, w) {
   var days = function (K) { return Math.max(K.last_ts - K.first_ts, 1) / DAY_MS; };
   var head = '<tr><th></th>' + L.map(function (x) { return '<th class="n"><span class="sw" style="background:' + x.color + '"></span>' + esc(x.name) + '</th>'; }).join('') + '</tr>';
   var row = function (l, f) { return '<tr><td>' + esc(l) + '</td>' + L.map(function (x) { return '<td class="n">' + f(x.d, x.d.kpis) + '</td>'; }).join('') + '</tr>'; };
-  if (span >= 2 * maxBar) {
-    var xs = []; L.forEach(function (x) { x.d.series.ts.forEach(function (t) { if (t >= t0 && t <= t1) xs.push(t); }); });
+  var legendOfHist = Math.max.apply(null, L.map(function (x) { return x.d.kpis.last_ts - x.d.kpis.first_ts; }));
+  /* botones de periodo: se desactiva el que ningún simulador alcanza a cubrir */
+  var seg = '<div class="sm-ctrl"><span class="seg" role="group" aria-label="Periodo de la comparación">' + CMP_PERIODS.map(function (p) {
+    var ww = cmpWindow(L, p), off = p[2] > 0 && ww.inc.length < 1;
+    return '<button type="button" data-cmpper="' + p[0] + '" aria-pressed="' + (p === per) + '"' + (off ? ' disabled title="Ningún simulador lleva tanto tiempo corriendo"' : '') + '>' + esc(p[1]) + '</button>';
+  }).join('') + '</span></div>';
+  var ok = inc.length >= 1 && span >= 2 * maxBar;
+  var winMet = ok ? inc.map(function (x) { return winMetrics(x, t0, t1); }) : [];
+  if (ok) {
+    var xs = []; inc.forEach(function (x) { x.d.series.ts.forEach(function (t) { if (t >= t0 && t <= t1) xs.push(t); }); });
     xs.sort(function (a, b) { return a - b; }); xs = xs.filter(function (t, i) { return i === 0 || t !== xs[i - 1]; });
-    var series = L.map(function (x, i) {
+    var series = inc.map(function (x) {
       var S = x.d.series, b0 = stepAt(S.ts, S.total, t0);
-      return { key: 'c' + i, name: x.name, color: x.color, width: 2.5, ys: xs.map(function (t) { return (stepAt(S.ts, S.total, t) / b0 - 1) * 100; }) };
+      return { key: 'c' + L.indexOf(x), name: x.name, color: x.color, width: 2.5, ys: xs.map(function (t) { return (stepAt(S.ts, S.total, t) / b0 - 1) * 100; }) };
     });
-    var SA = L[0].d.series;
+    var SA = inc[0].d.series;
     if (SA.btc && fin(stepAt(SA.ts, SA.btc, t0))) { var bb = stepAt(SA.ts, SA.btc, t0); series.push({ key: 'cBTC', name: 'BTC comprar y mantener', color: 'var(--ink2)', dash: true, ys: xs.map(function (t) { return (stepAt(SA.ts, SA.btc, t) / bb - 1) * 100; }) }); }
-    var fin_ = series.slice(0, n).map(function (s, i) { return { name: L[i].name, r: s.ys[xs.length - 1] }; });
-    var best = fin_.reduce(function (a, b) { return b.r > a.r ? b : a; }), worst = fin_.reduce(function (a, b) { return b.r < a.r ? b : a; });
-    out += '<section class="sm-card"><h2>Mismo periodo <span class="r">' + esc(fmtDT(t0)) + ' → ' + esc(fmtDT(t1)) + ' · ' + nf(span / DAY_MS, 1) + ' días</span></h2>' +
-      '<p class="verdict">' + fin_.map(function (f) { return esc(f.name) + ' <b>' + sgn(f.r, 2, '%') + '</b>'; }).join(' · ') + '. Mejor: <b>' + esc(best.name) + '</b>; peor: <b>' + esc(worst.name) + '</b> (' + sgn(best.r - worst.r, 2, ' pp') + ' de distancia). ' +
-      'El periodo es el que tienen en común todos (arranca cuando empezó el más reciente). Con pocos días esto es ruido, no un veredicto: más operaciones solo ayudan si lo que ganan supera las comisiones.</p>' +
+    var fin_ = series.slice(0, inc.length).map(function (s, i) { return { name: inc[i].name, r: s.ys[xs.length - 1] }; });
+    var verdict = fin_.map(function (f) { return esc(f.name) + ' <b>' + sgn(f.r, 2, '%') + '</b>'; }).join(' · ');
+    if (fin_.length > 1) {
+      var best = fin_.reduce(function (a, b) { return b.r > a.r ? b : a; }), worst = fin_.reduce(function (a, b) { return b.r < a.r ? b : a; });
+      verdict += '. Mejor: <b>' + esc(best.name) + '</b>; peor: <b>' + esc(worst.name) + '</b> (' + sgn(best.r - worst.r, 2, ' pp') + ' de distancia)';
+    }
+    var note = per[2] < 0 ? 'El periodo es el que tienen en común todos (arranca cuando empezó el más reciente). ' : '';
+    if (W.out.length) note += '<b>Sin historial suficiente para este periodo:</b> ' + W.out.map(function (x) { return esc(x.name); }).join(', ') + ' (no se muestran; no se inventa historial). ';
+    out += '<section class="sm-card"><h2>' + esc(per[2] < 0 ? 'Mismo periodo' : 'Últimos ' + nf(per[2], 0) + (per[2] === 1 ? ' día' : ' días') + ' (' + per[1] + ')') + ' <span class="r">' + esc(fmtDT(t0)) + ' → ' + esc(fmtDT(t1)) + ' · ' + nf(span / DAY_MS, 1) + ' días</span></h2>' + seg +
+      '<p class="verdict">' + verdict + '. ' + note + 'Con pocos días esto es ruido, no un veredicto: más operaciones solo ayudan si lo que ganan supera las comisiones.</p>' +
       legendHtml(series, st.hidden) +
-      lineChart({ id: 'c-cmp', w: w, xs: xs, series: series, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Rendimiento de los ' + n + ' simuladores desde el inicio común', yw: 50 }) + '</section>';
+      lineChart({ id: 'c-cmp', w: w, xs: xs, series: series, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Rendimiento de los simuladores en el periodo ' + per[1], yw: 50 }) + '</section>';
   } else {
-    out += '<p class="hint">Todavía no hay un periodo en común suficiente para graficar (los simuladores empezaron en momentos distintos; el más reciente aún tiene muy pocas velas). Se muestra la tabla con lo acumulado de cada uno.</p>';
+    out += '<section class="sm-card"><h2>' + esc(per[1]) + '</h2>' + seg + '<p class="hint">' + (inc.length < 1
+      ? 'Ningún simulador lleva ' + nf(per[2], 0) + (per[2] === 1 ? ' día' : ' días') + ' corriendo (el que más lleva ' + nf(legendOfHist / DAY_MS, 1) + ' días). El periodo aparecerá cuando alguno tenga ese historial; no se inventa historial.'
+      : 'Todavía no hay un periodo suficiente para graficar (el más reciente aún tiene muy pocas velas). Se muestran las tablas con lo acumulado de cada uno.') + '</p></section>';
   }
+
+  /* ---- quién rinde mejor en el periodo elegido (mismas fechas para todos) */
+  if (ok && inc.length >= 2) {
+    var vals = function (k) { return winMet.map(function (m) { return m ? m[k] : null; }); };
+    var cost = inc.map(function (x) { var K = x.d.kpis; return K.capital ? K.fees / K.capital / days(K) * 100 : null; });
+    var M = [
+      { key: 'roi', label: 'ROI del periodo', v: vals('roi'), hi: true, fmt: function (v) { return sgn(v, 2, '%'); } },
+      { key: 'vsb', label: 'ROI contra Bitcoin (pp)', v: vals('roi').map(function (v, i) { var m = winMet[i]; return m && fin(m.btc) ? v - m.btc : null; }), hi: true, fmt: function (v) { return sgn(v, 2, ' pp'); } },
+      { key: 'dd', label: 'Caída máxima en el periodo', v: vals('dd'), hi: true, fmt: function (v) { return nf(v, 2) + '%'; } },
+      { key: 'cal', label: 'Retorno por unidad de caída', v: vals('calmar'), hi: true, fmt: function (v) { return nf(v, 2); } },
+      { key: 'cst', label: 'Comisiones por día (% del capital)', v: cost, hi: false, fmt: function (v) { return nf(v, 3) + '%'; } }
+    ];
+    var wins = inc.map(function () { return 0; }), scored = 0;
+    var rowsH = M.map(function (m) {
+      var bi = bestIdx(m.v, m.hi); if (bi >= 0 && m.key !== 'vsb') { wins[bi]++; scored++; }
+      return '<tr><td>' + esc(m.label) + '</td>' + m.v.map(function (v, i) { return '<td class="n' + (i === bi ? ' best' : '') + '">' + (fin(v) ? m.fmt(v) : '—') + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    var headI = '<tr><th></th>' + inc.map(function (x) { return '<th class="n"><span class="sw" style="background:' + x.color + '"></span>' + esc(x.name) + '</th>'; }).join('') + '</tr>';
+    var mx = Math.max.apply(null, wins), lead = wins.map(function (v, i) { return v === mx ? i : -1; }).filter(function (i) { return i >= 0; });
+    var chips = inc.map(function (x, i) { return '<span class="chip"><span class="sw" style="background:' + x.color + '"></span> <b>' + esc(x.name) + '</b> · ' + wins[i] + ' de ' + scored + '</span>'; }).join('');
+    var verdictW = mx === 0 ? 'Ninguno se despega todavía.' : lead.length > 1 ? 'Empate en métricas ganadas: ' + lead.map(function (i) { return '<b>' + esc(inc[i].name) + '</b>'; }).join(' y ') + '.' : '<b>' + esc(inc[lead[0]].name) + '</b> gana más métricas (' + mx + ' de ' + scored + ').';
+    var short = span < 30 * DAY_MS;
+    out += '<section class="sm-card"><h2>¿Quién rinde mejor? <span class="r">' + esc(per[2] < 0 ? 'periodo en común' : per[1]) + ' · ' + nf(span / DAY_MS, 1) + ' días</span></h2>' +
+      '<p class="verdict">' + verdictW + (short ? ' <b>Con menos de 30 días de datos esto es ruido, no un veredicto</b> (la regla del proyecto: no juzgar con menos de ~30 días).' : '') + '</p><div class="cmp-win">' + chips + '</div>' +
+      '<div class="tw cmp"><table><thead>' + headI + '</thead><tbody>' + rowsH + '</tbody></table></div>' +
+      '<p class="hint" style="margin-top:6px">▲ = mejor en esa fila. Se cuentan 4 métricas (ROI, caída máxima, retorno por unidad de caída y comisiones por día); “contra Bitcoin” se muestra pero no cuenta, porque ordena igual que el ROI. Retorno por unidad de caída = ROI ÷ caída máxima del periodo (— si no hubo caída). Las comisiones son de toda la vida del simulador, por día, para no castigar al más viejo.</p></section>';
+  } else if (ok) {
+    out += '<section class="sm-card"><h2>¿Quién rinde mejor?</h2><p class="hint">Para este periodo solo un simulador tiene historial suficiente, así que no hay con quién compararlo. Elige otro periodo.</p></section>';
+  }
+
+  /* ---- ROI por periodo (cada simulador con su propio historial; — si aún no lleva ese tiempo) */
+  var FP = CMP_PERIODS.filter(function (p) { return p[2] > 0; }).map(function (p) { return [p[0], p[1], p[2]]; }).concat([['all', 'Desde el inicio de cada uno', 0]]);
+  var BM = (L.filter(function (x) { return x.d.benchmarks && x.d.benchmarks.BTCUSDT; })[0] || {}).d;
+  var rowsR = FP.map(function (p) {
+    var v = L.map(function (x) { return portRet(x.d, p); }), bi = bestIdx(v, true);
+    var btc = BM ? benchRet(BM.benchmarks, 'BTCUSDT', p, BM.kpis) : (p[2] ? null : (L[0].d.kpis.btc_ret));
+    return '<tr><td>' + esc(p[1]) + '</td>' + v.map(function (x, i) { return fin(x) ? '<td class="n' + (i === bi ? ' best' : '') + '">' + sgn(x, 2, '%') + '</td>' : '<td class="n" title="Aún no lleva ese tiempo corriendo">—</td>'; }).join('') +
+      (fin(btc) ? '<td class="n">' + sgn(btc, 2, '%') + '</td>' : '<td class="n" title="Sin historial de mercado para ese periodo">—</td>') + '</tr>';
+  }).join('');
+  out += '<div><h2>ROI por periodo</h2><div class="tw cmp"><table><thead><tr><th>Periodo (hasta hoy)</th>' + L.map(function (x) { return '<th class="n"><span class="sw" style="background:' + x.color + '"></span>' + esc(x.name) + '</th>'; }).join('') + '<th class="n">Bitcoin</th></tr></thead><tbody>' + rowsR + '</tbody></table></div>' +
+    '<p class="hint" style="margin-top:6px">▲ = mejor ROI en el periodo. <b>—</b> = el simulador aún no lleva ese tiempo corriendo; no se inventa historial. La última fila es el ROI acumulado de cada uno desde que arrancó (no es el mismo periodo: el más viejo tiene más días). Bitcoin: comprar y mantener, sin comisiones (el historial de mercado de los tableros cubre hasta ~1 año).</p></div>';
+
+  /* ---- máximos y mínimos históricos */
+  var HL = L.map(function (x) { return hiLo(x.d); });
+  var hcell = function (f) { return '<tr><td>' + esc(f[0]) + '</td>' + L.map(function (x, i) { return '<td class="n">' + f[1](x.d, x.d.kpis, HL[i]) + '</td>'; }).join('') + '</tr>'; };
+  var capOf = function (K) { return K.capital || 1; };
+  out += '<div><h2>Máximos y mínimos históricos <span class="r" style="font-weight:400">desde que arrancó cada simulador</span></h2><div class="tw cmp"><table><thead>' + head + '</thead><tbody>' +
+    [['Máximo histórico (ATH), USDT', function (d, K, h) { return nf(h.hi, 2) + '<small style="display:block;color:var(--muted)">' + esc(fmtDT(h.hiTs)) + '</small>'; }],
+     ['ROI en el máximo', function (d, K, h) { return sgn((h.hi / capOf(K) - 1) * 100, 2, '%'); }],
+     ['Mínimo histórico (ATL), USDT', function (d, K, h) { return nf(h.lo, 2) + '<small style="display:block;color:var(--muted)">' + esc(fmtDT(h.loTs)) + '</small>'; }],
+     ['ROI en el mínimo', function (d, K, h) { return sgn((h.lo / capOf(K) - 1) * 100, 2, '%'); }],
+     ['Equity actual, USDT', function (d, K) { return nf(K.equity, 2); }],
+     ['Distancia al máximo', function (d, K, h) { return sgn((K.equity / h.hi - 1) * 100, 2, '%'); }],
+     ['Distancia al mínimo', function (d, K, h) { return sgn((K.equity / h.lo - 1) * 100, 2, '%'); }],
+     ['Caída máxima (peak a valle)', function (d, K) { return nf(K.max_dd, 2) + '%'; }]].map(hcell).join('') +
+    '</tbody></table></div><p class="hint" style="margin-top:6px">Máximo y mínimo del equity del portafolio (incluye el efectivo) medidos sobre todas las velas del simulador, no solo sobre las gráficas. ROI = frente al capital inicial de cada uno. Son cifras de una prueba corta: un máximo de hace unos días no es un “récord” en ningún sentido estadístico.</p></div>';
   var anyMarket = L.every(function (x) { return fin(x.d.kpis.market_pnl); });
   out += '<div><h2>Cifras acumuladas de cada uno</h2><div class="tw cmp"><table><thead>' + head + '</thead><tbody>' +
     row('Velas', function (d) { return esc(d.interval); }) +
@@ -1023,7 +1130,7 @@ if (TEST) { globalThis.__dashApi = api; return; }
 
 /* ------------------------------------------------------------------ DOM */
 var $ = function (s, r) { return (r || document).querySelector(s); };
-var state = { tab: 'summary', smCash: false, smPer: 'all', hidden: {}, tx: { bot: '', ex: '', sym: '', side: '' }, txLimit: 100, sym: '', hz: '24', others: [], selfOrder: null };
+var state = { tab: 'summary', smCash: false, smPer: 'all', hidden: {}, tx: { bot: '', ex: '', sym: '', side: '' }, txLimit: 100, sym: '', hz: '24', others: [], selfOrder: null, cmpPer: 'common' };
 var D = null, S = null, pending = null;
 
 function width() { var p = $('#panel'); return Math.max(280, (p && p.clientWidth) || 640) - 2; }
@@ -1057,6 +1164,7 @@ function wire() {
       el.addEventListener('pointermove', show); el.addEventListener('pointerdown', show); el.addEventListener('pointerleave', function () { tip.hidden = true; });
     });
   });
+  panel.querySelectorAll('[data-cmpper]').forEach(function (b) { b.addEventListener('click', function () { if (b.disabled) return; state.cmpPer = b.dataset.cmpper; render(); }); });
   panel.querySelectorAll('[data-smper]').forEach(function (b) { b.addEventListener('click', function () { state.smPer = b.dataset.smper; render(); }); });
   panel.querySelectorAll('[data-smcash]').forEach(function (b) { b.addEventListener('click', function () { state.smCash = b.dataset.smcash === '1'; render(); }); });
   var bind = function (id, fn) { var e = $('#' + id); if (e) e.addEventListener('change', function () { fn(e.value); render(); }); };
