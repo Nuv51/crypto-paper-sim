@@ -272,6 +272,11 @@ def build_dashboard(data: dict, now_ms: int, max_points: int = 1500, price_bars:
         "first_ts": int(wide.index[0]), "last_ts": int(wide.index[-1]), "n_trades": int(len(trades)),
         "reserve": None,
     }
+    # máximo y mínimo históricos del equity del portafolio (sobre TODAS las velas, no sobre la serie muestreada del tablero)
+    _tv = total.to_numpy(dtype=float)
+    if len(_tv):
+        _hi, _lo = int(np.argmax(_tv)), int(np.argmin(_tv))
+        kpis.update(equity_high=float(_tv[_hi]), equity_high_ts=int(total.index[_hi]), equity_low=float(_tv[_lo]), equity_low_ts=int(total.index[_lo]))
     if mkt_cum is not None:
         kpis["market_pnl"], kpis["own_pnl"] = float(mkt_cum.iloc[-1]), float(own_cum.iloc[-1])
     pc = meta.get("portfolio_capital")

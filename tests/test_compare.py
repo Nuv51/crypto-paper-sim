@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -37,9 +38,10 @@ def _dash(cfg, sim, tmp, name):
     return out / "dashboard.json"
 
 
-def _render(selfp, others):
+def _render(selfp, others, per=None):
+    env = dict(os.environ, **({"CMP_PER": per} if per else {}))
     r = subprocess.run([NODE, str(ROOT / "tests" / "js" / "compare_harness.js"), str(ROOT / "web" / "index.html"), str(selfp),
-                        *map(str, others)], capture_output=True, text=True, timeout=60)
+                        *map(str, others)], capture_output=True, text=True, timeout=60, env=env)
     assert r.returncode == 0, r.stderr
     return json.loads(r.stdout)["html"]
 
@@ -84,3 +86,34 @@ def test_compare_tab_shows_three_simulators_in_one_chart():
     assert "Misma prueba, 4 simuladores" in html4 and "Nuevo" in html4
     # sin otros simuladores: mensaje de espera, no error
     assert "Aún no hay datos de otros simuladores" in _render(a, [])
+
+
+def test_export_has_exact_all_time_high_and_low():
+    tmp = Path(tempfile.mkdtemp(prefix="hl_"))
+    d = json.loads(_dash(config, dict(id="actual", name="Simulador actual", desc="a"), tmp, "a").read_text())
+    K, S = d["kpis"], d["series"]
+    assert K["equity_high"] >= max(S["total"]) - 1e-3 and K["equity_low"] <= min(S["total"]) + 1e-3      # exacto: nunca por debajo de lo graficado
+    assert K["first_ts"] <= K["equity_high_ts"] <= K["last_ts"] and K["first_ts"] <= K["equity_low_ts"] <= K["last_ts"]
+    assert K["equity_low"] <= K["equity"] <= K["equity_high"]
+
+
+def test_compare_tab_periods_roi_table_extremes_and_scoreboard():
+    if not NODE:
+        return
+    tmp = Path(tempfile.mkdtemp(prefix="cmp2_"))
+    a = _dash(config, dict(id="actual", name="Simulador actual", desc="a"), tmp, "a")
+    b = _dash(config, dict(id="activo", name="Simulador dinámico", desc="b"), tmp, "b")
+    c = _dash(config_index, dict(id="indice", name="Simulador indexado", desc="c"), tmp, "c")
+    html = _render(a, [b, c])
+    for txt in ("¿Quién rinde mejor?", "ROI por periodo", "Máximos y mínimos históricos", "Máximo histórico (ATH)", "Mínimo histórico (ATL)",
+                "Periodo en común", "Semana", "3 años", "5 años", "Desde el inicio de cada uno", "Con menos de 30 días de datos esto es ruido"):
+        assert txt in html, txt
+    assert 'data-cmpper="1825d"' in html and html.count("<svg") == 1
+    assert "▲" in html or 'class="n best"' in html                       # hay un mejor marcado en alguna fila
+    # un periodo que ningún simulador alcanza: botón desactivado y mensaje, sin inventar historial (sin gráfica)
+    h5 = _render(a, [b, c], "1825d")
+    assert "Ningún simulador lleva 1,825 días corriendo" in h5 and "<svg" not in h5 and "¿Quién rinde mejor?" not in h5
+    assert 'data-cmpper="1825d" aria-pressed="true" disabled' in h5
+    # un periodo corto que todos cubren: ventana de 1 día con gráfica y marcador
+    h1 = _render(a, [b, c], "1d")
+    assert "Últimos 1 día" in h1 and h1.count("<svg") == 1 and "¿Quién rinde mejor?" in h1

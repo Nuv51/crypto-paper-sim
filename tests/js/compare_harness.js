@@ -11,6 +11,6 @@ vm.createContext(ctx); vm.runInContext(m[1], ctx);
 const load = p => JSON.parse(fs.readFileSync(p, 'utf8'));
 const self = load(selfPath);
 const st = { smCash: false, smPer: 'all', tx: { bot: '', ex: '', sym: '', side: '' }, txLimit: 100, sym: '', hz: '24', hidden: {},
-             tab: 'comparar', selfOrder: 0, others: others.map((p, i) => ({ d: load(p), order: i + 1 })) };
+             tab: 'comparar', cmpPer: process.env.CMP_PER || 'common', selfOrder: 0, others: others.map((p, i) => ({ d: load(p), order: i + 1 })) };
 const html = ctx.__dashApi.buildPanels(self, null, st, 640).comparar;
 process.stdout.write(JSON.stringify({ html }));
