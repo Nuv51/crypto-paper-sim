@@ -1,0 +1,24 @@
+name: probe-market
+# Sondeo manual de red (solo lectura) de las fuentes del observatorio de mercado (fases 1-3).
+# Guarda el resultado en la rama `probe-market`.
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install requests
+      - run: python3 scripts/probe_market.py
+      - name: Guardar resultado en la rama probe-market
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan probe-market
+          git rm -rf --quiet . || true
+          git add -f probe_market_results.json
+          git commit -q -m "probe-market: resultados de red"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" probe-market
