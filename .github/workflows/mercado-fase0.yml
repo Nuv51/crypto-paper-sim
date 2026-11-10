@@ -1,0 +1,49 @@
+name: mercado-fase0
+# Observatorio de mercado · FASE 0 — corrida en frío ÚNICA (ver OBSERVATORIO_MERCADO.md). Flujo APARTE: no usa la rama sim-data
+# ni toca los simuladores. Si ya hay resultados en la rama mercado-fase0, se niega a repetir salvo que se pida explícitamente.
+on:
+  workflow_dispatch:
+    inputs:
+      repetir:
+        description: "Repetir aunque ya existan resultados (anótalo en OBSERVATORIO_MERCADO.md; solo por fallo técnico)"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: mercado-fase0
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Una sola corrida
+        run: |
+          if git ls-remote --exit-code --heads "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" mercado-fase0 >/dev/null 2>&1 && [ "${{ inputs.repetir }}" != "true" ]; then
+            echo "Ya existen resultados en la rama mercado-fase0. Corrida única: usa 'repetir' solo si hay que corregir un fallo técnico."
+            exit 1
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - run: pip install -r requirements-ci.txt
+      - name: Fase 0 (velas diarias reales hasta 2026-10-31)
+        run: python -u mercado_fase0_run.py --out out/mercado-fase0 2>&1 | tee out-fase0.log; exit ${PIPESTATUS[0]}
+      - name: Resumen
+        if: always()
+        run: |
+          [ -f out/mercado-fase0/report.md ] && cat out/mercado-fase0/report.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Guardar resultados en la rama mercado-fase0
+        run: |
+          cp out-fase0.log out/mercado-fase0/run.log
+          cd out/mercado-fase0
+          git init -q -b mercado-fase0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Observatorio de mercado, fase 0: resultados en frío"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" mercado-fase0
