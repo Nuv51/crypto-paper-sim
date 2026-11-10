@@ -1,0 +1,296 @@
+{
+ "binance_klines_taker_field": {
+  "status": 200,
+  "ms": 614,
+  "bytes": 557,
+  "ctype": "application/json;charset=UTF-8",
+  "head": "[[1794096000000,\"75867.58000000\",\"76200.00000000\",\"73510.00000000\",\"74851.44000000\",\"9457.65942000\",1794182399999,\"711307831.40432960\",1132641,\"4636.59230000\",\"348688635.58954560\",\"0\"],[1794182400000,\"74851.44000000\",\"75599.22000000\",\"73750"
+ },
+ "binance_depth": {
+  "status": 200,
+  "ms": 565,
+  "bytes": 6447,
+  "ctype": "application/json;charset=UTF-8",
+  "head": "{\"lastUpdateId\":102596532789,\"bids\":[[\"73336.00000000\",\"7.11952000\"],[\"73335.99000000\",\"0.00007000\"],[\"73335.90000000\",\"0.00016000\"],[\"73335.89000000\",\"0.15327000\"],[\"73334.85000000\",\"0.00682000\"],[\"73334.83000000\",\"0.00016000\"],[\"73334.820"
+ },
+ "binance_aggtrades": {
+  "status": 200,
+  "ms": 606,
+  "bytes": 610,
+  "ctype": "application/json;charset=UTF-8",
+  "head": "[{\"a\":4111712007,\"p\":\"73336.01000000\",\"q\":\"0.00122000\",\"f\":6837072028,\"l\":6837072035,\"T\":1794335405465,\"m\":false,\"M\":true},{\"a\":4111712008,\"p\":\"73336.01000000\",\"q\":\"0.00009000\",\"f\":6837072036,\"l\":6837072036,\"T\":1794335405498,\"m\":false,\"M\":t"
+ },
+ "okx_open_interest": {
+  "status": 200,
+  "ms": 268,
+  "bytes": 186,
+  "ctype": "application/json;charset=UTF-8",
+  "head": "{\"code\":\"0\",\"data\":[{\"instId\":\"BTC-USDT-SWAP\",\"instType\":\"SWAP\",\"oi\":\"3645246.2300000149\",\"oiCcy\":\"36452.462300000149\",\"oiUsd\":\"2671958196.0975509216702\",\"ts\":\"1794335407010\"}],\"msg\":\"\"}"
+ },
+ "okx_oi_volume_hist": {
+  "status": 200,
+  "ms": 216,
+  "bytes": 9732,
+  "ctype": "application/json;charset=UTF-8",
+  "head": "{\"code\":\"0\",\"data\":[[\"1794326400000\",\"3858702456.2845\",\"6911620434.1627\"],[\"1794240000000\",\"3854277428.2997\",\"8328841598.4864\"],[\"1794153600000\",\"3829216654.6541\",\"1298665905.6724\"],[\"1794067200000\",\"3792863457.1217\",\"2383997155.5803\"],[\"17"
+ },
+ "okx_long_short_ratio": {
+  "status": 200,
+  "ms": 225,
+  "bytes": 4513,
+  "ctype": "application/json;charset=UTF-8",
+  "head": "{\"code\":\"0\",\"data\":[[\"1794326400000\",\"3.17\"],[\"1794240000000\",\"3.19\"],[\"1794153600000\",\"2.83\"],[\"1794067200000\",\"2.96\"],[\"1793980800000\",\"2.93\"],[\"1793894400000\",\"2.99\"],[\"1793808000000\",\"2.43\"],[\"1793721600000\",\"1.58\"],[\"1793635200000\",\"2."
+ },
+ "okx_taker_volume": {
+  "status": 200,
+  "ms": 239,
+  "bytes": 3897,
+  "ctype": "application/json;charset=UTF-8",
+  "head": "{\"code\":\"0\",\"data\":[[\"1794326400000\",\"3527050075.3131\",\"3330979174.7031\"],[\"1794240000000\",\"4225365050.3085\",\"3958828018.4109\"],[\"1794153600000\",\"612117299.7812\",\"685913893.5627\"],[\"1794067200000\",\"1218636583.0383\",\"1163847522.6461\"],[\"1793"
+ },
+ "okx_liquidations": {
+  "status": 200,
+  "ms": 328,
+  "bytes": 12720,
+  "ctype": "application/json;charset=UTF-8",
+  "head": "{\"code\":\"0\",\"data\":[{\"details\":[{\"bkLoss\":\"0\",\"bkPx\":\"73387.7\",\"ccy\":\"\",\"posSide\":\"short\",\"side\":\"buy\",\"sz\":\"0.75\",\"time\":1794333923690,\"ts\":\"1794333923690\"},{\"bkLoss\":\"0\",\"bkPx\":\"73368.9\",\"ccy\":\"\",\"posSide\":\"short\",\"side\":\"buy\",\"sz\":\"0.06\""
+ },
+ "okx_books": {
+  "status": 200,
+  "ms": 245,
+  "bytes": 1350,
+  "ctype": "application/json;charset=UTF-8",
+  "head": "{\"code\":\"0\",\"msg\":\"\",\"data\":[{\"asks\":[[\"73335.1\",\"0.00342083\",\"0\",\"2\"],[\"73335.5\",\"0.0000102\",\"0\",\"1\"],[\"73337.4\",\"0.1666798\",\"0\",\"1\"],[\"73338.1\",\"0.06170765\",\"0\",\"2\"],[\"73338.4\",\"0.0000102\",\"0\",\"1\"],[\"73338.8\",\"0.00001369\",\"0\",\"1\"],[\"73340"
+ },
+ "okx_funding_hist_long": {
+  "status": 200,
+  "ms": 214,
+  "bytes": 19556,
+  "ctype": "application/json;charset=UTF-8",
+  "head": "{\"code\":\"0\",\"data\":[{\"formulaType\":\"withRate\",\"fundingRate\":\"-0.0000377091720412\",\"fundingTime\":\"1794326400000\",\"instId\":\"ETH-USDT-SWAP\",\"instType\":\"SWAP\",\"method\":\"current_period\",\"realizedRate\":\"-0.0000377091720412\"},{\"formulaType\":\"withR"
+ },
+ "kucoin_contracts_active": {
+  "status": 200,
+  "ms": 622,
+  "bytes": 1504274,
+  "ctype": "application/json",
+  "head": "{\"code\":\"200000\",\"data\":[{\"symbol\":\"XBTUSDTM\",\"displaySymbol\":\"XBTUSDTM\",\"rootSymbol\":\"USDT\",\"type\":\"FFWCSX\",\"firstOpenDate\":1585555200000,\"expireDate\":null,\"settleDate\":null,\"baseCurrency\":\"XBT\",\"displayBaseCurrency\":\"XBT\",\"quoteCurrency\":"
+ },
+ "kucoin_fut_open_interest": {
+  "status": 200,
+  "ms": 239,
+  "bytes": 2110,
+  "ctype": "application/json",
+  "head": "{\"code\":\"200000\",\"data\":{\"symbol\":\"XBTUSDTM\",\"displaySymbol\":\"XBTUSDTM\",\"rootSymbol\":\"USDT\",\"type\":\"FFWCSX\",\"firstOpenDate\":1585555200000,\"expireDate\":null,\"settleDate\":null,\"baseCurrency\":\"XBT\",\"displayBaseCurrency\":\"XBT\",\"quoteCurrency\":\""
+ },
+ "deribit_dvol": {
+  "status": 200,
+  "ms": 222,
+  "bytes": 3021,
+  "ctype": "application/json",
+  "head": "{\"jsonrpc\":\"2.0\",\"result\":{\"data\":[[1794074400000,40.02,40.03,40.0,40.03],[1794078000000,40.03,40.06,39.99,40.02],[1794081600000,40.02,40.14,40.02,40.12],[1794085200000,40.12,40.2,40.12,40.2],[1794088800000,40.2,40.26,40.2,40.23],[179409240"
+ },
+ "deribit_options_summary": {
+  "status": 200,
+  "ms": 189,
+  "bytes": 476953,
+  "ctype": "application/json",
+  "head": "{\"jsonrpc\":\"2.0\",\"result\":[{\"high\":0.0042,\"low\":0.0033,\"last\":0.0042,\"instrument_name\":\"BTC-25DEC26-56000-P\",\"bid_price\":0.0044,\"ask_price\":0.0047,\"open_interest\":520.8,\"mark_price\":0.00448564,\"interest_rate\":0.0,\"creation_timestamp\":179433"
+ },
+ "coinbase_ticker_btcusd": {
+  "status": 200,
+  "ms": 110,
+  "bytes": 188,
+  "ctype": "application/json; charset=utf-8",
+  "head": "{\"ask\":\"73257.32\",\"bid\":\"73255.33\",\"volume\":\"10286.89013521\",\"trade_id\":1118346383,\"price\":\"73255.32\",\"size\":\"0.00000007\",\"time\":\"2026-11-10T18:30:08.198602884Z\",\"rfq_volume\":\"150.682206\"}"
+ },
+ "defillama_stablecoins": {
+  "status": 200,
+  "ms": 155,
+  "bytes": 572413,
+  "ctype": "application/json; charset=utf-8",
+  "head": "{\"peggedAssets\":[{\"id\":\"1\",\"name\":\"Tether\",\"symbol\":\"USDT\",\"gecko_id\":\"tether\",\"pegType\":\"peggedUSD\",\"priceSource\":\"defillama\",\"pegMechanism\":\"fiat-backed\",\"circulating\":{\"peggedUSD\":176273738644.38428},\"circulatingPrevDay\":{\"peggedUSD\":176"
+ },
+ "defillama_stablecoin_chart": {
+  "status": 200,
+  "ms": 102,
+  "bytes": 474552,
+  "ctype": "application/json; charset=utf-8",
+  "head": "[{\"date\":\"1511913600\",\"totalCirculating\":{\"peggedUSD\":109970},\"totalCirculatingUSD\":{\"peggedUSD\":110105}},{\"date\":\"1512000000\",\"totalCirculating\":{\"peggedUSD\":109970},\"totalCirculatingUSD\":{\"peggedUSD\":110105}},{\"date\":\"1512086400\",\"totalCi"
+ },
+ "coingecko_global": {
+  "status": 200,
+  "ms": 3039,
+  "bytes": 3724,
+  "ctype": "application/json; charset=utf-8",
+  "head": "{\"data\":{\"active_cryptocurrencies\":22794,\"upcoming_icos\":0,\"ongoing_icos\":49,\"ended_icos\":3376,\"markets\":1523,\"total_market_cap\":{\"btc\":33676175.52796166,\"eth\":1215320669.2246017,\"ltc\":49307448530.83788,\"bch\":10826851178.260172,\"bnb\":366375"
+ },
+ "blockchain_com_chart": {
+  "status": 200,
+  "ms": 689,
+  "bytes": 1071,
+  "ctype": "application/json; charset=utf-8",
+  "head": "{\"status\":\"ok\",\"name\":\"Confirmed Transactions Per Day\",\"unit\":\"Transactions\",\"period\":\"day\",\"description\":\"The number of daily confirmed Bitcoin transactions.\",\"values\":[{\"x\":1791676800,\"y\":806476.0},{\"x\":1791763200,\"y\":742708.0},{\"x\":17918"
+ },
+ "mempool_fees": {
+  "status": 200,
+  "ms": 413,
+  "bytes": 74,
+  "ctype": "application/json; charset=utf-8",
+  "head": "{\"fastestFee\":1,\"halfHourFee\":1,\"hourFee\":1,\"economyFee\":1,\"minimumFee\":1}"
+ },
+ "binance_announcements": {
+  "status": 200,
+  "ms": 146,
+  "bytes": 1478,
+  "ctype": "application/json;charset=UTF-8",
+  "head": "{\"code\":\"000000\",\"message\":null,\"messageDetail\":null,\"data\":{\"catalogs\":[{\"catalogId\":48,\"parentCatalogId\":null,\"icon\":\"https://public.bnbstatic.com/image/cms/content/body/202505/d3201bf0be35bb246b65a767221410e0.png\",\"catalogName\":\"New Cryp"
+ },
+ "okx_announcements": {
+  "status": 200,
+  "ms": 297,
+  "bytes": 4785,
+  "ctype": "application/json",
+  "head": "{\"code\":\"0\",\"msg\":\"\",\"data\":[{\"details\":[{\"annType\":\"announcements-new-listings\",\"title\":\"OKX to support VELODROME crypto migration\",\"url\":\"https://www.okx.com/en-us/help/okx-to-support-velodrome-crypto-migration\",\"pTime\":\"1792751410619\",\"b"
+ },
+ "kucoin_announcements": {
+  "status": 200,
+  "ms": 313,
+  "bytes": 1971,
+  "ctype": "application/json",
+  "head": "{\"code\":\"200000\",\"data\":{\"totalNum\":22,\"items\":[{\"annId\":354160,\"annTitle\":\"World Premiere: Matrix (MTX) Listed on KuCoin\",\"annType\":[\"latest-announcements\",\"new-listings\"],\"annDesc\":\"Trading: 11:00 on November 11, 2026 (UTC)\",\"language\":\"e"
+ },
+ "coinbase_status_blog_rss": {
+  "status": 403,
+  "ms": 99,
+  "bytes": 5633,
+  "ctype": "text/html; charset=UTF-8",
+  "head": "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"><meta name=\"robots\" content=\"noindex,nofollow\"><m"
+ },
+ "fed_fomc_calendar": {
+  "status": 200,
+  "ms": 126,
+  "bytes": 166350,
+  "ctype": "text/html",
+  "head": "ï»¿<!doctype html>\r <html lang=\"en\" class=\"no-js\">\r     <head>\r         <meta charset=\"utf-8\">\r         <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\"/>\r         <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, mi"
+ },
+ "bls_cpi_schedule": {
+  "status": 403,
+  "ms": 138,
+  "bytes": 1325,
+  "ctype": "text/html",
+  "head": "<!DOCTYPE HTML> <html lang=\"en-us\">                      <head>  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" /> <title>Access Denied</title> </head>   <style type=\"text/css\">     .centerDiv     {       width: 60%;    "
+ },
+ "fed_ics_calendar": {
+  "status": 200,
+  "ms": 139,
+  "bytes": 81936,
+  "ctype": "text/html",
+  "head": "ï»¿<!doctype html>\r <html lang=\"en\" class=\"no-js\">\r <head>\r     <meta charset=\"utf-8\">\r     <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\r     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, minimum-scale=1.0 m"
+ },
+ "rss_coindesk": {
+  "status": 200,
+  "ms": 219,
+  "bytes": 30729,
+  "ctype": "application/xml",
+  "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <rss xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:wfw=\"http://wellformedweb.org/CommentAPI/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:atom=\"http://www.w3.org/2005/Atom\" xmlns"
+ },
+ "rss_cointelegraph": {
+  "status": 200,
+  "ms": 114,
+  "bytes": 52555,
+  "ctype": "application/xml; charset=utf-8",
+  "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <rss version=\"2.0\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:media=\"http://search.yahoo.com/mrss/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:wfw=\"http://wellformedweb.org/C"
+ },
+ "rss_decrypt": {
+  "status": 200,
+  "ms": 156,
+  "bytes": 42858,
+  "ctype": "application/xml",
+  "head": "<?xml version='1.0' encoding='utf-8' ?> <rss   version=\"2.0\"   xmlns:content=\"http://purl.org/rss/1.0/modules/content/\"   xmlns:wfw=\"http://wellformedweb.org/CommentAPI/\"   xmlns:dc=\"http://purl.org/dc/elements/1.1/\"   xmlns:atom=\"http://ww"
+ },
+ "rss_theblock": {
+  "status": 200,
+  "ms": 117,
+  "bytes": 31564,
+  "ctype": "text/xml; charset=UTF-8",
+  "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><rss version=\"2.0\"     xmlns:content=\"http://purl.org/rss/1.0/modules/content/\"     xmlns:wfw=\"http://wellformedweb.org/CommentAPI/\"     xmlns:dc=\"http://purl.org/dc/elements/1.1/\"     xmlns:atom=\"http:"
+ },
+ "rss_bitcoinmagazine": {
+  "status": 200,
+  "ms": 421,
+  "bytes": 85752,
+  "ctype": "application/rss+xml; charset=UTF-8",
+  "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><rss version=\"2.0\" \txmlns:content=\"http://purl.org/rss/1.0/modules/content/\" \txmlns:wfw=\"http://wellformedweb.org/CommentAPI/\" \txmlns:dc=\"http://purl.org/dc/elements/1.1/\" \txmlns:atom=\"http://www.w3.org"
+ },
+ "rss_cryptoslate": {
+  "status": 200,
+  "ms": 5149,
+  "bytes": 16266,
+  "ctype": "application/rss+xml; charset=UTF-8",
+  "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><rss version=\"2.0\" \txmlns:content=\"http://purl.org/rss/1.0/modules/content/\" \txmlns:wfw=\"http://wellformedweb.org/CommentAPI/\" \txmlns:dc=\"http://purl.org/dc/elements/1.1/\" \txmlns:atom=\"http://www.w3.org"
+ },
+ "gdelt_doc": {
+  "status": 429,
+  "ms": 23644,
+  "bytes": 444,
+  "ctype": "",
+  "head": "Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset: https://blog.gdeltproject.org/using-the-new-web-ngrams-dataset-to-find-relevant"
+ },
+ "cryptopanic_public": {
+  "status": 403,
+  "ms": 191,
+  "bytes": 4549,
+  "ctype": "text/html; charset=UTF-8",
+  "head": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 8]>    <html class=\"no-js ie8 oldie\" lang=\"en-US\"> <![endif]-->"
+ },
+ "reddit_json": {
+  "status": 403,
+  "ms": 154,
+  "bytes": 190240,
+  "ctype": "text/html",
+  "head": "<body class=theme-beta><div><style>.theme-light,:root{--rem360:22.5rem;--rem320:20rem;--rem192:12rem;--rem144:9rem;--rem128:8rem;--rem96:6rem;--rem90:5.625rem;--rem88:5.5rem;--rem64:4rem;--rem56:3.5rem;--rem48:3rem;--rem40:2.5rem;--rem36:2."
+ },
+ "reddit_rss": {
+  "status": 200,
+  "ms": 321,
+  "bytes": 7918,
+  "ctype": "application/atom+xml; charset=UTF-8",
+  "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><feed xmlns=\"http://www.w3.org/2005/Atom\" xmlns:media=\"http://search.yahoo.com/mrss/\"><category term=\"CryptoCurrency\" label=\"r/CryptoCurrency\"/><updated>2026-11-10T18:30:46+00:00</updated><icon>https://"
+ },
+ "reddit_old_rss": {
+  "status": 403,
+  "ms": 227,
+  "bytes": 189908,
+  "ctype": "text/html",
+  "head": "<body class=theme-beta><div><style>.theme-light,:root{--rem360:22.5rem;--rem320:20rem;--rem192:12rem;--rem144:9rem;--rem128:8rem;--rem96:6rem;--rem90:5.625rem;--rem88:5.5rem;--rem64:4rem;--rem56:3.5rem;--rem48:3rem;--rem40:2.5rem;--rem36:2."
+ },
+ "bluesky_search": {
+  "status": 403,
+  "ms": 166,
+  "bytes": 2334,
+  "ctype": "text/html",
+  "head": "<html><head><title>403 Forbidden</title><link href='//fonts.bunny.net/css?family=Rubik:300,400,500' rel='stylesheet' type='text/css'><style>html, body { width: 100%; margin: 0; padding: 0; text-align: center; font-family: 'Rubik'; backgroun"
+ },
+ "stocktwits_btc": {
+  "status": 200,
+  "ms": 115,
+  "bytes": 105865,
+  "ctype": "application/json; charset=utf-8",
+  "head": "{\"symbol\":{\"id\":11418,\"symbol\":\"BTC.X\",\"symbol_mic\":\"BTC.X\",\"symbol_display\":\"BTC\",\"exchange\":\"CRYPTO\",\"region\":\"X\",\"logo_url\":\"https://logos.stocktwits-cdn.com/BTC.X.webp\",\"title\":\"Bitcoin\",\"aliases\":[\"BTCUSD\"],\"deeplink\":\"coins/bitcoin\",\""
+ },
+ "telegram_public_preview": {
+  "status": 200,
+  "ms": 450,
+  "bytes": 101548,
+  "ctype": "text/html; charset=utf-8",
+  "head": "<!DOCTYPE html> <html>   <head>     <meta charset=\"utf-8\">     <title>Whale Alert – Telegram</title>     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no\" />     <m"
+ },
+ "hackernews_algolia": {
+  "status": 200,
+  "ms": 730,
+  "bytes": 3210,
+  "ctype": "application/json",
+  "head": "{\"exhaustive\":{\"nbHits\":false,\"typo\":false},\"exhaustiveNbHits\":false,\"exhaustiveTypo\":false,\"hits\":[{\"_highlightResult\":{\"author\":{\"matchLevel\":\"none\",\"matchedWords\":[],\"value\":\"nitishxbt\"},\"story_text\":{\"fullyHighlighted\":false,\"matchLevel"
+ }
+}
