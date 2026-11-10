@@ -83,6 +83,8 @@ def test_collect_flows_survives_a_failing_source():
     def get(url, params=None):
         if "klines" in url:
             return _klines(30, NOW - 30 * H)
+        if "ticker/price" in url:
+            return {"price": "70000"}
         if "depth" in url:
             return {"bids": [["100", "2"]], "asks": [["101", "1"]]}
         if "okx.com" in url and "funding" in url:
@@ -106,7 +108,7 @@ def test_collect_flows_survives_a_failing_source():
     assert row["btc_okx_funding"] is None and st["okx_funding_BTC"].startswith("RuntimeError")
     assert st["binance_taker_BTC"] == "ok" and abs(row["btc_taker_buy_ratio_24h"] - 0.6) < 1e-9
     assert row["btc_okx_oi_usd"] == 1e9 and row["btc_kc_funding"] == 0.0001 and row["btc_dvol"] == 40.0
-    assert abs(row["btc_coinbase_premium"] - (70700 / row["btc_price"] - 1)) < 1e-12
+    assert row["btc_price"] == 70000 and abs(row["btc_coinbase_premium"] - 0.01) < 1e-12      # prima contra el precio en vivo, no contra la vela cerrada
     assert row["fng"] == 55 and row["btc_dominance"] == 58.0 and "BTC" in kc
 
 

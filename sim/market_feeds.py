@@ -208,6 +208,7 @@ def collect_flows(session: Optional[requests.Session] = None, now_ms: Optional[i
             status[name] = f"{type(e).__name__}: {e}"[:160]
 
     prices: dict[str, float] = {}
+    live: dict[str, float] = {}                     # precios del ticker en vivo (solo con estos se calcula la prima de Coinbase)
     kc_all: dict[str, dict] = {}
     for a in ASSETS:
         k = a.lower()
@@ -217,6 +218,11 @@ def collect_flows(session: Optional[requests.Session] = None, now_ms: Optional[i
             if r:
                 row[f"{k}_taker_buy_ratio_24h"], row[f"{k}_price"] = r["ratio"], r["price"]
                 prices[a] = r["price"]
+
+        def binance_price(a=a, k=k):
+            px = _f(get(f"{BINANCE}/api/v3/ticker/price", {"symbol": f"{a}USDT"}).get("price"))
+            if px:
+                row[f"{k}_price"] = prices[a] = live[a] = px          # precio de AHORA (la vela de 1 h cerrada puede tener hasta 60 min)
 
         def binance_book(a=a, k=k):
             r = parse_book_imbalance(get(f"{BINANCE}/api/v3/depth", {"symbol": f"{a}USDT", "limit": 100}))
@@ -256,10 +262,11 @@ def collect_flows(session: Optional[requests.Session] = None, now_ms: Optional[i
 
         def cb(a=a, k=k):
             px = parse_coinbase_price(get(f"{COINBASE}/products/{a}-USD/ticker"))
-            if px and prices.get(a):
-                row[f"{k}_coinbase_premium"] = px / prices[a] - 1.0    # USD vs USDT: incluye la base USDT/USD, no es solo "demanda de EE. UU."
+            if px and live.get(a):
+                row[f"{k}_coinbase_premium"] = px / live[a] - 1.0    # USD vs USDT: incluye la base USDT/USD, no es solo "demanda de EE. UU."
 
         step(f"binance_taker_{a}", binance_taker)
+        step(f"binance_price_{a}", binance_price)
         step(f"binance_book_{a}", binance_book)
         step(f"okx_funding_{a}", okx_funding)
         step(f"okx_oi_{a}", okx_oi)

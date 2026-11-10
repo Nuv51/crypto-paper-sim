@@ -48,6 +48,8 @@ class FakeNet:
         if "klines" in url:                                                       # 1 h
             now = int(pd.Timestamp("2026-11-10 00:07").timestamp() * 1000) // H * H
             return [[now - (30 - i) * H, "100", "1", "1", "100", "10", now - (30 - i) * H + H - 1, "0", 1, "6", "0", "0"] for i in range(30)]
+        if "ticker/price" in url:
+            return {"price": "70000"}
         if "depth" in url:
             return {"bids": [["100", "2"]], "asks": [["101", "1"]]}
         if "funding-rate-history" in url:
