@@ -131,10 +131,13 @@ def parse_fomc_html(html: str) -> list[str]:
 
 
 def fomc_events(html: Optional[str] = None) -> list[dict]:
+    """Calendario base (2022-2026, fijo) + fechas FUTURAS (2027 en adelante) leídas de la página de la Fed, solo si la lectura reproduce
+    las 8 reuniones de 2026 (control de cordura). Años que ya están en el calendario base no se toman de la página: ahí hay
+    otras fechas con el mismo formato (p. ej. el discurso de Jackson Hole) que no son reuniones."""
     days = set(FOMC_STATIC)
     parsed = parse_fomc_html(html) if html else []
-    if set(d for d in FOMC_STATIC if d.startswith("2026")) <= set(parsed):      # la lectura de la página es confiable: suma fechas nuevas
-        days |= set(parsed)
+    if set(d for d in FOMC_STATIC if d.startswith("2026")) <= set(parsed):
+        days |= {d for d in parsed if d >= "2027-01-01"}
     return [{"id": f"fomc:{d}", "exchange": "fed", "kind": "fomc", "title": f"Decisión FOMC {d}", "ts_pub": _fomc_ts(d), "symbols": ["BTC"],
              "url": FED_FOMC} for d in sorted(days)]
 

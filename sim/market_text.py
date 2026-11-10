@@ -36,7 +36,6 @@ FEEDS = {                                   # fuente → URL (todas respondieron
     "reddit_CryptoCurrency": "https://www.reddit.com/r/CryptoCurrency/new/.rss?limit=50",
     "reddit_Bitcoin": "https://www.reddit.com/r/Bitcoin/new/.rss?limit=50",
     "reddit_ethereum": "https://www.reddit.com/r/ethereum/new/.rss?limit=50",
-    "reddit_CryptoMarkets": "https://www.reddit.com/r/CryptoMarkets/new/.rss?limit=50",
 }
 STOCKTWITS = {"BTC": "https://api.stocktwits.com/api/2/streams/symbol/BTC.X.json", "ETH": "https://api.stocktwits.com/api/2/streams/symbol/ETH.X.json"}
 

@@ -140,6 +140,12 @@ def test_fomc_parse_and_fallback_and_timestamp():
     full = FOMC_HTML + "".join(f'<div class="fomc-meeting__month"><strong>{m}</strong></div><div class="fomc-meeting__date">{d}</div>'
                                for m, d in [("April", "28-29"), ("June", "16-17"), ("July", "28-29"), ("September", "15-16"), ("October", "27-28"), ("December", "8-9")])
     assert len(me.parse_fomc_html(full.replace("2025 FOMC Meetings", "2026 FOMC Meetings"))) >= 8
+    # una lectura confiable suma solo años FUTUROS; fechas extra de años ya cubiertos (p. ej. 2025-08-22, Jackson Hole) no son reuniones
+    good = full.replace("2025 FOMC Meetings", "2026 FOMC Meetings") + "<div>2027 FOMC Meetings</div>" \
+        '<div class="fomc-meeting__month"><strong>January</strong></div><div class="fomc-meeting__date">26-27</div>' \
+        '<div>2025 FOMC Meetings</div><div class="fomc-meeting__month"><strong>August</strong></div><div class="fomc-meeting__date">22</div>'
+    ids = {e["id"] for e in me.fomc_events(good)}
+    assert "fomc:2027-01-27" in ids and "fomc:2025-08-22" not in ids and len(ids) == len(me.FOMC_STATIC) + 1
     e = next(e for e in me.fomc_events("") if e["id"] == "fomc:2026-10-28")
     assert pd.Timestamp(e["ts_pub"], unit="ms").hour == 18          # 14:00 de Nueva York en horario de verano = 18:00 UTC
     e2 = next(e for e in me.fomc_events("") if e["id"] == "fomc:2026-12-09")

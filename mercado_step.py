@@ -151,7 +151,7 @@ def collect_events(net: Net, status: dict, fomc_html: Optional[str]) -> list[dic
 
     for kind, cat in me.BINANCE_CATALOGS.items():
         go(f"anuncios_binance_{kind}", lambda kind=kind, cat=cat: me.parse_binance_cms(
-            net.json(me.BINANCE_CMS, {"type": 1, "catalogId": cat, "pageNo": 1, "pageSize": 30}), kind))
+            net.json(me.BINANCE_CMS, {"type": 1, "catalogId": cat, "pageNo": 1, "pageSize": 5}), kind))
     for kind, t in (("listing", "announcements-new-listings"), ("delisting", "announcements-delistings")):
         go(f"anuncios_okx_{kind}", lambda kind=kind, t=t: me.parse_okx_announcements(net.json(me.OKX_ANN, {"annType": t}), kind))
     for kind, t in (("listing", "new-listings"), ("delisting", "delistings")):
@@ -170,7 +170,7 @@ def collect_news(net: Net, now_ms: int, status: dict, sleep: Callable = time.sle
         except Exception as e:
             status[f"feed_{src}"] = f"{type(e).__name__}: {e}"[:160]
         if src.startswith("reddit_"):
-            sleep(1.0)                                   # cortesía con Reddit
+            sleep(8.0)                                   # Reddit limita peticiones sin sesión (429): espacio generoso; si aun así falla, queda registrado
     for a, url in mt.STOCKTWITS.items():
         try:
             items += mt.parse_stocktwits(net.json(url), a, now_ms)
@@ -232,7 +232,10 @@ def run(store: str, net: Optional[Net] = None, now_ms: Optional[int] = None, sym
             status["fed_calendario"] = "ok"
         except Exception as e:
             status["fed_calendario"] = f"{type(e).__name__}: {e}"[:160]
-        events, n_new_ev = me.merge_events(_load(os.path.join(st_dir, "events.json"), []), collect_events(net, status, fomc_html))
+        new_events = collect_events(net, status, fomc_html)
+        allowed_fomc = {e["id"] for e in new_events if e["kind"] == "fomc"}
+        stored = [e for e in _load(os.path.join(st_dir, "events.json"), []) if e["kind"] != "fomc" or e["id"] in allowed_fomc]   # limpia fechas que ya no se consideran reuniones
+        events, n_new_ev = me.merge_events(stored, new_events)
         _save_lines(os.path.join(st_dir, "events.json"), events)
         # --- fase 3: noticias y redes
         items, n_new_it = mt.merge_items(_load(os.path.join(st_dir, "items.json"), []), collect_news(net, now_ms, status, sleep))
