@@ -33,6 +33,23 @@
   .two { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
   .note { color:var(--mut); font-size:12px; margin:8px 0 0; }
   a { color:var(--acc); }
+  /* panorama */
+  :root { --up:#14a06a; --dn:#e0483e; --am:#e0a21c; --nt:#8b95a1; }
+  @media (prefers-color-scheme: dark) { :root { --up:#3ccf91; --dn:#f06a60; --am:#f0bd4f; --nt:#8b95a1; } }
+  .pan { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; }
+  .pcard { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; }
+  .pcard h3 { margin:0 0 2px; color:var(--fg); font-size:15px; } .pcard .px { font-weight:700; }
+  .split { display:flex; height:34px; border-radius:10px; overflow:hidden; margin:10px 0 4px; font-weight:700; color:#fff; }
+  .split div { display:flex; align-items:center; padding:0 10px; min-width:44px; } .split .u { background:var(--up); } .split .d { background:var(--dn); justify-content:flex-end; }
+  .cone { width:100%; height:120px; display:block; } .cone text { fill:var(--mut); font-size:9px; }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(128px,1fr)); gap:8px; margin-top:8px; }
+  .tile { border-left:4px solid var(--nt); background:var(--bg); border-radius:8px; padding:6px 9px; } .tile b { display:block; font-size:15px; } .tile span { font-size:11px; color:var(--mut); }
+  .tile.g { border-color:var(--up); } .tile.r { border-color:var(--dn); } .tile.a { border-color:var(--am); }
+  .tile.g b { color:var(--up); } .tile.r b { color:var(--dn); } .tile.a b { color:var(--am); }
+  .meter { display:flex; height:10px; border-radius:6px; overflow:hidden; background:var(--line); margin:6px 0 2px; } .meter i { display:block; height:100%; }
+  .pchips { margin-top:6px; } .pchip { display:inline-block; font-size:11px; padding:2px 9px; border-radius:999px; background:var(--bg); border:1px solid var(--line); margin:2px 3px 2px 0; }
+  .gauge text { fill:var(--fg); }
+  .big { font-size:30px; font-weight:800; line-height:1; }
   #err { color:var(--neg); }
 </style>
 </head>
@@ -43,7 +60,7 @@
   <div id="err"></div>
   <div class="aviso" id="aviso" hidden></div>
   <nav>
-    <a href="#f0">0 · Rango de 12 meses</a><a href="#f1">1 · Flujos y derivados</a><a href="#f2">2 · Anuncios y calendario</a>
+    <a href="#pan">Panorama</a><a href="#f0">0 · Rango de 12 meses</a><a href="#f1">1 · Flujos y derivados</a><a href="#f2">2 · Anuncios y calendario</a>
     <a href="#f3">3 · Noticias y redes</a><a href="#pred">Predicciones</a><a href="#src">Fuentes</a>
   </nav>
   <div id="root"></div>
@@ -187,11 +204,86 @@ function src(st) {
     (bad.length ? `<div class="wrap"><table>${th('<span class="l">Fuente</span>', '<span class="l">Motivo</span>')}${bad.map(([k, v]) => `<tr><td class="l">${esc(k)}</td><td class="l">${esc(v)}</td></tr>`).join("")}</table></div>` : "");
 }
 
+
+// ---------------------------------------------------------------- panorama (resumen gráfico)
+const Phi = x => { const t = 1 / (1 + 0.2316419 * Math.abs(x)), p = 0.3989423 * Math.exp(-x * x / 2) * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return x > 0 ? 1 - p : p; };
+const usd = v => v == null ? "—" : "$" + Number(v).toLocaleString("en-US", { maximumFractionDigits: v < 10 ? 4 : v < 1000 ? 2 : 0 });
+const median = a => { const s = a.filter(x => x != null && isFinite(x)).sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null; };
+const tile = (cls, big, small) => `<div class="tile ${cls}"><b>${big}</b><span>${esc(small)}</span></div>`;
+
+function readings(a, d) {                      // lectura "de cara" con umbrales fijos; sin validar (g = presión compradora/ánimo positivo, r = vendedora/negativo)
+  const u = d.fase1.ultima, k = x => u[a + "_" + x], t = [];
+  const f = k("okx_funding"), tk = k("taker_buy_ratio_24h"), dv = k("dvol");
+  if (tk != null) t.push([tk > 0.53 ? "g" : tk < 0.47 ? "r" : "a", pc(tk, 1), "compra agresiva spot 24 h"]);
+  if (f != null) t.push([f > 0.0003 ? "a" : f > 0 ? "g" : "r", (f * 100).toFixed(4) + "%", f > 0.0003 ? "funding alto (largos apalancados)" : "funding OKX 8 h"]);
+  if (dv != null) t.push(["n", num(dv, 1), "DVOL (volatilidad implícita anual %)"]);
+  const pr = k("coinbase_premium");
+  if (pr != null) t.push(["n", pc(pr, 2, true), "prima Coinbase vs Binance"]);
+  const c = d.fase0 && d.fase0.hoy.monedas.find(m => m.symbol == a.toUpperCase() + "USDT");
+  if (c && c.pct_rank != null) t.push([c.pct_rank > 0.66 ? "g" : c.pct_rank < 0.33 ? "r" : "a", (c.pct_rank * 100).toFixed(0) + "%", "posición en el rango de 12 m"]);
+  const tn = (d.fase3.tono_diario || []).slice(-1)[0], tv = tn && (tn["tone_" + a] != null ? tn["tone_" + a] : tn.tone);
+  if (tv != null) t.push([tv > 0.1 ? "g" : tv < -0.1 ? "r" : "a", (tv > 0 ? "+" : "") + tv.toFixed(2), "tono de noticias (hoy)"]);
+  return t;
+}
+
+function gauge(v, label) {                      // medidor 0-100 de media luna (Fear & Greed)
+  const R = 62, cx = 80, cy = 74, ang = 180 - v * 1.8, rad = x => x * Math.PI / 180, P = (r, deg) => [cx + r * Math.cos(rad(deg)), cy - r * Math.sin(rad(deg))];
+  const seg = (a0, a1, col) => { const [x0, y0] = P(R, 180 - a0 * 1.8), [x1, y1] = P(R, 180 - a1 * 1.8); return `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}" stroke="${col}" stroke-width="12" fill="none"/>`; };
+  const [nx, ny] = P(R - 18, ang), txt = v <= 25 ? "Miedo extremo" : v <= 45 ? "Miedo" : v <= 55 ? "Neutral" : v <= 75 ? "Codicia" : "Codicia extrema";
+  return `<svg class="gauge" viewBox="0 0 160 96" role="img" aria-label="${esc(label)} ${v}">${seg(0, 25, "var(--dn)")}${seg(25, 45, "#e8803a")}${seg(45, 55, "var(--am)")}${seg(55, 75, "#8bbf3f")}${seg(75, 100, "var(--up)")}` +
+    `<line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="var(--fg)" stroke-width="3" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="5" fill="var(--fg)"/>` +
+    `<text x="${cx}" y="94" text-anchor="middle" font-size="13" font-weight="700">${v} · ${txt}</text></svg>`;
+}
+
+function coneSvg(px, s) {                       // cono de 7 días: ±1σ (68 %) y ±2σ (95 %) del retorno logarítmico
+  const W = 320, Hh = 120, x0 = 14, x1 = W - 76, hi2 = px * Math.exp(2 * s), lo2 = px * Math.exp(-2 * s), hi1 = px * Math.exp(s), lo1 = px * Math.exp(-s);
+  const y = v => 8 + (hi2 - v) / (hi2 - lo2) * (Hh - 16), ym = y(px);
+  const band = (a, b, op) => `<path d="M${x0} ${ym} L${x1} ${y(a)} L${x1} ${y(b)} Z" fill="var(--acc)" opacity="${op}"/>`;
+  const lab = (v, dy, t) => `<text x="${x1 + 6}" y="${y(v) + dy}">${t} ${esc(usd(v))}</text>`;
+  return `<svg class="cone" viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Rango esperado a 7 días">${band(hi2, lo2, 0.16)}${band(hi1, lo1, 0.3)}` +
+    `<line x1="${x0}" y1="${ym}" x2="${x1}" y2="${ym}" stroke="var(--mut)" stroke-dasharray="3 3"/><circle cx="${x0}" cy="${ym}" r="4" fill="var(--fg)"/>` +
+    lab(hi2, 3, "95 %") + lab(hi1, 3, "68 %") + `<text x="${x1 + 6}" y="${ym + 3}">hoy ${esc(usd(px))}</text>` + lab(lo1, 3, "68 %") + lab(lo2, 3, "95 %") + `</svg>`;
+}
+
+function panoramaAsset(a, d) {
+  const A = a.toUpperCase(), ps = (d.predicciones.recientes || []).filter(p => p.asset == A), p = ps[0], u = d.fase1.ultima, px = u[a + "_price"] || (p && p.close_asof);
+  if (!p || !px) return `<div class="pcard"><h3>${A}</h3><div class="note">Aún no hay pronóstico registrado.</div></div>`;
+  const up = Math.round(p.p_up * 100), dn = 100 - up, s = median([p.vol30, p.ewma, p.dvol]), rd = readings(a, d);
+  const g = rd.filter(r => r[0] == "g").length, r = rd.filter(x => x[0] == "r").length, am = rd.filter(x => x[0] == "a").length, n = g + r + am || 1;
+  const pm = x => 2 * (1 - Phi(x / s)), lean = g - r;
+  return `<div class="pcard"><h3>${A} <span class="px">${usd(px)}</span> <span class="sub">· próximos 7 días (desde el cierre del ${esc(p.asof)})</span></h3>` +
+    `<div class="split"><div class="u" style="width:${up}%">▲ ${up}%</div><div class="d" style="width:${dn}%">${dn}% ▼</div></div>` +
+    `<div class="note" style="margin:0 0 6px">Probabilidad de cerrar la semana arriba / abajo = <b>frecuencia histórica</b> de semanas al alza (365 días). Todavía ninguna señal demostró mejorarla.</div>` +
+    coneSvg(px, s) +
+    `<div class="pchips"><span class="pchip">Movimiento típico ±${(s * 100).toFixed(1)}%</span><span class="pchip">P(mover más de 5 %) ≈ ${(pm(0.05) * 100).toFixed(0)}%</span><span class="pchip">P(más de 10 %) ≈ ${(pm(0.10) * 100).toFixed(0)}%</span></div>` +
+    `<h3 style="margin-top:12px">Lectura de indicadores <span class="sub">(umbrales fijos, sin validar)</span></h3>` +
+    `<div class="meter"><i style="width:${g / n * 100}%;background:var(--up)"></i><i style="width:${am / n * 100}%;background:var(--am)"></i><i style="width:${r / n * 100}%;background:var(--dn)"></i></div>` +
+    `<div class="sub">${g} favorables · ${am} neutros · ${r} adversos → <b>${lean >= 2 ? "inclinación alcista" : lean <= -2 ? "inclinación bajista" : "sin inclinación clara"}</b> (no mueve la probabilidad de arriba)</div>` +
+    `<div class="tiles">${rd.map(x => tile(x[0], x[1], x[2])).join("")}</div></div>`;
+}
+
+function panorama(d) {
+  const u = d.fase1.ultima, stv = (d.fase3.tono_diario || []).slice(-1)[0];
+  const sc = u.stable_chg_7d, mc = u.mcap_chg_24h, br = d.fase0 ? d.fase0.hoy.amplitud : null;
+  const glob = [];
+  if (sc != null) glob.push([sc > 0.003 ? "g" : sc < -0.003 ? "r" : "a", pc(sc, 2, true), "stablecoins en circulación, 7 días"]);
+  if (mc != null) glob.push([mc > 1 ? "g" : mc < -1 ? "r" : "a", (mc > 0 ? "+" : "") + mc.toFixed(1) + "%", "capitalización total, 24 h"]);
+  if (u.btc_dominance != null) glob.push(["n", u.btc_dominance.toFixed(1) + "%", "dominancia de BTC"]);
+  if (br) glob.push([br.cerca_de_minimos_7d >= 0.5 ? "r" : br.cerca_de_maximos_7d >= 0.5 ? "g" : "a", pc(br.cerca_de_minimos_7d, 0) + " / " + pc(br.cerca_de_maximos_7d, 0), "monedas en mínimos / máximos de 12 m (7 d)"]);
+  if (stv && stv.st_balance != null) glob.push([stv.st_balance > 0.2 ? "g" : stv.st_balance < -0.2 ? "r" : "a", (stv.st_balance > 0 ? "+" : "") + stv.st_balance.toFixed(2), "balance alcista/bajista en Stocktwits"]);
+  const fng = u.fng;
+  return `<div class="pan">${panoramaAsset("btc", d)}${panoramaAsset("eth", d)}` +
+    `<div class="pcard"><h3>Ánimo del mercado</h3>${fng != null ? gauge(fng, "Fear & Greed") : '<div class="note">Sin Fear & Greed.</div>'}<div class="tiles">${glob.map(x => tile(x[0], x[1], x[2])).join("")}</div>` +
+    `<div class="note">Verde = presión compradora o ánimo positivo; rojo = vendedora o negativo; ámbar = neutral; gris = solo informativo. Es la lectura "de cara" con umbrales fijos: <b>no es una señal validada</b>.</div></div></div>` +
+    `<p class="note">La probabilidad de subida/bajada es la frecuencia histórica de semanas al alza y el cono es el rango típico de 7 días según la volatilidad (mediana de vol. de 30 d, EWMA y DVOL; supone retornos normales, que subestima movimientos extremos). ` +
+    `Las fases 0 a 3 miden si algo mejora esas cifras; hasta que lo demuestren (90-120 días) no las modifican. Estimaciones estadísticas, no garantías ni consejo de inversión.</p>`;
+}
+
 fetch("data/mercado.json?" + Date.now()).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(d => {
   document.getElementById("meta").textContent = `Actualizado ${when(d.generado_ms)} (cada hora)`;
   const av = document.getElementById("aviso"); av.hidden = false; av.textContent = d.aviso;
   document.getElementById("root").innerHTML =
-    `<h2 id="f0">Fase 0 · Rango de 12 meses</h2>${fase0(d.fase0)}<h2 id="f1">Fase 1 · Flujo de órdenes y derivados</h2>${fase1(d.fase1)}` +
+    `<h2 id="pan">Panorama</h2>${panorama(d)}<h2 id="f0">Fase 0 · Rango de 12 meses</h2>${fase0(d.fase0)}<h2 id="f1">Fase 1 · Flujo de órdenes y derivados</h2>${fase1(d.fase1)}` +
     `<h2 id="f2">Fase 2 · Anuncios y calendario</h2>${fase2(d.fase2)}<h2 id="f3">Fase 3 · Noticias y redes</h2>${fase3(d.fase3)}` +
     `<h2 id="pred">Predicciones registradas</h2>${pred(d.predicciones)}<h2 id="src">Fuentes</h2>${src(d.estado_fuentes)}`;
 }).catch(e => { document.getElementById("meta").textContent = ""; document.getElementById("err").textContent = "No pude cargar los datos (" + e.message + "). Se publican tras la primera corrida del observatorio."; });
