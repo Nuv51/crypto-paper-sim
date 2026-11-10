@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Observatorio de spreads</title>
+<style>
+  :root { --bg:#ffffff; --fg:#1c1f24; --mut:#5d6672; --line:#e3e6ea; --card:#f6f7f9; --pos:#0b7a4b; --neg:#b3261e; --acc:#2456c7; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14171c; --fg:#e8eaed; --mut:#9aa3ae; --line:#2a2f37; --card:#1c2027; --pos:#4cc38a; --neg:#f2837a; --acc:#8fb0ff; } }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--fg); font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  main { max-width:960px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; } h2 { font-size:16px; margin:24px 0 8px; }
+  .sub { color:var(--mut); font-size:13px; }
+  .verdict { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin:14px 0; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .card b { display:block; font-size:20px; } .card span { color:var(--mut); font-size:12px; }
+  .wrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px; }
+  table { border-collapse:collapse; width:100%; min-width:640px; font-size:13px; }
+  th, td { padding:7px 9px; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align:left; }
+  th { color:var(--mut); font-weight:600; position:sticky; top:0; background:var(--bg); }
+  .pos { color:var(--pos); } .neg { color:var(--neg); } .ctl { color:var(--mut); }
+  .bar { display:flex; align-items:flex-end; gap:2px; height:56px; }
+  .bar i { flex:1; background:var(--acc); opacity:.75; min-height:1px; border-radius:2px 2px 0 0; }
+  .note { color:var(--mut); font-size:12px; margin-top:18px; }
+  #err { color:var(--neg); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Observatorio de spreads</h1>
+  <div class="sub" id="meta">Cargando…</div>
+  <div id="err"></div>
+  <div class="verdict" id="verdict" hidden></div>
+  <div class="grid" id="cards"></div>
+  <h2>Por moneda y ruta</h2>
+  <div class="wrap"><table id="routes"></table></div>
+  <h2>Distribución del neto (todas las rutas con Bitso)</h2>
+  <div class="bar" id="hist"></div>
+  <div class="sub" id="histlab"></div>
+  <h2>Prima del peso (precio implícito vía Bitso MXN vs. Binance)</h2>
+  <div class="wrap"><table id="gaps"></table></div>
+  <p class="note">Medición con fotos cada ~20 s durante ~2 min por hora: estima frecuencia y persistencia, no la carrera de latencia con bots
+  profesionales. Usa comisiones base y asume fondos pre-posicionados (sin costo de rebalanceo). No es una garantía ni una recomendación.</p>
+</main>
+<script>
+const pc = (v, d = 2) => v == null ? "—" : (v * 100).toFixed(d) + "%";
+const cls = v => v == null ? "" : v > 0 ? "pos" : v < 0 ? "neg" : "";
+const td = (t, c = "") => `<td class="${c}">${t}</td>`;
+fetch("data/summary.json?" + Date.now()).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(s => {
+  document.getElementById("meta").textContent =
+    `${s.days.toFixed(1)} días · ${s.snapshots.toLocaleString()} fotos (${s.failed_snapshots} fallidas) · umbral ${pc(s.params.threshold)} · actualizado ${new Date(s.last_ms).toLocaleString()}`;
+  const v = document.getElementById("verdict"); v.hidden = false; v.textContent = s.verdict;
+  const card = (n, l) => `<div class="card"><b>${n}</b><span>${l}</span></div>`;
+  document.getElementById("cards").innerHTML =
+    card(pc(s.bitso.pct_thr), "rutas con Bitso ≥ umbral") + card(pc(s.control.pct_thr), "control (Binance↔KuCoin) ≥ umbral") +
+    card(pc(s.bitso.pct_pos), "con Bitso: neto > 0") + card(s.suspicious.toLocaleString(), "descartadas por sospechosas");
+  const head = "<tr><th>Moneda</th><th>Ruta</th><th>Obs.</th><th>Bruto medio</th><th>Neto medio</th><th>Mejor neto</th><th>% ≥ umbral</th><th>Persistencia</th><th>Prof. media</th><th>Cota USDT/día</th></tr>";
+  document.getElementById("routes").innerHTML = head + s.routes.slice(0, 60).map(r =>
+    "<tr>" + td(r.asset) + td(r.route + (r.control ? " (control)" : ""), r.control ? "ctl" : "") + td(r.n.toLocaleString()) +
+    td(pc(r.mean_gross), cls(r.mean_gross)) + td(pc(r.mean_net), cls(r.mean_net)) + td(pc(r.max_net), cls(r.max_net)) +
+    td(pc(r.pct_thr)) + td(pc(r.persistence, 0)) + td(r.mean_depth_thr == null ? "—" : Math.round(r.mean_depth_thr).toLocaleString()) +
+    td(r.pnl_ub_per_day == null ? "—" : r.pnl_ub_per_day.toFixed(2)) + "</tr>").join("");
+  const h = s.routes.filter(r => !r.control).reduce((a, r) => a.map((x, i) => x + r.hist[i]), new Array(s.hist_labels.length).fill(0));
+  const m = Math.max(...h, 1);
+  document.getElementById("hist").innerHTML = h.map((x, i) => `<i style="height:${Math.max(1, 56 * x / m)}px" title="${s.hist_labels[i]}: ${x.toLocaleString()}"></i>`).join("");
+  document.getElementById("histlab").textContent = `de ${s.hist_labels[0]} (izq.) a ${s.hist_labels[s.hist_labels.length - 1]} (der.), pasos de 0.25 %`;
+  document.getElementById("gaps").innerHTML = "<tr><th>Moneda</th><th>Fotos</th><th>Media</th><th>Máx. |desvío|</th><th>% ≥ " + pc(s.params.mxn_gap_flag, 1) + "</th></tr>" +
+    s.mxn_gaps.slice(0, 15).map(g => "<tr>" + td(g.asset) + td(g.n.toLocaleString()) + td(pc(g.mean), cls(g.mean)) + td(pc(g.abs_max)) + td(pc(g.pct_flag, 0)) + "</tr>").join("");
+}).catch(e => { document.getElementById("meta").textContent = ""; document.getElementById("err").textContent = "Aún no hay datos del observatorio (" + e.message + "). Aparecerán tras la primera corrida."; });
+</script>
+</body>
+</html>

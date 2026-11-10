@@ -1,0 +1,1251 @@
+<title>Simulador de bots cripto</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Concepto: tablero de control sobrio. Resumen primero, detalle después; el estado se codifica con forma + texto, no solo con color. */
+:root {
+  --bg: #f1f3f5; --surface: #fdfdfe; --surface2: #f6f7f9; --line: #dfe3e8;
+  --ink: #0f1419; --ink2: #4a5260; --muted: #6b7380; --grid: rgba(74,82,96,.16);
+  --accent: #2a78d6; --accent-ink: #ffffff;
+  --good: #0ca30c; --warn: #fab219; --serious: #ec835a; --crit: #d03b3b;
+  --div-blue: #2a78d6; --div-red: #e34948; --div-mid: #f0efec;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --cash: #cdd2d9; --other: #8f97a3;
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101214; --surface: #181b1e; --surface2: #1f2327; --line: #2a2f35;
+    --ink: #eceef1; --ink2: #b9bfc8; --muted: #8f97a3; --grid: rgba(185,191,200,.16);
+    --accent: #3987e5; --accent-ink: #0b0d10;
+    --div-blue: #3987e5; --div-red: #e66767; --div-mid: #383835;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --cash: #3a4048; --other: #6b7380;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101214; --surface: #181b1e; --surface2: #1f2327; --line: #2a2f35;
+  --ink: #eceef1; --ink2: #b9bfc8; --muted: #8f97a3; --grid: rgba(185,191,200,.16);
+  --accent: #3987e5; --accent-ink: #0b0d10;
+  --div-blue: #3987e5; --div-red: #e66767; --div-mid: #383835;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --cash: #3a4048; --other: #6b7380;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.45;
+  padding-block: 0 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1180px; margin: 0 auto; }
+h1, h2, h3, p { margin: 0; }
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding-block: 18px 12px; }
+.top h1 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.top .sub { color: var(--ink2); font-size: 12.5px; min-width: 0; }
+.topr { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+a.stamp { text-decoration: none; color: var(--accent); border-color: var(--accent); }
+.stamp { display: inline-flex; align-items: center; gap: 8px; font: 500 11.5px var(--font); letter-spacing: .06em; text-transform: uppercase;
+  padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink2); }
+.simnav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-top: 14px; }
+.simnav:empty { display: none; }
+.simnav .lbl { font: 500 11px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+.simnav a { font: 500 13px var(--font); text-decoration: none; color: var(--ink2); padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); white-space: nowrap; }
+.simnav a:hover { border-color: var(--accent); color: var(--ink); }
+.simnav a[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); cursor: default; }
+@media (max-width: 560px) { .simnav { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; } .simnav .lbl { display: none; } }
+.banner { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 13px;
+  background: var(--surface); border: 1px solid var(--line); border-left-width: 4px; min-width: 0; }
+.banner b { font-weight: 600; }
+.banner.warn { border-left-color: var(--warn); }
+.banner.crit { border-left-color: var(--crit); }
+.banner.info { border-left-color: var(--accent); }
+.tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); margin-bottom: 16px; scrollbar-width: thin; position: sticky; top: env(safe-area-inset-top, 0px); background: var(--bg); z-index: 5; }
+.tabs button { font: 500 13px var(--font); color: var(--ink2); background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 12px; white-space: nowrap; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.panel { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+h2 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.hint { color: var(--muted); font-size: 12.5px; max-width: 78ch; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+.kpi .l { font-size: 11.5px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.kpi .v { font: 500 19px var(--mono); margin-top: 4px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi .d { font: 400 12px var(--mono); color: var(--ink2); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.tri { font-size: 10px; margin-right: 4px; vertical-align: 1px; }
+.tri.up { color: var(--good); } .tri.down { color: var(--crit); } .tri.flat { color: var(--muted); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 6px; }
+.legend button { display: inline-flex; align-items: center; gap: 6px; font: 400 12.5px var(--font); color: var(--ink2); background: none; border: 0; padding: 4px 0; cursor: pointer; }
+.legend button[aria-pressed="false"] { opacity: .4; text-decoration: line-through; }
+.legend i { width: 14px; height: 0; border-top: 3px solid; display: inline-block; }
+.legend i.dash { border-top-style: dashed; border-top-width: 2px; }
+.legend i.sq { height: 10px; width: 10px; border: 0; border-radius: 2px; }
+.chart { position: relative; min-width: 0; touch-action: pan-y; }
+.chart svg { display: block; max-width: 100%; overflow: visible; }
+.chart .ax text { fill: var(--ink2); font: 11px var(--mono); }
+.chart .gridl { stroke: var(--grid); stroke-width: 1; }
+.chart .zero { stroke: var(--ink2); stroke-width: 1; opacity: .5; }
+.chart .xh { stroke: var(--ink2); stroke-width: 1; stroke-dasharray: 3 3; }
+.tip { position: absolute; top: 6px; z-index: 3; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.14); min-width: 140px; max-width: 260px; }
+.tip .t { color: var(--muted); font: 400 11px var(--mono); margin-bottom: 4px; }
+.tip .r { display: flex; justify-content: space-between; gap: 12px; }
+.tip .r b { font: 500 12px var(--mono); font-variant-numeric: tabular-nums; }
+.tip i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 6px; }
+.bots { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px; }
+.bot { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.bot header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.bot h3 { font-size: 14.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sw { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.cmp th .sw { display: inline-block; margin-right: 5px; vertical-align: baseline; }
+.bot .strat { color: var(--ink2); font-size: 12.5px; }
+.bot .meta { color: var(--muted); font-size: 12px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px 10px; margin: 2px 0 0; }
+.stats div { min-width: 0; }
+.stats dt { overflow-wrap: anywhere; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.stats dd { margin: 0; font: 500 12.5px var(--mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font: 500 11.5px var(--font); padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface2); color: var(--ink); white-space: nowrap; }
+.pill i { display: inline-block; width: 8px; height: 8px; }
+.st-active i { background: var(--good); border-radius: 50%; }
+.st-paused i { border-left: 3px solid var(--warn); border-right: 3px solid var(--warn); width: 9px; height: 9px; }
+.st-halted i { background: var(--crit); }
+.st-retired i { border: 2px solid var(--crit); width: 9px; height: 9px; box-sizing: border-box; border-radius: 2px; }
+/* medidor de cercanía al límite de drawdown: la marca vertical está en el 80 %, donde empieza el aviso */
+.rk { position: relative; height: 6px; border-radius: 3px; background: var(--line); }
+.rk i { display: block; height: 100%; border-radius: 3px; background: var(--good); }
+.rk.watch i { background: var(--warn); } .rk.near i { background: var(--crit); }
+.rk::after { content: ''; position: absolute; left: 80%; top: -3px; bottom: -3px; width: 1px; background: var(--ink2); opacity: .55; }
+.rkc { display: flex; flex-direction: column; gap: 5px; min-width: 150px; }
+.rkt { font: 400 11.5px var(--mono); color: var(--ink2); font-variant-numeric: tabular-nums; }
+.rkt b { font-weight: 600; }
+.fg-top { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+.fg-v { font: 600 34px/1 var(--font); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.fg-l { font: 500 14px var(--font); color: var(--ink2); }
+.fg-bar { position: relative; height: 10px; border-radius: 5px; margin: 0 2px;
+  background: linear-gradient(90deg, var(--div-red) 0%, color-mix(in srgb, var(--div-red) 35%, var(--div-mid)) 30%, var(--div-mid) 50%, color-mix(in srgb, var(--div-blue) 35%, var(--div-mid)) 70%, var(--div-blue) 100%); }
+.fg-bar i { position: absolute; top: -5px; width: 5px; height: 20px; border-radius: 3px; background: var(--ink); border: 2px solid var(--surface); transform: translateX(-50%); box-sizing: border-box; }
+.fg-sc { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 11px; color: var(--muted); }
+.fg-h { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 14px 0 0; padding: 0; list-style: none; font: 400 12px var(--mono); color: var(--ink2); }
+.fg-h b { font-weight: 600; color: var(--ink); }
+.verdict { margin: 0 0 12px; font-size: 13px; color: var(--ink2); line-height: 1.45; }
+.verdict b { color: var(--ink); }
+.reason { font-size: 12px; color: var(--ink2); background: var(--surface2); border-radius: 6px; padding: 6px 8px; }
+.tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 500; background: var(--surface2); }
+td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: 0; }
+td.wrap { white-space: normal; min-width: 200px; }
+@media (max-width: 560px) { .cmp th, .cmp td { padding: 6px 5px; white-space: normal; } .cmp th { font-size: 9.5px; letter-spacing: 0; } .cmp td:first-child { max-width: 112px; } .cmp td.n small { white-space: nowrap; } }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.filters label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; min-width: 0; }
+select, .btn { font: 400 13px var(--font); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; min-width: 130px; max-width: 100%; }
+.btn { cursor: pointer; min-width: 0; }
+.btn:hover { background: var(--surface2); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { font: 400 13px var(--font); background: var(--surface); color: var(--ink2); border: 0; padding: 7px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.heat { border-collapse: separate; border-spacing: 3px; width: auto; }
+.heat th { background: none; text-transform: none; letter-spacing: 0; font-size: 11.5px; color: var(--ink2); white-space: normal; max-width: 92px; vertical-align: bottom; padding: 2px 4px; }
+.heat td { text-align: center; font: 500 12px var(--mono); border-radius: 4px; padding: 10px 8px; min-width: 52px; border: 0; color: var(--ink); }
+.pillish { display: inline-block; padding: 2px 8px; border-radius: 4px; background: var(--surface2); border: 1px solid var(--line); font-size: 12px; }
+.empty { text-align: center; padding: 48px 16px; color: var(--ink2); }
+.empty h2 { font-size: 17px; margin-bottom: 6px; color: var(--ink); }
+details { background: var(--surface2); border-radius: 6px; padding: 6px 10px; font-size: 12px; }
+details pre { margin: 6px 0 2px; font: 400 11.5px var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink2); }
+.docgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.doc dl { display: grid; grid-template-columns: 112px 1fr; gap: 6px 10px; margin: 0; font-size: 12.5px; }
+.doc dt { color: var(--muted); } .doc dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.ev { display: flex; flex-direction: column; }
+.ev div { display: grid; grid-template-columns: 112px 60px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+.ev div:last-child { border-bottom: 0; }
+.ev .when { font: 400 11.5px var(--mono); color: var(--muted); }
+@media (max-width: 560px) { .ev div { grid-template-columns: 1fr; gap: 2px; } }
+/* ---- pestaña Summary: minimalista, una idea por tarjeta */
+.sm { display: flex; flex-direction: column; gap: 14px; }
+.sm-hero { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 6px 24px; padding: 4px 2px 0; }
+.sm-hero .l { font-size: 11.5px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }
+.sm-hero .big { font: 600 clamp(30px, 8vw, 40px)/1.05 var(--font); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.sm-hero .big small { font: 500 14px var(--font); color: var(--muted); letter-spacing: 0; margin-left: 6px; }
+.sm-hero .d { font: 500 13px var(--mono); color: var(--ink2); font-variant-numeric: tabular-nums; line-height: 1.5; }
+.sm-hero .d small { display: block; font: 400 11.5px var(--font); color: var(--muted); }
+.sm-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 10px; }
+.sm-tile { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.sm-tile .l { font-size: 11px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
+.sm-tile .v { font: 500 17px var(--mono); margin-top: 3px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.sm-tile .d { font: 400 11.5px var(--font); color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+.meter { height: 4px; border-radius: 2px; background: var(--line); margin-top: 8px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+.sm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 12px; }
+.sm-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0; }
+.sm-card > h2 { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; font: 500 11.5px var(--font); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin: 0 0 12px; }
+.sm-card > h2 .r { text-transform: none; letter-spacing: 0; font: 400 12px var(--mono); color: var(--ink2); }
+.sm-card .seg button { padding: 4px 9px; font-size: 12px; }
+.dn { position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 20px; }
+.dn svg { flex: none; width: 168px; height: 168px; max-width: 100%; }
+.dn .slice { fill: none; transition: opacity .12s; }
+.dn svg:has(.slice:hover) .slice:not(:hover) { opacity: .4; }
+.dn .ctr { fill: var(--ink); text-anchor: middle; }
+.dn .tip { top: 0; }
+.lg { list-style: none; margin: 0; padding: 0; flex: 1 1 180px; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.lg li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; gap: 4px 8px; align-items: center; font-size: 12.5px; }
+.lg .nm { color: var(--ink2); overflow-wrap: anywhere; line-height: 1.25; }
+.lg .pc { font: 500 12px var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.lg .vl { font: 400 11.5px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; min-width: 48px; }
+.sm-grid.three { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.sm-ctrl { margin-bottom: 8px; max-width: 100%; overflow-x: auto; }
+.sm-ctrl .seg button { padding: 5px 10px; white-space: nowrap; }
+.sm-ctrl .seg button:disabled { opacity: .4; cursor: not-allowed; }
+.cmp { font-size: 12.5px; } .cmp th, .cmp td { padding: 6px 10px; }
+@media (max-width: 560px) { .cmp { font-size: 12px; } .cmp th, .cmp td { padding: 6px 6px; } .cmp th { font-size: 10px; letter-spacing: 0; } }
+.cmp td.best { font-weight: 600; color: var(--ink); } .cmp td.best::before { content: '▲ '; color: var(--good); font-size: 10px; }
+.cmp td.n.best::before { content: '▲\00a0'; }
+.cmp-win { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
+.cmp-win .chip { font: 500 12px var(--font); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; background: var(--surface); color: var(--ink2); }
+.cmp-win .chip b { color: var(--ink); }
+.cmp tr.cur td { background: var(--surface2); font-weight: 600; }
+.fam { display: flex; flex-direction: column; gap: 10px; }
+.fam-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.fam-h h2 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.fam-s { font: 400 12px var(--mono); color: var(--ink2); }
+.hb { display: flex; flex-direction: column; gap: 4px; }
+.hb-r { display: grid; grid-template-columns: minmax(92px, 36%) minmax(60px, 1fr) minmax(74px, auto); gap: 10px; align-items: center; min-height: 32px; font-size: 12.5px; }
+.hb-n { color: var(--ink2); min-width: 0; overflow-wrap: anywhere; line-height: 1.25; }
+.hb-n small { display: block; font-size: 11px; color: var(--muted); }
+.hb-t { position: relative; height: 10px; }
+.hb-t::before { content: ''; position: absolute; left: 50%; top: -6px; bottom: -6px; width: 1px; background: var(--ink2); opacity: .35; }
+.hb-b { position: absolute; top: 0; height: 100%; }
+.hb-b.pos { left: 50%; background: var(--div-blue); border-radius: 0 4px 4px 0; }
+.hb-b.neg { right: 50%; background: var(--div-red); border-radius: 4px 0 0 4px; }
+.hb-b.zero { left: calc(50% - 1px); width: 2px; background: var(--muted); }
+.hb-v { text-align: right; font: 500 12px var(--mono); font-variant-numeric: tabular-nums; line-height: 1.25; }
+.hb-v small { display: block; font: 400 10.5px var(--mono); color: var(--muted); }
+@media (max-width: 560px) {      /* en móvil: nombre y valor arriba, la barra completa debajo */
+  .hb { gap: 6px; }
+  .hb-r { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "n v" "t t"; gap: 5px 10px; min-height: 0; }
+  .hb-n { grid-area: n; } .hb-v { grid-area: v; } .hb-t { grid-area: t; height: 8px; }
+}
+@media (prefers-reduced-motion: no-preference) { .tabs button { transition: color .12s; } }
+</style>
+
+<div class="wrap" id="app">
+  <nav class="simnav" id="sim-nav" aria-label="Cambiar de simulador"></nav>
+  <div class="top">
+    <div style="min-width:0">
+      <h1 id="h1">Simulador de bots cripto</h1>
+      <p class="sub" id="sub">Cargando…</p>
+    </div>
+    <span class="topr"><span class="stamp" id="stamp">Simulación · dinero ficticio</span></span>
+  </div>
+  <div id="banners"></div>
+  <div class="tabs" role="tablist" id="tabs">
+    <button role="tab" data-tab="summary" aria-selected="true">Summary</button>
+    <button role="tab" data-tab="resumen" aria-selected="false">Rendimiento</button>
+    <button role="tab" data-tab="pnl" aria-selected="false">P&amp;L</button>
+    <button role="tab" data-tab="tx" aria-selected="false">Transacciones</button>
+    <button role="tab" data-tab="riesgo" aria-selected="false">Riesgo</button>
+    <button role="tab" data-tab="tendencias" aria-selected="false">Tendencias</button>
+    <button role="tab" data-tab="bots" aria-selected="false">Bots</button>
+    <button role="tab" data-tab="comparar" aria-selected="false">Comparar</button>
+  </div>
+  <main class="panel" id="panel"></main>
+</div>
+
+<script>
+(function () {
+'use strict';
+var TZ = 'America/Monterrey';
+var TEST = typeof globalThis !== 'undefined' && globalThis.__DASH_TEST__ === true;
+
+/* ------------------------------------------------------------------ utilidades */
+var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+var fin = function (v) { return v != null && isFinite(v); };
+var nf = function (v, d) { d = d == null ? 2 : d; return fin(v) ? Number(v).toLocaleString('es-MX', { minimumFractionDigits: d, maximumFractionDigits: d }) : '—'; };
+var sgn = function (v, d, suf) { if (!fin(v)) return '—'; var s = v > 0 ? '+' : v < 0 ? '−' : ''; return s + nf(Math.abs(v), d == null ? 2 : d) + (suf || ''); };
+var tri = function (v) { return '<span class="tri ' + (!fin(v) || v === 0 ? 'flat' : v > 0 ? 'up' : 'down') + '" aria-hidden="true">' + (!fin(v) || v === 0 ? '◆' : v > 0 ? '▲' : '▼') + '</span>'; };
+var dtf, dayf, hmf;
+try {
+  dtf = new Intl.DateTimeFormat('es-MX', { timeZone: TZ, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+  dayf = new Intl.DateTimeFormat('es-MX', { timeZone: TZ, day: '2-digit', month: 'short' });
+  hmf = new Intl.DateTimeFormat('es-MX', { timeZone: TZ, day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+} catch (e) {
+  dtf = new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+  dayf = new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short' });
+  hmf = new Intl.DateTimeFormat('es-MX', { day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+}
+var monf; try { monf = new Intl.DateTimeFormat('es-MX', { timeZone: TZ, month: 'short', year: '2-digit' }); } catch (e) { monf = new Intl.DateTimeFormat('es-MX', { month: 'short', year: '2-digit' }); }
+var fmtDT = function (ms) { return fin(ms) ? dtf.format(new Date(ms)).replace(',', '') : '—'; };
+var ago = function (ms) {
+  var m = Math.max(0, Math.round((Date.now() - ms) / 60000));
+  if (m < 2) return 'hace un momento';
+  if (m < 90) return 'hace ' + m + ' min';
+  if (m < 2880) return 'hace ' + Math.round(m / 60) + ' h';
+  return 'hace ' + Math.round(m / 1440) + ' días';
+};
+var REASONS = { stop: 'Stop', take_profit: 'Take profit', mean_reached: 'Media alcanzada', time_stop: 'Salida por tiempo', trailing_stop: 'Trailing stop',
+  trend_end: 'Fin de tendencia', trend_up: 'Tendencia alcista', dca: 'Compra DCA', grid_buy: 'Grid: compra', grid_sell: 'Grid: venta',
+  grid_break_down: 'Ruptura bajista', grid_break_up: 'Ruptura alcista', rsi_bb_oversold: 'Sobreventa RSI + Bollinger', stop_atr: 'Stop ATR',
+  false_breakout: 'Falsa ruptura', channel_exit: 'Salida de canal', donchian_breakout: 'Ruptura Donchian', risk_halt: 'Control de riesgo',
+  carry_open: 'Abre carry (spot + corto)', funding: 'Funding cobrado', funding_negative: 'Funding negativo', margin_stress: 'Estrés de margen',
+  peg_deviation: 'Desvío del peg', peg_restored: 'Peg restablecido', depeg_exit: 'Salida por de-peg', mm_init: 'Inventario inicial',
+  mm_bid: 'MM: compra', mm_ask: 'MM: venta', mm_rebalance: 'MM: rebalanceo', ml_signal: 'Señal del modelo', signal_flip: 'Señal invertida',
+  rebalance_xrp_rail: 'Rebalanceo por riel XRP' };
+var VENUE = { bitso: 'Bitso', binance: 'Binance', kucoin: 'KuCoin' };
+var reason = function (r) {
+  if (REASONS[r]) return REASONS[r];
+  var m = /^(\w+)->(\w+)$/.exec(r || '');
+  return m ? (VENUE[m[1]] || m[1]) + ' → ' + (VENUE[m[2]] || m[2]) : (r || '—');
+};
+var SYNTH = { perp: 1, funding: 1, arb: 1 };
+var sideLabel = function (side, kind) {
+  if (kind === 'perp') return side === 'buy' ? '▲ Abre corto' : '▽ Cierra corto';
+  if (kind === 'funding') return '＋ Funding';
+  if (kind === 'arb') return '⇄ Arbitraje';
+  return side === 'buy' ? '▲ Compra' : '▽ Venta';
+};
+var kindLabel = function (kind) { return kind === 'limit' ? 'Límite' : kind === 'perp' ? 'Perpetuo' : kind === 'funding' ? 'Funding' : kind === 'arb' ? 'Arbitraje' : 'Mercado'; };
+var STATUS = { active: 'Activo', paused: 'En pausa', halted: 'Detenido', retired: 'Retirado' };
+var LEVEL = { ok: 'Holgado', watch: 'Atento', near: 'Cerca del límite' };
+var ACTIONS = { liquidate_and_halt: 'Liquida y se detiene', pause_and_resume: 'Liquida, pausa y reanuda sola', flag_only: 'Solo alerta informativa (el bot sigue; sin stop por diseño)' };
+var T = { ts: 0, bot: 1, ex: 2, sym: 3, side: 4, kind: 5, qty: 6, price: 7, notional: 8, fee: 9, pnl: 10, reason: 11 };
+var short = function (s) { return String(s || '').replace(/USDT~PERP$/, ' perp').replace(/~RAIL$/, '').replace(/USDT$/, ''); };
+
+/* ------------------------------------------------------------------ escalas */
+function niceTicks(min, max, n) {
+  n = n || 5;
+  if (!fin(min) || !fin(max)) return { ticks: [0, 1], min: 0, max: 1 };
+  if (min === max) { var d = Math.abs(min) * 0.05 || 1; min -= d; max += d; }
+  var step0 = (max - min) / (n - 1), mag = Math.pow(10, Math.floor(Math.log10(step0))), norm = step0 / mag;
+  var step = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * mag;
+  var lo = Math.floor(min / step + 1e-9) * step, hi = Math.ceil(max / step - 1e-9) * step, ticks = [];
+  for (var v = lo; v <= hi + step / 2; v += step) ticks.push(+v.toPrecision(12));
+  return { ticks: ticks, min: lo, max: hi };
+}
+function nearest(arr, px) {
+  var lo = 0, hi = arr.length - 1;
+  while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (arr[mid] < px) lo = mid; else hi = mid; }
+  return Math.abs(arr[lo] - px) <= Math.abs(arr[hi] - px) ? lo : hi;
+}
+var REG = {};   /* geometría de cada gráfica para el hover */
+var axisLabel = function (v) { return Math.abs(v) >= 1000 ? nf(v, 0) : Math.abs(v) >= 10 ? nf(v, 1) : Math.abs(v) >= 1 ? nf(v, 2) : nf(v, 4); };
+
+function frame(o, extra) {
+  var w = Math.max(280, Math.floor(o.w || 640)), h = o.h || 280;
+  var m = { l: o.yw || 54, r: 14, t: 12, b: 26 };
+  return { w: w, h: h, m: m, iw: w - m.l - m.r, ih: h - m.t - m.b };
+}
+function axes(f, tk, x0, x1, yfmt, zero) {
+  var Y = function (v) { return f.m.t + (1 - (v - tk.min) / (tk.max - tk.min)) * f.ih; };
+  var s = '<g class="ax">';
+  tk.ticks.forEach(function (t) {
+    var y = Y(t);
+    s += '<line class="gridl" x1="' + f.m.l + '" x2="' + (f.w - f.m.r) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '"/>';
+    s += '<text x="' + (f.m.l - 6) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end">' + esc(yfmt(t)) + '</text>';
+  });
+  if (zero && tk.min < 0 && tk.max > 0) s += '<line class="zero" x1="' + f.m.l + '" x2="' + (f.w - f.m.r) + '" y1="' + Y(0).toFixed(1) + '" y2="' + Y(0).toFixed(1) + '"/>';
+  var span = x1 - x0, nt = f.iw < 420 ? 3 : 5, long = span > 3 * 86400000;
+  for (var i = 0; i < nt; i++) {
+    var t = x0 + span * (nt === 1 ? 0 : i / (nt - 1)), x = f.m.l + (nt === 1 ? 0 : i / (nt - 1)) * f.iw;
+    var a = i === 0 ? 'start' : i === nt - 1 ? 'end' : 'middle';
+    s += '<text x="' + x.toFixed(1) + '" y="' + (f.h - 6) + '" text-anchor="' + a + '">' + esc((span > 200 * 86400000 ? monf : long ? dayf : hmf).format(new Date(t))) + '</text>';
+  }
+  return { svg: s + '</g>', Y: Y };
+}
+function pathOf(xp, ys, Y, step) {
+  var d = '', pen = false, px = null, py = null;
+  for (var i = 0; i < ys.length; i++) {
+    var v = ys[i];
+    if (!fin(v)) { pen = false; continue; }
+    var y = Y(v);
+    if (!pen) { d += 'M' + xp[i].toFixed(1) + ' ' + y.toFixed(1); pen = true; }
+    else if (step) d += 'H' + xp[i].toFixed(1) + 'V' + y.toFixed(1);
+    else d += 'L' + xp[i].toFixed(1) + ' ' + y.toFixed(1);
+    px = xp[i]; py = y;
+  }
+  return { d: d, ex: px, ey: py };
+}
+function legendHtml(items, hidden) {
+  return '<div class="legend">' + items.map(function (s) {
+    var on = !hidden[s.key];
+    return '<button type="button" data-key="' + esc(s.key) + '" aria-pressed="' + on + '"><i class="' + (s.dash ? 'dash' : '') + '" style="border-color:' + s.color + '"></i>' + esc(s.name) + '</button>';
+  }).join('') + '</div>';
+}
+function chartWrap(id, svg) {
+  return '<div class="chart" data-chart="' + id + '">' + svg + '<div class="tip" hidden></div></div>';
+}
+
+/* ------------------------------------------------------------------ gráfica de líneas */
+function lineChart(o) {
+  var f = frame(o), xs = o.xs, n = xs.length, hidden = o.hidden || {};
+  var series = o.series.filter(function (s) { return !hidden[s.key]; });
+  var lo = Infinity, hi = -Infinity;
+  series.forEach(function (s) { s.ys.forEach(function (v) { if (fin(v)) { if (v < lo) lo = v; if (v > hi) hi = v; } }); });
+  if (o.zero) { lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
+  if (!fin(lo)) { lo = 0; hi = 1; }
+  var tk = niceTicks(lo, hi, 5), x0 = xs[0], x1 = n > 1 ? xs[n - 1] : x0 + 1;
+  var xp = xs.map(function (t) { return f.m.l + (x1 === x0 ? 0.5 : (t - x0) / (x1 - x0)) * f.iw; });
+  var ax = axes(f, tk, x0, x1, o.yfmt, o.zero), svg = '<svg viewBox="0 0 ' + f.w + ' ' + f.h + '" width="' + f.w + '" height="' + f.h + '" role="img" aria-label="' + esc(o.label || 'Gráfica') + '">' + ax.svg;
+  series.forEach(function (s) {
+    var p = pathOf(xp, s.ys, ax.Y, o.step || s.step);
+    if (!p.d) return;
+    svg += '<path d="' + p.d + '" fill="none" style="stroke:' + s.color + '" stroke-width="' + (s.width || 2) + '" stroke-linejoin="round" stroke-linecap="round"' + (s.dash ? ' stroke-dasharray="' + (s.dash === true ? '5 4' : s.dash) + '"' : '') + '/>';
+    if (fin(p.ex)) svg += '<circle cx="' + p.ex.toFixed(1) + '" cy="' + p.ey.toFixed(1) + '" r="3.5" style="fill:' + s.color + ';stroke:var(--surface)" stroke-width="2"/>';
+  });
+  svg += '<line class="xh" y1="' + f.m.t + '" y2="' + (f.h - f.m.b) + '" style="display:none"/></svg>';
+  REG[o.id] = { w: f.w, xpx: xp, tip: function (i) {
+    var r = '<div class="t">' + esc(fmtDT(xs[i])) + '</div>';
+    series.forEach(function (s) { if (fin(s.ys[i])) r += '<div class="r"><span><i style="background:' + s.color + '"></i>' + esc(s.name) + '</span><b>' + esc(o.tipfmt ? o.tipfmt(s.ys[i]) : o.yfmt(s.ys[i])) + '</b></div>'; });
+    return r;
+  } };
+  return chartWrap(o.id, svg);
+}
+
+/* ------------------------------------------------------------------ barras (P&L por operación) */
+function barChart(o) {
+  var f = frame(o), rows = o.rows, n = rows.length, lo = 0, hi = 0;
+  rows.forEach(function (r) { if (r.v < lo) lo = r.v; if (r.v > hi) hi = r.v; });
+  var tk = niceTicks(lo, hi, 5), slot = f.iw / Math.max(1, n), bw = Math.max(1, Math.min(14, slot * 0.72));
+  var xp = rows.map(function (r, i) { return f.m.l + slot * (i + 0.5); });
+  var Y = function (v) { return f.m.t + (1 - (v - tk.min) / (tk.max - tk.min)) * f.ih; };
+  var s = '<svg viewBox="0 0 ' + f.w + ' ' + f.h + '" width="' + f.w + '" height="' + f.h + '" role="img" aria-label="' + esc(o.label || 'Barras') + '"><g class="ax">';
+  tk.ticks.forEach(function (t) {
+    s += '<line class="gridl" x1="' + f.m.l + '" x2="' + (f.w - f.m.r) + '" y1="' + Y(t).toFixed(1) + '" y2="' + Y(t).toFixed(1) + '"/><text x="' + (f.m.l - 6) + '" y="' + (Y(t) + 4).toFixed(1) + '" text-anchor="end">' + esc(o.yfmt(t)) + '</text>';
+  });
+  s += '<line class="zero" x1="' + f.m.l + '" x2="' + (f.w - f.m.r) + '" y1="' + Y(0).toFixed(1) + '" y2="' + Y(0).toFixed(1) + '"/>';
+  s += '<text x="' + f.m.l + '" y="' + (f.h - 6) + '" text-anchor="start">operación #1</text><text x="' + (f.w - f.m.r) + '" y="' + (f.h - 6) + '" text-anchor="end">#' + n + '</text></g>';
+  rows.forEach(function (r, i) {
+    var y0 = Y(0), y1 = Y(r.v), top = Math.min(y0, y1), hh = Math.max(1, Math.abs(y1 - y0));
+    s += '<rect x="' + (xp[i] - bw / 2).toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + hh.toFixed(1) + '" style="fill:' + r.color + '"' + (bw > 5 ? ' rx="1.5"' : '') + '/>';
+  });
+  s += '<line class="xh" y1="' + f.m.t + '" y2="' + (f.h - f.m.b) + '" style="display:none"/></svg>';
+  REG[o.id] = { w: f.w, xpx: xp, tip: function (i) {
+    var r = rows[i];
+    return '<div class="t">#' + (i + 1) + ' · ' + esc(fmtDT(r.ts)) + '</div><div class="r"><span><i style="background:' + r.color + '"></i>' + esc(r.name) + '</span><b>' + esc(sgn(r.v, 2)) + '</b></div><div class="r"><span>' + esc(short(r.sym)) + '</span><span>' + esc(reason(r.reason)) + '</span></div>';
+  } };
+  return chartWrap(o.id, s);
+}
+
+/* ------------------------------------------------------------------ precio con operaciones */
+function priceChart(o) {
+  var f = frame({ w: o.w, h: o.h, yw: 62 }), P = o.price, n = P.ts.length;
+  var lo = Math.min.apply(null, P.close), hi = Math.max.apply(null, P.close), tk = niceTicks(lo, hi, 5), x0 = P.ts[0], x1 = n > 1 ? P.ts[n - 1] : x0 + 1;
+  var xOf = function (t) { return f.m.l + (x1 === x0 ? 0.5 : (t - x0) / (x1 - x0)) * f.iw; };
+  var xp = P.ts.map(xOf), ax = axes(f, tk, x0, x1, function (v) { return nf(v, v < 1 ? 4 : v < 100 ? 2 : 0); }, false);
+  var svg = '<svg viewBox="0 0 ' + f.w + ' ' + f.h + '" width="' + f.w + '" height="' + f.h + '" role="img" aria-label="Precio de ' + esc(short(o.sym)) + ' con compras y ventas">' + ax.svg;
+  svg += '<path d="' + pathOf(xp, P.close, ax.Y, false).d + '" fill="none" style="stroke:var(--ink2)" stroke-width="1.5" stroke-linejoin="round"/>';
+  var at = {};
+  o.trades.forEach(function (t) {
+    if (t[T.ts] < x0 || t[T.ts] > x1) return;
+    var i = nearest(P.ts, t[T.ts]); (at[i] = at[i] || []).push(t);
+    var x = xp[i], y = ax.Y(t[T.price]);
+    if (t[T.side] === 'buy') svg += '<path d="M' + x.toFixed(1) + ' ' + (y - 7).toFixed(1) + 'L' + (x - 6).toFixed(1) + ' ' + (y + 4).toFixed(1) + 'L' + (x + 6).toFixed(1) + ' ' + (y + 4).toFixed(1) + 'Z" style="fill:var(--ink);stroke:var(--surface)" stroke-width="1.5"/>';
+    else svg += '<path d="M' + x.toFixed(1) + ' ' + (y + 7).toFixed(1) + 'L' + (x - 6).toFixed(1) + ' ' + (y - 4).toFixed(1) + 'L' + (x + 6).toFixed(1) + ' ' + (y - 4).toFixed(1) + 'Z" style="fill:var(--surface);stroke:var(--ink)" stroke-width="2"/>';
+  });
+  svg += '<line class="xh" y1="' + f.m.t + '" y2="' + (f.h - f.m.b) + '" style="display:none"/></svg>';
+  REG[o.id] = { w: f.w, xpx: xp, tip: function (i) {
+    var r = '<div class="t">' + esc(fmtDT(P.ts[i])) + '</div><div class="r"><span>Cierre</span><b>' + esc(nf(P.close[i], P.close[i] < 1 ? 5 : 2)) + '</b></div>';
+    (at[i] || []).forEach(function (t) { r += '<div class="r"><span>' + sideLabel(t[T.side], t[T.kind]) + ' · ' + esc(o.names[t[T.bot]] || t[T.bot]) + '</span><b>' + esc(nf(t[T.price], t[T.price] < 1 ? 5 : 2)) + '</b></div>'; });
+    return r;
+  } };
+  return chartWrap(o.id, svg);
+}
+
+/* ------------------------------------------------------------------ cono de incertidumbre */
+function coneChart(o) {
+  var f = frame({ w: o.w, h: o.h || 300, yw: 62 }), H = o.hist, C = o.cone, nh = H.ts.length, nc = C.center.length;
+  var fx = []; for (var k = 0; k < nc; k++) fx.push(H.ts[nh - 1] + k * o.barMs);
+  var all = H.close.concat(C.lo2, C.hi2), tk = niceTicks(Math.min.apply(null, all), Math.max.apply(null, all), 5);
+  var x0 = H.ts[0], x1 = fx[nc - 1];
+  var xOf = function (t) { return f.m.l + (x1 === x0 ? 0.5 : (t - x0) / (x1 - x0)) * f.iw; };
+  var hx = H.ts.map(xOf), cx = fx.map(xOf);
+  var ax = axes(f, tk, x0, x1, function (v) { return nf(v, v < 1 ? 4 : v < 100 ? 2 : 0); }, false);
+  var band = function (lo, hi) {
+    var d = ''; for (var i = 0; i < nc; i++) d += (i ? 'L' : 'M') + cx[i].toFixed(1) + ' ' + ax.Y(hi[i]).toFixed(1);
+    for (var j = nc - 1; j >= 0; j--) d += 'L' + cx[j].toFixed(1) + ' ' + ax.Y(lo[j]).toFixed(1);
+    return d + 'Z';
+  };
+  var svg = '<svg viewBox="0 0 ' + f.w + ' ' + f.h + '" width="' + f.w + '" height="' + f.h + '" role="img" aria-label="Estimación de tendencia de ' + esc(short(o.sym)) + ' con rango de incertidumbre">' + ax.svg;
+  svg += '<path d="' + band(C.lo2, C.hi2) + '" style="fill:var(--accent)" fill-opacity=".12"/><path d="' + band(C.lo1, C.hi1) + '" style="fill:var(--accent)" fill-opacity=".24"/>';
+  svg += '<path d="' + pathOf(hx, H.close, ax.Y, false).d + '" fill="none" style="stroke:var(--ink2)" stroke-width="2" stroke-linejoin="round"/>';
+  svg += '<path d="' + pathOf(cx, C.center, ax.Y, false).d + '" fill="none" style="stroke:var(--accent)" stroke-width="2" stroke-dasharray="5 4"/>';
+  svg += '<line class="xh" y1="' + f.m.t + '" y2="' + (f.h - f.m.b) + '" style="display:none"/></svg>';
+  var xp = hx.concat(cx.slice(1));
+  REG[o.id] = { w: f.w, xpx: xp, tip: function (i) {
+    if (i < nh) return '<div class="t">' + esc(fmtDT(H.ts[i])) + '</div><div class="r"><span>Cierre</span><b>' + esc(nf(H.close[i], H.close[i] < 1 ? 5 : 2)) + '</b></div>';
+    var j = i - nh + 1, d = H.close[nh - 1] < 1 ? 5 : 2;
+    return '<div class="t">' + esc(fmtDT(fx[j])) + ' (estimado)</div><div class="r"><span>Centro</span><b>' + esc(nf(C.center[j], d)) + '</b></div><div class="r"><span>±1σ</span><b>' + esc(nf(C.lo1[j], d) + ' – ' + nf(C.hi1[j], d)) + '</b></div><div class="r"><span>±2σ</span><b>' + esc(nf(C.lo2[j], d) + ' – ' + nf(C.hi2[j], d)) + '</b></div>';
+  } };
+  return chartWrap(o.id, svg);
+}
+
+/* ------------------------------------------------------------------ paneles */
+function colorMap(d) { var m = {}; d.bots.map(function (b) { return b.id; }).sort().forEach(function (id, i) { m[id] = 'var(--s' + (i % 8 + 1) + ')'; }); return m; }
+function nameMap(d) { var m = {}; d.bots.forEach(function (b) { m[b.id] = b.name; }); return m; }
+function kpi(l, v, dl) { return '<div class="kpi"><div class="l">' + esc(l) + '</div><div class="v">' + v + '</div>' + (dl ? '<div class="d">' + dl + '</div>' : '') + '</div>'; }
+function statusPill(s) { return '<span class="pill st-' + esc(s) + '"><i aria-hidden="true"></i>' + esc(STATUS[s] || s) + '</span>'; }
+function pf(b) { return fin(b.profit_factor) ? nf(b.profit_factor, 2) : (b.gross_profit > 0 && b.gross_loss === 0 ? '∞' : '—'); }
+
+/* ------------------------------------------------------------------ Summary (minimalista) */
+var ASSET_COLOR = { BTCUSDT: 'var(--s2)', ETHUSDT: 'var(--s1)', XRPUSDT: 'var(--s3)', SOLUSDT: 'var(--s7)', BNBUSDT: 'var(--s4)', ADAUSDT: 'var(--s5)', DOGEUSDT: 'var(--s6)' };
+function tipRows(title, pairs) {
+  return '<div class="t">' + esc(title) + '</div>' + pairs.map(function (p) { return '<div class="r"><span>' + esc(p[0]) + '</span><b>' + esc(p[1]) + '</b></div>'; }).join('');
+}
+/* Dona: cada porción lleva nombre, % y valor también en la lista (la lista es la vista en tabla; el hover es un extra). */
+function donut(o) {
+  var R = 70, C = 2 * Math.PI * R, GAP = 2, rows = o.rows.filter(function (r) { return r.value > 0; });
+  var tot = rows.reduce(function (a, r) { return a + r.value; }, 0), cum = 0;
+  var s = '<svg viewBox="0 0 168 168" role="img" aria-label="' + esc(o.label) + '"><circle cx="84" cy="84" r="' + R + '" fill="none" style="stroke:var(--line)" stroke-width="16"/>';
+  rows.forEach(function (r) {
+    var frac = r.value / tot, len = rows.length === 1 ? C : Math.max(0.6, frac * C - GAP);
+    s += '<circle class="slice" cx="84" cy="84" r="' + R + '" transform="rotate(-90 84 84)" style="stroke:' + r.color + '" stroke-width="16" stroke-dasharray="' + len.toFixed(2) + ' ' + (C - len).toFixed(2) + '" stroke-dashoffset="' + (-cum).toFixed(2) + '" data-tip="' + esc(o.tip(r, frac)) + '"/>';
+    cum += frac * C;
+  });
+  s += '<text class="ctr" x="84" y="' + (o.sub ? 82 : 90) + '" style="font:600 21px var(--font)">' + esc(o.main) + '</text>';
+  if (o.sub) s += '<text class="ctr" x="84" y="100" style="font:400 11px var(--font);fill:var(--muted)">' + esc(o.sub) + '</text>';
+  s += '</svg>';
+  var lg = rows.length ? '<ul class="lg">' + rows.map(function (r) {
+    return '<li><span class="sw" style="background:' + r.color + '"></span><span class="nm">' + esc(r.name) + '</span><span class="pc">' + nf(r.value / tot * 100, 1) + '%</span><span class="vl">' + nf(r.value, 0) + '</span></li>';
+  }).join('') + '</ul>' : '<p class="hint" style="flex:1 1 180px">' + esc(o.empty || 'Sin datos todavía.') + '</p>';
+  return '<div class="dn">' + s + lg + '<div class="tip" hidden></div></div>';
+}
+/* Barras horizontales de rendimiento: azul = ganancia, rojo = pérdida; el signo siempre va también en el texto. */
+function hbars(rows, label) {
+  var mx = Math.max(0.05, Math.max.apply(null, rows.map(function (r) { return fin(r.v) ? Math.abs(r.v) : 0; })));
+  return '<div class="hb" role="list" aria-label="' + esc(label) + '">' + rows.map(function (r) {
+    var ok = fin(r.v), v = ok && Math.abs(r.v) >= 0.005 ? r.v : 0, cls = v === 0 ? 'zero' : v > 0 ? 'pos' : 'neg', wd = Math.min(50, Math.abs(v) / mx * 50);
+    var pn = fin(r.pnl) ? (Math.abs(r.pnl) >= 0.005 ? r.pnl : 0) : null;       /* −0.00 se muestra como 0.00, sin signo */
+    return '<div class="hb-r" role="listitem"><span class="hb-n">' + esc(r.name) + (r.note ? '<small>' + esc(r.note) + '</small>' : '') + '</span>' +
+      '<span class="hb-t"><i class="hb-b ' + cls + '"' + (cls === 'zero' ? '' : ' style="width:' + wd.toFixed(1) + '%"') + '></i></span>' +
+      '<span class="hb-v">' + (ok ? sgn(v, 2, '%') : '—') + '<small>' + (pn != null ? sgn(pn, 2) + ' USDT' : '') + '</small></span></div>';
+  }).join('') + '</div>';
+}
+function byRoi(a, b) { return (fin(b.v) ? b.v : -1e9) - (fin(a.v) ? a.v : -1e9) || (b.pnl || 0) - (a.pnl || 0); }
+function smTile(l, v, dl, extra) { return '<div class="sm-tile"><div class="l">' + esc(l) + '</div><div class="v">' + v + '</div>' + (dl ? '<div class="d">' + dl + '</div>' : '') + (extra || '') + '</div>'; }
+
+/* ------------------------------------------------------------------ crecimiento: portafolio vs BTC y ETH por periodo */
+var PERIODS = [['1d', 'Día', 1], ['7d', 'Semana', 7], ['30d', 'Mes', 30], ['90d', '3 meses', 90], ['365d', 'Año', 365], ['all', 'Inicio', 0]];
+var HOUR_MS = 3600000, DAY_MS = 86400000;
+var FAMILY_COLOR = { neutral: 'var(--s3)', rango: 'var(--s4)', tendencia: 'var(--s7)', acumulacion: 'var(--s1)', indice: 'var(--s2)', efectivo: 'var(--cash)' };
+function idxAtOrBefore(ts, t) { var lo = 0, hi = ts.length - 1, r = -1; while (lo <= hi) { var m = (lo + hi) >> 1; if (ts[m] <= t) { r = m; lo = m + 1; } else hi = m - 1; } return r; }
+/* velas por hora para ventanas de hasta 30 días y por día para las más largas */
+function benchFor(B, sym, spanMs) {
+  var b = B && B[sym]; if (!b) return null;
+  var h = spanMs <= 30 * DAY_MS, s = h ? b.h : b.d;
+  return s && s.ts && s.ts.length ? { ts: s.ts, px: s.close, step: h ? HOUR_MS : DAY_MS } : null;
+}
+function periodSpan(p, K) { return p[2] ? p[2] * DAY_MS : Math.max(0, K.last_ts - K.first_ts); }
+/* % de un benchmark en la ventana que termina en la última vela; null si la historia no alcanza */
+function benchRet(B, sym, p, K) {
+  var span = periodSpan(p, K), s = benchFor(B, sym, span); if (!s) return null;
+  var t0 = K.last_ts - span, i0 = idxAtOrBefore(s.ts, t0);
+  if (i0 < 0) { if (s.ts[0] - t0 > 1.5 * s.step) return null; i0 = 0; }
+  var i1 = s.px.length - 1; return i1 > i0 ? (s.px[i1] / s.px[i0] - 1) * 100 : null;
+}
+/* % del portafolio en el periodo; null si todavía no lleva ese tiempo corriendo */
+function portRet(d, p) {
+  var K = d.kpis, S = d.series, n = S.total.length, span = periodSpan(p, K);
+  if (!n) return null;
+  if (!p[2]) return (S.total[n - 1] / K.capital - 1) * 100;
+  if (K.last_ts - K.first_ts < span - d.bar_ms) return null;
+  var i0 = idxAtOrBefore(S.ts, K.last_ts - span), base = i0 > 0 ? S.total[i0] : K.capital;
+  return (S.total[n - 1] / base - 1) * 100;
+}
+function growthCard(d, st, w) {
+  var K = d.kpis, S = d.series, B = d.benchmarks && d.benchmarks.BTCUSDT ? d.benchmarks : null, hist = Math.max(0, K.last_ts - K.first_ts);
+  var per = PERIODS.filter(function (p) { return p[0] === st.smPer; })[0] || PERIODS[5];
+  if (!B && per[2]) per = PERIODS[5];                       /* sin historia de mercado solo existe "Inicio" */
+  var span = periodSpan(per, K), havePort = !per[2] || hist >= span - d.bar_ms, xs, btc = null, eth = null, mkt = null, port = null;
+  if (B) {
+    var ref = benchFor(B, 'BTCUSDT', span), i0 = idxAtOrBefore(ref.ts, per[2] ? K.last_ts - span : K.first_ts);
+    if (i0 < 0) i0 = 0;
+    xs = ref.ts.slice(i0);
+    var b0 = ref.px[i0]; btc = ref.px.slice(i0).map(function (v) { return (v / b0 - 1) * 100; });
+    var rebased = function (sym) {                            /* serie de otro activo, en % desde el primer punto de xs */
+      var o = benchFor(B, sym, span); if (!o) return null;
+      var i0 = idxAtOrBefore(o.ts, xs[0]), v0 = o.px[i0 < 0 ? 0 : i0];
+      return xs.map(function (g) { var k = idxAtOrBefore(o.ts, g); return k < 0 ? null : (o.px[k] / v0 - 1) * 100; });
+    };
+    eth = rebased('ETHUSDT'); mkt = rebased('MARKET');
+  } else {
+    xs = S.ts;
+    if (S.btc && fin(S.btc[0])) btc = S.btc.map(function (v) { return (v / S.btc[0] - 1) * 100; });
+  }
+  if (havePort) {
+    var k0 = idxAtOrBefore(S.ts, xs[0]), base = per[2] && k0 > 0 ? S.total[k0] : K.capital;
+    port = xs.map(function (g) { var k = idxAtOrBefore(S.ts, g); return k < 0 ? null : (S.total[k] / base - 1) * 100; });
+  }
+  var sp = [];
+  if (port) sp.push({ key: 'sm_port', name: 'Portafolio', color: 'var(--s1)', width: 2.5, ys: port });
+  if (btc) sp.push({ key: 'sm_btc', name: 'Bitcoin', color: 'var(--s2)', dash: '5 4', ys: btc });
+  if (eth) sp.push({ key: 'sm_eth', name: 'Ethereum', color: 'var(--s3)', dash: '1.5 3.5', ys: eth });
+  if (mkt) sp.push({ key: 'sm_mkt', name: 'Mercado (top 10)', color: 'var(--s7)', dash: '9 3 2 3', ys: mkt });
+  var rows = PERIODS.map(function (p) { return { p: p, port: portRet(d, p), btc: B ? benchRet(B, 'BTCUSDT', p, K) : (p[2] ? null : K.btc_ret), eth: B ? benchRet(B, 'ETHUSDT', p, K) : null, mkt: B && B.MARKET ? benchRet(B, 'MARKET', p, K) : null }; });
+  var cur = rows.filter(function (r) { return r.p === per; })[0];
+  var head = [port ? 'Portafolio ' + sgn(cur.port, 2, '%') : null, btc ? 'BTC ' + sgn(cur.btc, 2, '%') : null, eth ? 'ETH ' + sgn(cur.eth, 2, '%') : null, mkt ? 'Mercado ' + sgn(cur.mkt, 2, '%') : null].filter(Boolean).join(' · ');
+  var seg = '<div class="sm-ctrl"><span class="seg" role="group" aria-label="Periodo">' + PERIODS.map(function (p) {
+    var off = !B && p[2];
+    return '<button type="button" data-smper="' + p[0] + '" aria-pressed="' + (p === per) + '"' + (off ? ' disabled title="Disponible tras la próxima corrida"' : '') + '>' + esc(p[1]) + '</button>';
+  }).join('') + '</span></div>';
+  var note = '';
+  if (!havePort) note = '<p class="hint" style="margin-bottom:6px">El portafolio lleva ' + nf(hist / DAY_MS, 1) + ' días corriendo y este periodo pide ' + nf(span / DAY_MS, 0) + (span / DAY_MS === 1 ? ' día' : ' días') + ': por ahora solo se muestran Bitcoin y Ethereum. El portafolio aparece cuando tenga ese historial.</p>';
+  else if (!B) note = '<p class="hint" style="margin-bottom:6px">Los periodos Día a Año y la línea de Ethereum aparecen tras la próxima corrida del simulador (necesitan historia de mercado).</p>';
+  var cell = function (v) { return v == null ? '<td class="n" title="Sin historial suficiente">—</td>' : '<td class="n">' + sgn(v, 2, '%') + '</td>'; };
+  var tbl = '<div class="tw" style="margin-top:10px"><table class="cmp"><thead><tr><th>Periodo</th><th class="n">Portafolio</th><th class="n">Bitcoin</th><th class="n">Ethereum</th>' + (B && B.MARKET ? '<th class="n">Mercado</th>' : '') + '</tr></thead><tbody>' + rows.map(function (r) {
+    return '<tr' + (r.p === per ? ' class="cur"' : '') + '><td>' + esc(r.p[2] ? r.p[1] : 'Inicio (' + nf(hist / DAY_MS, 1) + ' d)') + '</td>' + cell(r.port) + cell(r.btc) + cell(r.eth) + (B && B.MARKET ? cell(r.mkt) : '') + '</tr>';
+  }).join('') + '</tbody></table></div><p class="hint" style="margin-top:6px">— = el portafolio aún no lleva ese tiempo corriendo (no se inventa historial). Bitcoin, Ethereum y Mercado: comprar y mantener, sin comisiones.' + (B && B.MARKET ? ' <b>Mercado</b> = índice ponderado por capitalización de las 10 mayores monedas no estables de Binance (BTC, ETH, XRP, BNB, SOL, DOGE, ADA, TRX, AVAX, LINK; suministros aproximados). Es una referencia del mercado, no el total oficial.' : '') + '</p>';
+  return '<section class="sm-card"><h2>Crecimiento: portafolio vs Bitcoin, Ethereum y el mercado <span class="r">' + esc(head) + '</span></h2>' + seg + note + legendHtml(sp, st.hidden) +
+    lineChart({ id: 'c-sm', w: Math.max(260, w - 30), h: 240, xs: xs, series: sp, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Crecimiento porcentual del portafolio, Bitcoin, Ethereum y el mercado en el periodo ' + per[1], yw: 46 }) + tbl + '</section>';
+}
+
+/* ------------------------------------------------------------------ riesgo: cercanía al límite y mercado vs bots */
+function rkBar(used, level, label) {
+  return '<div class="rk ' + esc(level) + '" role="img" aria-label="' + esc(label) + '"><i style="width:' + Math.max(0, Math.min(100, used * 100)).toFixed(1) + '%"></i></div>';
+}
+/* bots que siguen operando, del más cercano a su límite al más lejano */
+function nearestLimit(d) {
+  return d.bots.filter(function (b) { var r = b.risk_now; return r && r.limit && fin(r.used) && (r.level === 'ok' || r.level === 'watch' || r.level === 'near'); })
+    .sort(function (a, b) { return b.risk_now.used - a.risk_now.used; });
+}
+function actionText(b, d) {
+  var r = b.risk || {}, a = ACTIONS[r.action] || '—';
+  if (r.action === 'pause_and_resume') {
+    var days = Math.round((r.cooldown_bars || 168) * d.bar_ms / DAY_MS), win = Math.round((r.strike_window_bars || 720) * d.bar_ms / DAY_MS);
+    a = 'Liquida, pausa ' + days + ' días y reanuda sola' + (r.max_strikes ? ' · retirado si lo rompe ' + r.max_strikes + ' veces en ' + win + ' días' : '');
+  }
+  return a;
+}
+function riskCell(b) {
+  var r = b.risk_now;
+  if (!r || !r.limit) return '<span class="hint">—</span>';
+  if (r.level === 'paused') return '<span class="rkt">Pausado' + (r.pause_until ? ' · reanuda ' + esc(fmtDT(r.pause_until)) : '') + '</span>';
+  if (r.level === 'retired') return '<span class="rkt">Retirado: no vuelve a operar</span>';
+  if (r.level === 'halted') return '<span class="rkt">Detenido</span>';
+  var txt = nf(r.dd * 100, 1) + '% de ' + nf(r.limit * 100, 0) + '% · <b>' + nf(r.used * 100, 0) + '%</b> del límite';
+  return '<div class="rkc">' + rkBar(r.used, r.level, 'Usa ' + nf(r.used * 100, 0) + '% de su límite de drawdown') + '<span class="rkt">' + txt + ' · ' + esc(LEVEL[r.level] || '') + '</span></div>';
+}
+var FNG_NOTE = 'Índice de alternative.me sobre el sentimiento del mercado cripto en general (mezcla volatilidad, momentum, redes sociales, dominancia y búsquedas; se publica una vez al día). Es un dato externo y no es una señal de compra o venta.';
+function fngCard(d) {
+  var g = d.fear_greed;
+  if (!g || !fin(g.value)) return '<section class="sm-card"><h2>Miedo y codicia del mercado</h2><p class="hint">No disponible por ahora: depende de una fuente externa (alternative.me) y aparece cuando responda en una corrida.</p></section>';
+  var cmp = function (l, o) {
+    if (!o || !fin(o.value)) return '';
+    var dl = g.value - o.value;
+    return '<li>' + l + ' <b>' + o.value + '</b> <span>' + (dl === 0 ? '=' : (dl > 0 ? '▲' : '▼') + Math.abs(dl)) + '</span></li>';
+  };
+  return '<section class="sm-card"><h2>Miedo y codicia del mercado <span class="r">' + esc(fmtDT(g.ts).slice(0, 10)) + '</span></h2>' +
+    '<div class="fg-top"><span class="fg-v">' + g.value + '</span><span class="fg-l">' + esc(g.label) + ' · de 100</span></div>' +
+    '<div class="fg-bar" role="img" aria-label="Índice de miedo y codicia: ' + g.value + ' de 100, ' + esc(g.label) + '"><i style="left:' + Math.max(1, Math.min(99, g.value)) + '%"></i></div>' +
+    '<div class="fg-sc"><span>0 · Miedo extremo</span><span>50</span><span>Codicia extrema · 100</span></div>' +
+    '<ul class="fg-h">' + cmp('Ayer', g.yesterday) + cmp('Hace 1 sem.', g.week) + cmp('Hace 1 mes', g.month) + '</ul>' +
+    '<p class="hint" style="margin-top:10px">' + esc(FNG_NOTE) + '</p></section>';
+}
+function periodChoice(d, st) { return PERIODS.filter(function (p) { return p[0] === st.smPer; })[0] || PERIODS[5]; }
+/* cambio del portafolio en el periodo, partido en lo que puso el mercado y lo que pusieron los bots */
+function attribWindow(d, st) {
+  var K = d.kpis, S = d.series; if (!S.market_cum || !S.total.length) return null;
+  var per = periodChoice(d, st), hist = Math.max(0, K.last_ts - K.first_ts), span = periodSpan(per, K), full = !per[2] || hist >= span - d.bar_ms, n = S.total.length - 1;
+  var i0 = per[2] && full ? idxAtOrBefore(S.ts, K.last_ts - span) : -1;
+  var base = i0 > 0 ? S.total[i0] : K.capital, mk0 = i0 > 0 ? S.market_cum[i0] : 0;
+  var delta = S.total[n] - base, mkt = S.market_cum[n] - mk0;
+  return { per: per, full: full, hist: hist, span: span, base: base, delta: delta, mkt: mkt, own: delta - mkt };
+}
+function attribVerdict(a) {
+  var eps = Math.max(0.005, a.base * 0.00005), am = Math.abs(a.mkt), ao = Math.abs(a.own), f = function (v) { return '<b>' + nf(Math.abs(v), 2) + '</b>'; };
+  if (am < eps && ao < eps) return { head: 'Sin cambios', text: 'Todavía no hay movimiento que repartir entre el mercado y los bots.' };
+  var sh = am / (am + ao), head = sh >= 0.7 ? 'Lo mueve el mercado' : sh <= 0.3 ? 'Lo mueven los bots' : 'Mezcla de ambos';
+  var t = 'El portafolio ' + (a.delta < 0 ? 'bajó ' : 'subió ') + f(a.delta) + ' USDT. ';
+  if (a.mkt < 0 && a.own >= 0) t += 'El mercado le quitó ' + f(a.mkt) + ' y los bots recuperaron ' + f(a.own) + '.';
+  else if (a.mkt < 0) t += 'Perdió ' + f(a.mkt) + ' por el mercado y ' + f(a.own) + ' por la operación de los bots.';
+  else if (a.own < 0) t += 'El mercado aportó ' + f(a.mkt) + ', pero los bots restaron ' + f(a.own) + ' (operar, comisiones).';
+  else t += 'Ganó ' + f(a.mkt) + ' por el mercado y ' + f(a.own) + ' por los bots.';
+  return { head: head, text: t };
+}
+function periodSeg(d, st) {
+  var per = periodChoice(d, st);
+  return '<div class="sm-ctrl"><span class="seg" role="group" aria-label="Periodo">' + PERIODS.map(function (p) {
+    return '<button type="button" data-smper="' + p[0] + '" aria-pressed="' + (p === per) + '">' + esc(p[1]) + '</button>';
+  }).join('') + '</span></div>';
+}
+function attribCard(d, st) {
+  var a = attribWindow(d, st);
+  if (!a) return '<section class="sm-card"><h2>¿Mercado o bots?</h2><p class="hint">Disponible tras la próxima corrida del simulador.</p></section>';
+  var v = attribVerdict(a), pc = function (x) { return a.base ? x / a.base * 100 : null; };
+  var note = a.full ? '' : '<p class="hint" style="margin-bottom:8px">El portafolio lleva ' + nf(a.hist / DAY_MS, 1) + ' días y este periodo pide ' + nf(a.span / DAY_MS, 0) + (a.span / DAY_MS === 1 ? ' día' : ' días') + ': se muestra desde el inicio.</p>';
+  return '<section class="sm-card"><h2>¿Mercado o bots? <span class="r">' + esc(v.head) + '</span></h2>' + periodSeg(d, st) + note + '<p class="verdict">' + v.text + '</p>' +
+    hbars([{ name: 'Cambio total', v: pc(a.delta), pnl: a.delta },
+      { name: 'Por el mercado', note: 'precio de lo que ya tenían', v: pc(a.mkt), pnl: a.mkt },
+      { name: 'Por los bots', note: 'operar, comisiones, funding', v: pc(a.own), pnl: a.own }], 'Cambio del portafolio repartido entre mercado y bots') +
+    '<p class="hint" style="margin-top:8px">Mercado = posiciones que tenía cada bot al cierre anterior × cuánto se movió el precio (los cortos de cobertura restan). Bots = el resto: compras y ventas, comisiones, slippage, funding y arbitraje. Es una separación contable, no una causa exacta; con pocas horas de datos es ruido.</p></section>';
+}
+
+function riskTile(d) {
+  var near = nearestLimit(d), top = near[0], PR = d.portfolio_risk;
+  var off = d.bots.filter(function (b) { return b.status === 'paused'; }).length, gone = d.bots.filter(function (b) { return b.status === 'retired'; }).length;
+  var extra = (off ? off + ' en pausa' : '') + (off && gone ? ' · ' : '') + (gone ? gone + ' retirado' + (gone > 1 ? 's' : '') : '');
+  if (PR && PR.status === 'paused') return smTile('Cerca del límite', 'Freno global', 'Todo liquidado · reanuda ' + esc(fmtDT(PR.until)), '');
+  if (!top) return smTile('Cerca del límite', '—', 'Sin bots activos' + (extra ? ' · ' + extra : ''));
+  var r = top.risk_now, gl = PR ? ' · portafolio ' + nf(PR.used * 100, 0) + '% de su freno' : '';
+  return smTile('Cerca del límite', nf(r.used * 100, 0) + '%', esc(top.name) + ' · ' + (LEVEL[r.level] || '').toLowerCase() + gl + (extra ? ' · ' + extra : ''), rkBar(r.used, r.level, 'El bot más cercano usa ' + nf(r.used * 100, 0) + '% de su límite de drawdown').replace('class="rk', 'style="margin-top:8px" class="rk'));
+}
+function panelSummary(d, st, w) {
+  var K = d.kpis, cm = colorMap(d), nm = nameMap(d), S = d.series, H = d.holdings, F = d.families, bots = d.bots;
+  var alpha = fin(K.btc_ret) ? K.roi - K.btc_ret : null, days = Math.max(0, (K.last_ts - K.first_ts) / 86400000);
+  var closes = bots.reduce(function (a, b) { return a + (b.n_closes || 0); }, 0), traded = bots.filter(function (b) { return b.n_trades > 0; }).length;
+  var out = '<div class="sm"><div class="sm-hero"><div><div class="l">Valor del portafolio · dinero ficticio</div><div class="big">' + nf(K.equity, 2) + '<small>USDT</small></div></div>' +
+    '<div class="d">' + tri(K.pnl) + sgn(K.pnl, 2) + ' USDT · ' + sgn(K.roi, 2, '%') + '<small>desde el inicio · base ' + nf(K.capital, 0) + ' USDT asignados</small>' +
+    (fin(K.market_pnl) ? '<small>mercado ' + sgn(K.market_pnl, 2) + ' · bots ' + sgn(K.own_pnl, 2) + ' USDT</small>' : '') + '</div></div>';
+  out += '<div class="sm-tiles">' +
+    smTile('Vs Bitcoin', fin(alpha) ? tri(alpha) + sgn(alpha, 2) + ' pp' : '—', fin(alpha) ? 'Portafolio ' + sgn(K.roi, 2, '%') + ' · BTC ' + sgn(K.btc_ret, 2, '%') : 'Sin datos de BTC') +
+    smTile('Invertido', H && H.total > 0 ? nf(H.invested / H.total * 100, 1) + '%' : '—', H && H.total > 0 ? 'Efectivo ' + nf(H.cash / H.total * 100, 1) + '%' + (H.hedged > 0 ? ' · cubierto ' + nf(H.hedged / H.total * 100, 1) + '%' : '') : 'Disponible tras la próxima corrida') +
+    riskTile(d) +
+    smTile('Máx. drawdown', sgn(K.max_dd, 2, '%'), 'peor caída desde un máximo') +
+    smTile('Comisiones', nf(K.fees, 2), nf(K.fees / K.capital * 100, 2) + '% del capital') +
+    smTile('Operaciones', K.n_trades, traded + ' de ' + bots.length + ' bots han operado') +
+    smTile('Días de prueba', nf(days, 1) + ' / 30', 'mínimo para juzgar · ' + closes + ' ventas cerradas', '<div class="meter" role="img" aria-label="Avance hacia 30 días"><i style="width:' + Math.min(100, days / 30 * 100).toFixed(1) + '%"></i></div>') + '</div>';
+
+  /* 1) participación de cada bot en el valor total */
+  var rowsBot = bots.map(function (b) { return { name: b.name, value: fin(b.equity) ? b.equity : 0, color: cm[b.id], roi: b.roi }; });
+  var totBot = rowsBot.reduce(function (a, r) { return a + r.value; }, 0);
+  var cardBots = '<section class="sm-card"><h2>Por bot <span class="r">% del valor total</span></h2>' + donut({
+    rows: rowsBot, label: 'Participación de cada bot en el valor total del portafolio', main: nf(totBot, 0), sub: 'USDT en bots',
+    tip: function (r, f) { return tipRows(r.name, [['Participación', nf(f * 100, 1) + '%'], ['Valor', nf(r.value, 2) + ' USDT'], ['ROI', sgn(r.roi, 2, '%')]]); }
+  }) + '</section>';
+
+  /* 2) en qué activos hay posiciones (largas, spot) */
+  var cardAssets;
+  if (!H) cardAssets = '<section class="sm-card"><h2>Por activo</h2><p class="hint">Disponible tras la próxima corrida del simulador.</p></section>';
+  else {
+    var groups = {}, order = [];
+    H.by_asset.forEach(function (a) {
+      var key = ASSET_COLOR[a.symbol] ? a.symbol : '_otros';
+      if (!groups[key]) { groups[key] = { name: key === '_otros' ? 'Otros' : short(a.symbol), value: 0, color: key === '_otros' ? 'var(--other)' : ASSET_COLOR[key], members: [], bots: {} }; order.push(key); }
+      var g = groups[key]; g.value += a.value; g.members.push(short(a.symbol)); a.bots.forEach(function (id) { g.bots[nm[id] || id] = 1; });
+    });
+    var rowsA = order.map(function (k) { return groups[k]; });
+    if (st.smCash && H.cash > 0) rowsA.push({ name: 'Efectivo (USDT)', value: H.cash, color: 'var(--cash)', members: [], bots: {} });
+    cardAssets = '<section class="sm-card"><h2>Por activo <span class="seg" role="group" aria-label="Incluir efectivo"><button type="button" data-smcash="0" aria-pressed="' + !st.smCash + '">Invertido</button><button type="button" data-smcash="1" aria-pressed="' + !!st.smCash + '">+ Efectivo</button></span></h2>' + donut({
+      rows: rowsA, label: 'Composición del portafolio por activo', main: H.total > 0 ? nf(H.invested / H.total * 100, 1) + '%' : '—', sub: 'invertido', empty: 'Todo el portafolio está en efectivo (USDT): ningún bot tiene posiciones abiertas.',
+      tip: function (r, f) {
+        var p = [['Participación', nf(f * 100, 1) + '%'], ['Valor', nf(r.value, 2) + ' USDT']];
+        if (r.members.length > 1) p.push(['Incluye', r.members.join(', ')]);
+        var bl = Object.keys(r.bots); if (bl.length) p.push(['Bots', bl.join(', ')]);
+        return tipRows(r.name, p);
+      }
+    }) + (H.hedged > 0 ? '<p class="hint" style="margin-top:8px">Incluye ' + nf(H.hedged, 0) + ' USDT cubiertos con corto en perpetuo: la exposición neta es menor.</p>' : '') +
+      (H.invested > 0 && !st.smCash ? '<p class="hint" style="margin-top:8px">Porcentajes sobre lo invertido (' + nf(H.invested, 0) + ' USDT de ' + nf(H.total, 0) + '). Solo posiciones largas spot.</p>' : '') + '</section>';
+  }
+
+  /* 3) y 4) rendimiento por estrategia (familia) y por bot: equity actual contra capital asignado */
+  var cardFam = !F ? '<section class="sm-card"><h2>Por estrategia</h2><p class="hint">Disponible tras la próxima corrida del simulador.</p></section>' :
+    '<section class="sm-card"><h2>Rendimiento por estrategia <span class="r">ROI</span></h2>' + hbars(F.map(function (f) { return { name: f.name, note: f.bots.length + (f.bots.length === 1 ? ' bot' : ' bots'), v: f.roi, pnl: f.pnl }; }).sort(byRoi), 'Rendimiento por familia de estrategia') + '</section>';
+  var cardBotRet = '<section class="sm-card"><h2>Rendimiento por bot <span class="r">ROI</span></h2>' + hbars(bots.map(function (b) {
+    return { name: b.name, note: b.n_trades ? '' : 'sin operar', v: b.roi, pnl: b.pnl };
+  }).sort(byRoi), 'Rendimiento por bot') + '</section>';
+
+  /* 0) participación de cada estrategia (familia) en el valor total */
+  var cardStrat = !F ? '<section class="sm-card"><h2>Por estrategia</h2><p class="hint">Disponible tras la próxima corrida del simulador.</p></section>' :
+    '<section class="sm-card"><h2>Por estrategia <span class="r">% del valor total</span></h2>' + donut({
+      rows: F.map(function (f) { return { name: f.name, value: f.equity, color: FAMILY_COLOR[f.key] || 'var(--other)', roi: f.roi, bots: f.bots.map(function (id) { return nm[id] || id; }) }; }),
+      label: 'Participación de cada tipo de estrategia en el valor total del portafolio', main: nf(totBot, 0), sub: 'USDT por estrategia',
+      tip: function (r, f) { return tipRows(r.name, [['Participación', nf(f * 100, 1) + '%'], ['Valor', nf(r.value, 2) + ' USDT'], ['ROI', sgn(r.roi, 2, '%')], ['Bots', r.bots.join(', ')]]); }
+    }) + '</section>';
+  var cardLine = growthCard(d, st, w);
+
+  out += '<div class="sm-grid" style="align-items:start">' + attribCard(d, st) + fngCard(d) + '</div><div class="sm-grid three">' + cardStrat + cardBots + cardAssets + '</div><div class="sm-grid" style="align-items:start">' + cardFam + cardBotRet + '</div>' + cardLine;
+  out += '<p class="hint">Rendimiento = valor actual contra el capital asignado (ficticio). Bitcoin y Ethereum se miden sin comisiones, comprando y manteniendo. Con pocos días de datos, nada de esto es concluyente.</p>';
+  if (F) out += '<details><summary>Cómo se agrupan las estrategias</summary><pre>' + esc(F.map(function (f) { return f.name + ': ' + f.bots.map(function (id) { return nm[id] || id; }).join(', '); }).join('\n')) + '</pre></details>';
+  return out + '</div>';
+}
+
+/* una serie por estrategia (familia) a partir de las series que ya exporta Python; null si el JSON es antiguo */
+function famLines(d, field, map) {
+  var F = d.families, SF = d.series.family; if (!F || !SF) return null;
+  var out = F.filter(function (f) { return SF[f.key]; }).map(function (f) {
+    return { key: 'fam_' + f.key, name: f.name, color: FAMILY_COLOR[f.key] || 'var(--other)', ys: SF[f.key][field].map(function (v) { return map(v, SF[f.key]); }) };
+  });
+  return out.length ? out : null;
+}
+function panelResumen(d, st, w) {
+  var K = d.kpis, cm = colorMap(d), S = d.series, cap = {};
+  d.bots.forEach(function (b) { cap[b.id] = b.capital; });
+  var out = '<div class="kpis">' +
+    kpi('Equity total (ficticio)', nf(K.equity, 2) + ' <small>USDT</small>', 'de ' + nf(K.capital, 0) + ' asignados') +
+    kpi('P&L total', tri(K.pnl) + sgn(K.pnl, 2), sgn(K.roi, 2, '%') + ' vs capital asignado') +
+    kpi('Ganancia histórica', nf(K.gross_profit, 2), 'ventas ganadoras, neto de comisiones') +
+    kpi('Pérdida histórica', (Math.abs(K.gross_loss) > 0 ? '−' : '') + nf(Math.abs(K.gross_loss), 2), 'ventas perdedoras, neto de comisiones') +
+    kpi('Comisiones pagadas', nf(K.fees, 2)) +
+    kpi('Máx. drawdown portafolio', nf(K.max_dd, 2) + '%') + '</div>';
+  out += '<p class="hint">Ganancia y pérdida histórica suman solo P&amp;L realizado (ventas); las posiciones abiertas se ven en el equity. El capital mostrado es el asignado a estos bots' + (fin(K.reserve) && K.reserve > 0.5 ? '; ' + nf(K.reserve, 0) + ' USDT quedan de reserva para los bots aún sin construir' : '') + '.' +
+    (fin(K.btc_ret) ? ' Referencia: comprar y mantener BTC en el mismo periodo rindió ' + sgn(K.btc_ret, 2, '%') + ' (sin comisiones).' : '') + '</p>';
+  var series = famLines(d, 'equity', function (v, f) { return (v / f.capital - 1) * 100; }) || d.bots.map(function (b) { return { key: b.id, name: b.name, color: cm[b.id], ys: S.equity[b.id].map(function (v) { return (v / cap[b.id] - 1) * 100; }) }; });
+  series.push({ key: '_total', name: 'Portafolio de bots', color: 'var(--ink)', width: 3, ys: S.total.map(function (v) { return (v / K.capital - 1) * 100; }) });
+  if (S.btc && fin(S.btc[0])) series.push({ key: '_btc', name: 'BTC comprar y mantener', color: 'var(--ink2)', dash: true, ys: S.btc.map(function (v) { return (v / S.btc[0] - 1) * 100; }) });
+  out += '<div><h2>Rendimiento acumulado por estrategia vs capital asignado</h2>' + legendHtml(series, st.hidden) +
+    lineChart({ id: 'c-equity', w: w, xs: S.ts, series: series, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Rendimiento acumulado por estrategia', yw: 50 }) + '</div>';
+  out += '<div><h2>Estado y estrategia activa por bot</h2><div class="bots">' + d.bots.map(function (b) {
+    var s = '<article class="bot"><header><h3><span class="sw" style="background:' + cm[b.id] + '"></span>' + esc(b.name) + '</h3>' + statusPill(b.status) + '</header>';
+    s += '<p class="strat">' + esc(b.strategy) + (b.status_detail ? ' — ' + esc(b.status_detail) : '') + '</p>';
+    s += '<p class="meta">' + esc(b.symbols.map(short).join(', ')) + ' · ' + esc(b.exchange_name) + ' · riesgo ' + esc(b.risk_level) + '</p>';
+    s += '<dl class="stats">' + [['Equity', nf(b.equity, 2)], ['P&L', tri(b.pnl) + sgn(b.pnl, 2)], ['ROI', sgn(b.roi, 2, '%')], ['Máx. DD', nf(b.max_dd, 1) + '%'],
+      ['Operaciones', b.n_trades == null ? '—' : b.n_trades], ['Win rate', fin(b.win_rate) ? nf(b.win_rate, 0) + '%' : '—'], ['Profit factor', pf(b)], ['Capital', nf(b.capital, 0)]]
+      .map(function (p) { return '<div><dt>' + p[0] + '</dt><dd>' + p[1] + '</dd></div>'; }).join('') + '</dl>';
+    if (b.status !== 'active' || b.status_reason) s += '<p class="reason">' + esc(b.status_reason || '') + '</p>';
+    return s + '</article>';
+  }).join('') + '</div><p class="hint" style="margin-top:8px">Un Sharpe o un profit factor con pocos días de datos no es concluyente. Win rate = ventas con ganancia sobre ventas totales.</p></div>';
+  return out;
+}
+
+function panelPnl(d, st, w) {
+  var cm = colorMap(d), nm = nameMap(d), S = d.series, out = '';
+  var rs = famLines(d, 'realized', function (v) { return v; });
+  if (rs) rs.forEach(function (s) { s.step = true; });
+  else rs = d.bots.map(function (b) { return { key: b.id, name: b.name, color: cm[b.id], ys: S.realized[b.id] || [], step: true }; });
+  var tot = S.ts.map(function (_, i) { return rs.reduce(function (a, s) { return a + (fin(s.ys[i]) ? s.ys[i] : 0); }, 0); });
+  rs.push({ key: '_total', name: 'Total', color: 'var(--ink)', width: 3, ys: tot, step: true });
+  out += '<div><h2>P&amp;L realizado acumulado por estrategia (USDT)</h2>' + legendHtml(rs, st.hidden) +
+    lineChart({ id: 'c-real', w: w, xs: S.ts, series: rs, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0); }, tipfmt: function (v) { return sgn(v, 2); }, label: 'P&L realizado acumulado por estrategia' }) + '</div>';
+  var sells = d.trades.rows.filter(function (r) { return r[T.side] === 'sell'; });
+  out += '<div><h2>P&amp;L por operación de cierre (USDT)</h2>';
+  if (!sells.length) out += '<p class="hint">Todavía no hay ventas cerradas.</p>';
+  else {
+    out += '<div class="legend">' + d.bots.map(function (b) { return '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2)"><i class="sq" style="background:' + cm[b.id] + ';display:inline-block;width:10px;height:10px;border-radius:2px"></i>' + esc(b.name) + '</span>'; }).join('') + '</div>';
+    out += barChart({ id: 'c-bars', w: w, rows: sells.map(function (r) { return { v: r[T.pnl], color: cm[r[T.bot]] || 'var(--ink2)', name: nm[r[T.bot]] || r[T.bot], ts: r[T.ts], sym: r[T.sym], reason: r[T.reason] }; }), yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0); }, label: 'P&L por operación de cierre' });
+    out += '<p class="hint" style="margin-top:6px">Cada venta usa costo promedio ponderado e incluye comisiones de compra y venta. En el grid una venta puede salir negativa aunque el ciclo completo gane; en el carry el P&amp;L del spot y el del perpetuo se compensan y el funding cobrado aparece como operación aparte; el acumulado sí es exacto.' + (d.trades.total > d.trades.rows.length ? ' Se muestran las últimas ' + d.trades.rows.length + ' de ' + d.trades.total + ' operaciones.' : '') + '</p>';
+  }
+  out += '</div><div><h2>Ganadoras y perdedoras por bot</h2><div class="tw"><table><thead><tr><th>Bot</th><th class="n">Cierres</th><th class="n">Ganancia bruta</th><th class="n">Pérdida bruta</th><th class="n">P&amp;L realizado</th><th class="n">Win rate</th><th class="n">Profit factor</th></tr></thead><tbody>' +
+    d.bots.map(function (b) { return '<tr><td>' + esc(b.name) + '</td><td class="n">' + (b.n_closes == null ? '—' : b.n_closes) + '</td><td class="n">' + nf(b.gross_profit, 2) + '</td><td class="n">' + (fin(b.gross_loss) && Math.abs(b.gross_loss) > 0 ? '−' : '') + nf(Math.abs(b.gross_loss), 2) + '</td><td class="n">' + tri(b.realized) + sgn(b.realized, 2) + '</td><td class="n">' + (fin(b.win_rate) ? nf(b.win_rate, 0) + '%' : '—') + '</td><td class="n">' + pf(b) + '</td></tr>'; }).join('') +
+    '</tbody></table></div></div>';
+  return out;
+}
+
+function uniq(rows, k) { var s = {}; rows.forEach(function (r) { s[r[k]] = 1; }); return Object.keys(s).sort(); }
+function selectHtml(id, label, opts, cur) {
+  return '<label>' + esc(label) + '<select id="' + id + '"><option value="">Todos</option>' + opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></label>';
+}
+function panelTx(d, st, w) {
+  var nm = nameMap(d), R = d.trades.rows, out = '';
+  if (!R.length) return '<div class="empty"><h2>Sin transacciones todavía</h2><p>Aparecerán aquí cuando algún bot compre o venda.</p></div>';
+  var exn = {}; d.bots.forEach(function (b) { exn[b.exchange] = b.exchange_name; });
+  var f = st.tx;
+  out += '<div class="filters">' + selectHtml('f-bot', 'Bot', d.bots.map(function (b) { return [b.id, b.name]; }), f.bot) +
+    selectHtml('f-ex', 'Plataforma', uniq(R, T.ex).map(function (e) { return [e, exn[e] || e]; }), f.ex) +
+    selectHtml('f-sym', 'Criptomoneda', uniq(R, T.sym).map(function (s) { return [s, short(s)]; }), f.sym) +
+    selectHtml('f-side', 'Tipo', [['buy', 'Compra'], ['sell', 'Venta']], f.side) + '</div>';
+  var rows = R.filter(function (r) { return (!f.bot || r[T.bot] === f.bot) && (!f.ex || r[T.ex] === f.ex) && (!f.sym || r[T.sym] === f.sym) && (!f.side || r[T.side] === f.side); }).slice().reverse();
+  var shown = rows.slice(0, st.txLimit);
+  out += '<p class="hint">' + rows.length + ' transacciones' + (d.trades.total > R.length ? ' (últimas ' + R.length + ' de ' + d.trades.total + ')' : '') + '</p>';
+  out += '<div class="tw"><table><thead><tr><th>Fecha</th><th>Bot</th><th>Plataforma</th><th>Moneda</th><th>Tipo</th><th>Orden</th><th class="n">Cantidad</th><th class="n">Precio</th><th class="n">Monto USDT</th><th class="n">Comisión</th><th class="n">P&amp;L</th><th>Motivo</th></tr></thead><tbody>' +
+    shown.map(function (r) {
+      var px = r[T.price];
+      return '<tr><td>' + esc(fmtDT(r[T.ts])) + '</td><td>' + esc(nm[r[T.bot]] || r[T.bot]) + '</td><td>' + esc(exn[r[T.ex]] || r[T.ex]) + '</td><td>' + esc(short(r[T.sym])) + '</td><td>' + sideLabel(r[T.side], r[T.kind]) + '</td><td>' + kindLabel(r[T.kind]) + '</td><td class="n">' + nf(r[T.qty], 6) + '</td><td class="n">' + nf(px, px < 1 ? 5 : 2) + '</td><td class="n">' + nf(r[T.notional], 2) + '</td><td class="n">' + nf(r[T.fee], 3) + '</td><td class="n">' + (r[T.side] === 'sell' || (SYNTH[r[T.kind]] && r[T.pnl]) ? sgn(r[T.pnl], 2) : '—') + '</td><td>' + esc(reason(r[T.reason])) + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+  if (rows.length > shown.length) out += '<div><button class="btn" id="more" type="button">Mostrar más (' + (rows.length - shown.length) + ' restantes)</button></div>';
+  var syms = Object.keys(d.prices).filter(function (s) { return R.some(function (r) { return r[T.sym] === s; }); });
+  if (syms.length) {
+    var sym = syms.indexOf(st.sym) >= 0 ? st.sym : syms[0];
+    out += '<div><h2>Operaciones sobre el precio</h2><div class="filters" style="margin-bottom:8px">' + selectHtml('p-sym', 'Moneda', syms.map(function (s) { return [s, short(s)]; }), sym).replace('<option value="">Todos</option>', '') + '</div>' +
+      priceChart({ id: 'c-price', w: w, sym: sym, price: d.prices[sym], trades: R.filter(function (r) { return r[T.sym] === sym; }), names: nm }) +
+      '<p class="hint" style="margin-top:6px">Triángulo lleno = compra · triángulo vacío = venta. Últimas ' + d.prices[sym].ts.length + ' velas.</p></div>';
+  }
+  return out;
+}
+
+function heat(c) { var a = Math.min(1, Math.abs(c)); return 'background:color-mix(in srgb, ' + (c >= 0 ? 'var(--div-red)' : 'var(--div-blue)') + ' ' + Math.round(a * 100) + '%, var(--div-mid))'; }
+function panelRiesgo(d, st, w) {
+  var cm = colorMap(d), S = d.series, out = '';
+  var ds = famLines(d, 'drawdown', function (v) { return v; }) || d.bots.map(function (b) { return { key: b.id, name: b.name, color: cm[b.id], ys: S.drawdown[b.id] || [] }; });
+  ds.push({ key: '_total', name: 'Portafolio', color: 'var(--ink)', width: 3, ys: S.drawdown_total });
+  out += '<div><h2>Drawdown desde el máximo de equity por estrategia (%)</h2>' + legendHtml(ds, st.hidden) +
+    lineChart({ id: 'c-dd', w: w, xs: S.ts, series: ds, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return nf(v, 2) + '%'; }, label: 'Drawdown por estrategia', yw: 50 }) + '</div>';
+  var PR = d.portfolio_risk;
+  if (PR) {
+    var gdays = Math.round((PR.cooldown_bars || 168) * d.bar_ms / DAY_MS), lvl = PR.status === 'paused' ? 'paused' : PR.used >= 0.8 ? 'near' : PR.used >= 0.5 ? 'watch' : 'ok';
+    out += '<div><h2>Freno global del portafolio</h2><div class="card"><p class="verdict" style="margin-bottom:10px">Si el valor total cae <b>' + nf(PR.limit * 100, 0) + '%</b> desde su máximo, se liquida todo, se pausa ' + gdays + ' días y los bots reanudan solos. ' +
+      (PR.status === 'paused' ? '<b>Activo ahora:</b> reanuda ' + esc(fmtDT(PR.until)) + '.' : 'Ahora: ' + nf(PR.dd * 100, 2) + '% bajo su máximo (' + nf(PR.used * 100, 0) + '% del freno).') + (PR.trips ? ' Se ha activado ' + PR.trips + (PR.trips === 1 ? ' vez.' : ' veces.') : '') + '</p>' +
+      (PR.status === 'paused' ? '' : rkBar(PR.used, lvl, 'Usa ' + nf(PR.used * 100, 0) + '% del freno global')) + '</div></div>';
+  }
+  out += '<div><h2>Controles de riesgo por bot</h2><div class="tw"><table><thead><tr><th>Bot</th><th>Qué tan cerca está del límite</th><th>Al romperlo</th><th>Estado</th></tr></thead><tbody>' + d.bots.slice().sort(function (a, b) {
+    var ua = a.risk_now && fin(a.risk_now.used) && a.status === 'active' ? a.risk_now.used : -1, ub = b.risk_now && fin(b.risk_now.used) && b.status === 'active' ? b.risk_now.used : -1; return ub - ua;
+  }).map(function (b) {
+    var r = b.risk_now || {};
+    return '<tr><td>' + esc(b.name) + '</td><td>' + riskCell(b) + '</td><td>' + esc(actionText(b, d)) + '</td><td>' + statusPill(b.status) +
+      (r.max_strikes && r.strikes ? '<div class="rkt" style="margin-top:4px">' + r.strikes + ' de ' + r.max_strikes + ' rupturas</div>' : '') + '</td></tr>';
+  }).join('') + '</tbody></table></div><p class="hint" style="margin-top:6px">La marca vertical está en el 80% del límite: ahí se registra un aviso. Todo es automático; el único bot que no frena es DCA (solo alerta, por diseño).</p></div>';
+  if (d.bots.some(function (b) { return fin(b.market); })) {
+    out += '<div><h2>Resultado por bot: mercado y operación</h2><div class="tw"><table><thead><tr><th>Bot</th><th class="n">Resultado</th><th class="n">Por el mercado</th><th class="n">Por el bot</th></tr></thead><tbody>' + d.bots.map(function (b) {
+      return '<tr><td>' + esc(b.name) + '</td><td class="n">' + sgn(b.pnl, 2) + '</td><td class="n">' + sgn(b.market, 2) + '</td><td class="n">' + sgn(b.own, 2) + '</td></tr>';
+    }).join('') + '</tbody></table></div><p class="hint" style="margin-top:6px">USDT desde el inicio. Un bot que casi no tiene posiciones tiene poco efecto de mercado; el carry y el arbitraje están cubiertos y deben quedar cerca de cero.</p></div>';
+  }
+  var O = d.overlap;
+  out += '<div><h2>Solapamiento entre bots</h2>';
+  if (O.matrix.length) {
+    out += '<div class="tw" style="padding:8px"><table class="heat"><thead><tr><th></th>' + O.labels.map(function (l) { return '<th>' + esc(l) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      O.matrix.map(function (row, i) { return '<tr><th style="text-align:right;vertical-align:middle">' + esc(O.labels[i]) + '</th>' + row.map(function (c) { return fin(c) ? '<td style="' + heat(c) + '">' + nf(c, 2) + '</td>' : '<td>—</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+    out += '<p class="hint" style="margin-top:6px">Correlación de retornos cada 4 horas. Azul: se mueven en sentidos opuestos; rojo: juntos. Bots muy correlacionados no diversifican.</p>';
+  } else out += '<p class="hint">Todavía no hay datos suficientes para calcular correlaciones.</p>';
+  if (O.flags.length) out += '<div class="tw" style="margin-top:8px"><table><thead><tr><th>Bots</th><th>Monedas compartidas</th><th class="n">Correlación</th><th>Alerta</th></tr></thead><tbody>' + O.flags.map(function (f) { return '<tr><td>' + esc(f.bots) + '</td><td>' + esc(String(f.shared).replace(/USDT/g, '')) + '</td><td class="n">' + (fin(f.corr) ? nf(f.corr, 2) : '—') + '</td><td>' + (f.alert ? '<span class="pillish">Revisar</span>' : '—') + '</td></tr>'; }).join('') + '</tbody></table></div>';
+  out += '</div><div><h2>Eventos y alertas recientes</h2>';
+  var nm = nameMap(d), lv = { alert: 'ALERTA', warn: 'Aviso', info: 'Info' };
+  out += d.events.length ? '<div class="card ev">' + d.events.slice(0, 40).map(function (e) { return '<div><span class="when">' + esc(fmtDT(e[0])) + '</span><span><b>' + esc(lv[e[2]] || e[2]) + '</b></span><span>' + esc((nm[e[1]] ? nm[e[1]] + ': ' : '') + e[3]) + '</span></div>'; }).join('') + '</div>' : '<p class="hint">Sin eventos.</p>';
+  return out + '</div>';
+}
+
+function dirLabel(s) { return s === 'alcista' ? '▲ Alcista' : s === 'bajista' ? '▼ Bajista' : '◆ Lateral / sin tendencia significativa'; }
+function panelTend(d, st, w) {
+  var F = d.forecasts, syms = Object.keys(F).sort(), out = '<div class="banner warn"><span><b>Estimación, no garantía.</b> ' + esc(d.disclaimer || '') + '</span></div>';
+  if (!syms.length) return out + '<p class="hint">Aún no hay suficientes velas para estimar tendencias (se necesitan ~3.5 días de historia).</p>';
+  var sym = syms.indexOf(st.sym) >= 0 ? st.sym : syms[0], hz = st.hz === '72' ? '72' : '24', fc = F[sym], c = fc.h[hz];
+  out += '<div class="filters" style="align-items:flex-end">' + selectHtml('t-sym', 'Moneda', syms.map(function (s) { return [s, short(s)]; }), sym).replace('<option value="">Todos</option>', '') +
+    '<div><div class="hint" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Horizonte</div><div class="seg"><button type="button" data-hz="24" aria-pressed="' + (hz === '24') + '">24 h</button><button type="button" data-hz="72" aria-pressed="' + (hz === '72') + '">72 h</button></div></div></div>';
+  if (c && d.prices[sym]) {
+    var P = d.prices[sym], k = Math.min(P.ts.length, Math.round(168 * 3600000 / d.bar_ms)), dd = fc.last_price < 1 ? 5 : 2;
+    out += coneChart({ id: 'c-cone', w: w, sym: sym, barMs: d.bar_ms, hist: { ts: P.ts.slice(-k), close: P.close.slice(-k) }, cone: c });
+    out += '<p class="hint">' + esc(short(sym)) + ': tendencia ' + esc(fc.direction) + ' (t-stat ' + nf(fc.t_stat, 1) + '). Al horizonte el modelo centra el precio en ' + nf(c.end_center, dd) + ', con rango ±2σ de ' + nf(c.end_lo2, dd) + ' a ' + nf(c.end_hi2, dd) + '. El cono suele ser mucho más ancho que el movimiento estimado: la tendencia rara vez supera el ruido.</p>';
+  }
+  out += '<div><h2>Todas las monedas</h2><div class="tw"><table><thead><tr><th>Moneda</th><th>Tendencia estimada</th><th class="n">t-stat</th><th class="n">Pendiente %/día</th><th class="n">Precio actual</th><th class="n">Rango ±2σ (24 h)</th></tr></thead><tbody>' + syms.map(function (s) {
+    var f = F[s], h = f.h['24'], dd = f.last_price < 1 ? 5 : 2;
+    return '<tr><td>' + esc(short(s)) + '</td><td>' + esc(dirLabel(f.direction)) + '</td><td class="n">' + nf(f.t_stat, 1) + '</td><td class="n">' + sgn(f.slope_pct_day, 2, '%') + '</td><td class="n">' + nf(f.last_price, dd) + '</td><td class="n">' + (h ? nf(h.end_lo2, dd) + ' – ' + nf(h.end_hi2, dd) : '—') + '</td></tr>';
+  }).join('') + '</tbody></table></div></div>';
+  return out;
+}
+
+function botCard(b, cm) {
+  var pr = JSON.stringify(b.params || {}, null, 1).replace(/[{}]/g, '').trim();
+  return '<article class="card doc"><h3 style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14.5px"><span class="sw" style="background:' + cm[b.id] + '"></span>' + esc(b.name) + '</h3><dl>' +
+    '<dt>Monedas</dt><dd>' + esc(b.symbols.map(short).join(', ')) + '</dd><dt>Estrategia</dt><dd>' + esc(b.strategy) + '</dd>' +
+    '<dt>Plataforma</dt><dd>' + esc(b.exchange_name) + (fin(b.maker) ? ' · comisión maker/taker ' + nf(b.maker * 100, 3) + '% / ' + nf(b.taker * 100, 3) + '%' : '') + '</dd>' +
+    '<dt>Volatilidad</dt><dd>' + esc(b.vol_profile) + '</dd><dt>Riesgo</dt><dd>' + esc(b.risk_level) + '</dd><dt>Capital</dt><dd>' + nf(b.capital, 0) + ' USDT ficticios</dd>' +
+    '<dt>En qué se diferencia</dt><dd>' + esc(b.differentiator) + '</dd></dl><details style="margin-top:10px"><summary>Parámetros</summary><pre>' + esc(pr) + '</pre></details></article>';
+}
+function panelBots(d) {
+  var cm = colorMap(d), F = d.families, byId = {}, intro = '<p class="hint">Documentación de cada bot: qué opera, con qué estrategia, dónde corre y en qué se diferencia de los demás. Agrupados por tipo de estrategia.</p>';
+  d.bots.forEach(function (b) { byId[b.id] = b; });
+  if (!F) return intro + '<div class="docgrid">' + d.bots.map(function (b) { return botCard(b, cm); }).join('') + '</div>';
+  var tot = F.reduce(function (a, f) { return a + (fin(f.equity) ? f.equity : 0); }, 0);
+  return intro + F.map(function (f) {
+    return '<section class="fam"><header class="fam-h"><h2><span class="sw" style="background:' + (FAMILY_COLOR[f.key] || 'var(--other)') + '"></span>' + esc(f.name) + '</h2>' +
+      '<span class="fam-s">' + f.bots.length + (f.bots.length === 1 ? ' bot' : ' bots') + ' · ' + nf(tot > 0 ? f.equity / tot * 100 : 0, 1) + '% del portafolio · ROI ' + sgn(f.roi, 2, '%') + '</span></header>' +
+      '<p class="hint">' + esc(f.desc || '') + '</p><div class="docgrid">' + f.bots.filter(function (id) { return byId[id]; }).map(function (id) { return botCard(byId[id], cm); }).join('') + '</div></section>';
+  }).join('');
+}
+
+/* ------------------------------------------------------------------ comparar TODOS los simuladores */
+/* Los simuladores se descubren solos: `../sims.json` (lo genera el flujo con cada carpeta que tenga tablero) lista todos;
+   cada tablero carga los demás y los compara. Al agregar un simulador nuevo, aparece aquí en todos sin tocar esta página. */
+function simName(x) { return (x && x.sim && x.sim.name) || 'Simulador'; }
+function simShort(x) { var n = simName(x).replace(/^Simulador\s+/i, ''); return n ? n.charAt(0).toUpperCase() + n.slice(1) : 'Simulador'; }
+function stepAt(ts, ys, t) { var i = idxAtOrBefore(ts, t); return ys[i < 0 ? 0 : i]; }
+function countStatus(d, s) { return d.bots.filter(function (b) { return b.status === s; }).length; }
+var SIM_COLORS = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)', 'var(--s5)', 'var(--s7)', 'var(--s8)', 'var(--s6)'];
+/* orden estable (el del registro) para que cada simulador tenga el mismo color en todos los tableros */
+function simsList(d, st) {
+  var list = [{ d: d, order: (st.selfOrder == null ? -1 : st.selfOrder) }];
+  (st.others || []).forEach(function (o) { if (o && o.d && o.d.kpis) list.push(o); });
+  list.sort(function (x, y) { return x.order - y.order; });
+  return list.map(function (x, i) { return { d: x.d, name: simShort(x.d), color: SIM_COLORS[i % SIM_COLORS.length], self: x.d === d }; });
+}
+/* periodos de la comparación (días); 'common' = desde que empezó el simulador más reciente */
+var CMP_PERIODS = [['common', 'Periodo en común', -1], ['1d', 'Día', 1], ['7d', 'Semana', 7], ['30d', 'Mes', 30], ['365d', 'Año', 365], ['1095d', '3 años', 1095], ['1825d', '5 años', 1825]];
+function cmpPeriod(st) { return CMP_PERIODS.filter(function (p) { return p[0] === st.cmpPer; })[0] || CMP_PERIODS[0]; }
+/* ventana [t0, t1] de la comparación y qué simuladores la cubren completa (los que llevan menos tiempo se omiten, no se inventan) */
+function cmpWindow(L, per) {
+  var t1 = Math.min.apply(null, L.map(function (x) { return x.d.kpis.last_ts; })), maxBar = Math.max.apply(null, L.map(function (x) { return x.d.bar_ms; }));
+  if (per[2] < 0) return { t0: Math.max.apply(null, L.map(function (x) { return x.d.kpis.first_ts; })), t1: t1, inc: L.slice(), out: [], maxBar: maxBar };
+  var t0 = t1 - per[2] * DAY_MS, inc = L.filter(function (x) { return x.d.kpis.first_ts <= t0 + maxBar; });
+  return { t0: t0, t1: t1, inc: inc, out: L.filter(function (x) { return inc.indexOf(x) < 0; }), maxBar: maxBar };
+}
+/* ROI, caída máxima y retorno/caída de UN simulador dentro de [t0, t1] (todo causal: con los puntos que ya existen) */
+function winMetrics(x, t0, t1) {
+  var S = x.d.series, i0 = idxAtOrBefore(S.ts, t0), i1 = idxAtOrBefore(S.ts, t1); if (i0 < 0) i0 = 0; if (i1 < i0) return null;
+  var base = S.total[i0], peak = base, dd = 0;
+  for (var i = i0; i <= i1; i++) { if (S.total[i] > peak) peak = S.total[i]; var q = S.total[i] / peak - 1; if (q < dd) dd = q; }
+  var roi = (S.total[i1] / base - 1) * 100, ddp = dd * 100, btc = null;
+  if (S.btc && fin(S.btc[i0]) && fin(S.btc[i1])) btc = (S.btc[i1] / S.btc[i0] - 1) * 100;
+  return { roi: roi, dd: ddp, calmar: ddp < -0.05 ? roi / Math.abs(ddp) : null, btc: btc };
+}
+/* máximo y mínimo históricos del equity: exactos si el JSON los trae; si no, de la serie del tablero */
+function hiLo(d) {
+  var K = d.kpis, S = d.series;
+  if (fin(K.equity_high) && fin(K.equity_low)) return { hi: K.equity_high, hiTs: K.equity_high_ts, lo: K.equity_low, loTs: K.equity_low_ts };
+  var hi = -Infinity, lo = Infinity, hiTs = null, loTs = null;
+  S.total.forEach(function (v, i) { if (v > hi) { hi = v; hiTs = S.ts[i]; } if (v < lo) { lo = v; loTs = S.ts[i]; } });
+  return { hi: hi, hiTs: hiTs, lo: lo, loTs: loTs };
+}
+function bestIdx(vals, higher) {                       /* índice del mejor valor; -1 si hay menos de 2 válidos o todos empatan */
+  var ok = vals.map(function (v, i) { return fin(v) ? i : -1; }).filter(function (i) { return i >= 0; });
+  if (ok.length < 2) return -1;
+  var b = ok.reduce(function (a, i) { return (higher ? vals[i] > vals[a] : vals[i] < vals[a]) ? i : a; }, ok[0]);
+  return ok.every(function (i) { return Math.abs(vals[i] - vals[b]) < 1e-9; }) ? -1 : b;
+}
+function panelComparar(d, st, w) {
+  var L = simsList(d, st);
+  if (L.length < 2) return '<div class="empty"><h2>Comparar simuladores</h2><p>Aún no hay datos de otros simuladores. Aparecerán aquí cuando tengan su primera corrida.</p></div>';
+  var n = L.length, per = cmpPeriod(st), W = cmpWindow(L, per), t0 = W.t0, t1 = W.t1, span = t1 - t0, maxBar = W.maxBar, inc = W.inc;
+  var caps = L.map(function (x) { return x.d.kpis.capital; });
+  var sameCap = caps.every(function (c) { return Math.abs(c - caps[0]) < 1; });
+  var out = '<div class="banner info"><span><b>Misma prueba, ' + n + ' simuladores.</b> ' + L.map(function (x) { return '<b>' + esc(x.name) + '</b>' + (x.d.sim && x.d.sim.desc ? ': ' + esc(x.d.sim.desc) : ''); }).join('. ') + '. ' +
+    (sameCap ? 'Mismo capital ficticio (' + nf(caps[0], 0) + ' USDT) y mismos precios reales. ' : 'Los capitales ficticios son distintos (' + L.map(function (x, i) { return esc(x.name) + ' ' + nf(caps[i], 0); }).join(' · ') + ' USDT): compara el <b>ROI</b>, no los USDT. ') +
+    'Ninguno se ajusta mientras corre la prueba.</span></div>';
+  var days = function (K) { return Math.max(K.last_ts - K.first_ts, 1) / DAY_MS; };
+  var head = '<tr><th></th>' + L.map(function (x) { return '<th class="n"><span class="sw" style="background:' + x.color + '"></span>' + esc(x.name) + '</th>'; }).join('') + '</tr>';
+  var row = function (l, f) { return '<tr><td>' + esc(l) + '</td>' + L.map(function (x) { return '<td class="n">' + f(x.d, x.d.kpis) + '</td>'; }).join('') + '</tr>'; };
+  var legendOfHist = Math.max.apply(null, L.map(function (x) { return x.d.kpis.last_ts - x.d.kpis.first_ts; }));
+  /* botones de periodo: se desactiva el que ningún simulador alcanza a cubrir */
+  var seg = '<div class="sm-ctrl"><span class="seg" role="group" aria-label="Periodo de la comparación">' + CMP_PERIODS.map(function (p) {
+    var ww = cmpWindow(L, p), off = p[2] > 0 && ww.inc.length < 1;
+    return '<button type="button" data-cmpper="' + p[0] + '" aria-pressed="' + (p === per) + '"' + (off ? ' disabled title="Ningún simulador lleva tanto tiempo corriendo"' : '') + '>' + esc(p[1]) + '</button>';
+  }).join('') + '</span></div>';
+  var ok = inc.length >= 1 && span >= 2 * maxBar;
+  var winMet = ok ? inc.map(function (x) { return winMetrics(x, t0, t1); }) : [];
+  if (ok) {
+    var xs = []; inc.forEach(function (x) { x.d.series.ts.forEach(function (t) { if (t >= t0 && t <= t1) xs.push(t); }); });
+    xs.sort(function (a, b) { return a - b; }); xs = xs.filter(function (t, i) { return i === 0 || t !== xs[i - 1]; });
+    var series = inc.map(function (x) {
+      var S = x.d.series, b0 = stepAt(S.ts, S.total, t0);
+      return { key: 'c' + L.indexOf(x), name: x.name, color: x.color, width: 2.5, ys: xs.map(function (t) { return (stepAt(S.ts, S.total, t) / b0 - 1) * 100; }) };
+    });
+    var SA = inc[0].d.series;
+    if (SA.btc && fin(stepAt(SA.ts, SA.btc, t0))) { var bb = stepAt(SA.ts, SA.btc, t0); series.push({ key: 'cBTC', name: 'BTC comprar y mantener', color: 'var(--ink2)', dash: true, ys: xs.map(function (t) { return (stepAt(SA.ts, SA.btc, t) / bb - 1) * 100; }) }); }
+    var fin_ = series.slice(0, inc.length).map(function (s, i) { return { name: inc[i].name, r: s.ys[xs.length - 1] }; });
+    var verdict = fin_.map(function (f) { return esc(f.name) + ' <b>' + sgn(f.r, 2, '%') + '</b>'; }).join(' · ');
+    if (fin_.length > 1) {
+      var best = fin_.reduce(function (a, b) { return b.r > a.r ? b : a; }), worst = fin_.reduce(function (a, b) { return b.r < a.r ? b : a; });
+      verdict += '. Mejor: <b>' + esc(best.name) + '</b>; peor: <b>' + esc(worst.name) + '</b> (' + sgn(best.r - worst.r, 2, ' pp') + ' de distancia)';
+    }
+    var note = per[2] < 0 ? 'El periodo es el que tienen en común todos (arranca cuando empezó el más reciente). ' : '';
+    if (W.out.length) note += '<b>Sin historial suficiente para este periodo:</b> ' + W.out.map(function (x) { return esc(x.name); }).join(', ') + ' (no se muestran; no se inventa historial). ';
+    out += '<section class="sm-card"><h2>' + esc(per[2] < 0 ? 'Mismo periodo' : 'Últimos ' + nf(per[2], 0) + (per[2] === 1 ? ' día' : ' días') + ' (' + per[1] + ')') + ' <span class="r">' + esc(fmtDT(t0)) + ' → ' + esc(fmtDT(t1)) + ' · ' + nf(span / DAY_MS, 1) + ' días</span></h2>' + seg +
+      '<p class="verdict">' + verdict + '. ' + note + 'Con pocos días esto es ruido, no un veredicto: más operaciones solo ayudan si lo que ganan supera las comisiones.</p>' +
+      legendHtml(series, st.hidden) +
+      lineChart({ id: 'c-cmp', w: w, xs: xs, series: series, hidden: st.hidden, zero: true, yfmt: function (v) { return nf(v, Math.abs(v) < 10 ? 1 : 0) + '%'; }, tipfmt: function (v) { return sgn(v, 2, '%'); }, label: 'Rendimiento de los simuladores en el periodo ' + per[1], yw: 50 }) + '</section>';
+  } else {
+    out += '<section class="sm-card"><h2>' + esc(per[1]) + '</h2>' + seg + '<p class="hint">' + (inc.length < 1
+      ? 'Ningún simulador lleva ' + nf(per[2], 0) + (per[2] === 1 ? ' día' : ' días') + ' corriendo (el que más lleva ' + nf(legendOfHist / DAY_MS, 1) + ' días). El periodo aparecerá cuando alguno tenga ese historial; no se inventa historial.'
+      : 'Todavía no hay un periodo suficiente para graficar (el más reciente aún tiene muy pocas velas). Se muestran las tablas con lo acumulado de cada uno.') + '</p></section>';
+  }
+
+  /* ---- quién rinde mejor en el periodo elegido (mismas fechas para todos) */
+  if (ok && inc.length >= 2) {
+    var vals = function (k) { return winMet.map(function (m) { return m ? m[k] : null; }); };
+    var cost = inc.map(function (x) { var K = x.d.kpis; return K.capital ? K.fees / K.capital / days(K) * 100 : null; });
+    var M = [
+      { key: 'roi', label: 'ROI del periodo', v: vals('roi'), hi: true, fmt: function (v) { return sgn(v, 2, '%'); } },
+      { key: 'vsb', label: 'ROI contra Bitcoin (pp)', v: vals('roi').map(function (v, i) { var m = winMet[i]; return m && fin(m.btc) ? v - m.btc : null; }), hi: true, fmt: function (v) { return sgn(v, 2, ' pp'); } },
+      { key: 'dd', label: 'Caída máxima en el periodo', v: vals('dd'), hi: true, fmt: function (v) { return nf(v, 2) + '%'; } },
+      { key: 'cal', label: 'Retorno por unidad de caída', v: vals('calmar'), hi: true, fmt: function (v) { return nf(v, 2); } },
+      { key: 'cst', label: 'Comisiones por día (% del capital)', v: cost, hi: false, fmt: function (v) { return nf(v, 3) + '%'; } }
+    ];
+    var wins = inc.map(function () { return 0; }), scored = 0;
+    var rowsH = M.map(function (m) {
+      var bi = bestIdx(m.v, m.hi); if (bi >= 0 && m.key !== 'vsb') { wins[bi]++; scored++; }
+      return '<tr><td>' + esc(m.label) + '</td>' + m.v.map(function (v, i) { return '<td class="n' + (i === bi ? ' best' : '') + '">' + (fin(v) ? m.fmt(v) : '—') + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    var headI = '<tr><th></th>' + inc.map(function (x) { return '<th class="n"><span class="sw" style="background:' + x.color + '"></span>' + esc(x.name) + '</th>'; }).join('') + '</tr>';
+    var mx = Math.max.apply(null, wins), lead = wins.map(function (v, i) { return v === mx ? i : -1; }).filter(function (i) { return i >= 0; });
+    var chips = inc.map(function (x, i) { return '<span class="chip"><span class="sw" style="background:' + x.color + '"></span> <b>' + esc(x.name) + '</b> · ' + wins[i] + ' de ' + scored + '</span>'; }).join('');
+    var verdictW = mx === 0 ? 'Ninguno se despega todavía.' : lead.length > 1 ? 'Empate en métricas ganadas: ' + lead.map(function (i) { return '<b>' + esc(inc[i].name) + '</b>'; }).join(' y ') + '.' : '<b>' + esc(inc[lead[0]].name) + '</b> gana más métricas (' + mx + ' de ' + scored + ').';
+    var short = span < 30 * DAY_MS;
+    out += '<section class="sm-card"><h2>¿Quién rinde mejor? <span class="r">' + esc(per[2] < 0 ? 'periodo en común' : per[1]) + ' · ' + nf(span / DAY_MS, 1) + ' días</span></h2>' +
+      '<p class="verdict">' + verdictW + (short ? ' <b>Con menos de 30 días de datos esto es ruido, no un veredicto</b> (la regla del proyecto: no juzgar con menos de ~30 días).' : '') + '</p><div class="cmp-win">' + chips + '</div>' +
+      '<div class="tw cmp"><table><thead>' + headI + '</thead><tbody>' + rowsH + '</tbody></table></div>' +
+      '<p class="hint" style="margin-top:6px">▲ = mejor en esa fila. Se cuentan 4 métricas (ROI, caída máxima, retorno por unidad de caída y comisiones por día); “contra Bitcoin” se muestra pero no cuenta, porque ordena igual que el ROI. Retorno por unidad de caída = ROI ÷ caída máxima del periodo (— si no hubo caída). Las comisiones son de toda la vida del simulador, por día, para no castigar al más viejo.</p></section>';
+  } else if (ok) {
+    out += '<section class="sm-card"><h2>¿Quién rinde mejor?</h2><p class="hint">Para este periodo solo un simulador tiene historial suficiente, así que no hay con quién compararlo. Elige otro periodo.</p></section>';
+  }
+
+  /* ---- ROI por periodo (cada simulador con su propio historial; — si aún no lleva ese tiempo) */
+  var FP = CMP_PERIODS.filter(function (p) { return p[2] > 0; }).map(function (p) { return [p[0], p[1], p[2]]; }).concat([['all', 'Desde el inicio de cada uno', 0]]);
+  var BM = (L.filter(function (x) { return x.d.benchmarks && x.d.benchmarks.BTCUSDT; })[0] || {}).d;
+  var rowsR = FP.map(function (p) {
+    var v = L.map(function (x) { return portRet(x.d, p); }), bi = bestIdx(v, true);
+    var btc = BM ? benchRet(BM.benchmarks, 'BTCUSDT', p, BM.kpis) : (p[2] ? null : (L[0].d.kpis.btc_ret));
+    return '<tr><td>' + esc(p[1]) + '</td>' + v.map(function (x, i) { return fin(x) ? '<td class="n' + (i === bi ? ' best' : '') + '">' + sgn(x, 2, '%') + '</td>' : '<td class="n" title="Aún no lleva ese tiempo corriendo">—</td>'; }).join('') +
+      (fin(btc) ? '<td class="n">' + sgn(btc, 2, '%') + '</td>' : '<td class="n" title="Sin historial de mercado para ese periodo">—</td>') + '</tr>';
+  }).join('');
+  out += '<div><h2>ROI por periodo</h2><div class="tw cmp"><table><thead><tr><th>Periodo (hasta hoy)</th>' + L.map(function (x) { return '<th class="n"><span class="sw" style="background:' + x.color + '"></span>' + esc(x.name) + '</th>'; }).join('') + '<th class="n">Bitcoin</th></tr></thead><tbody>' + rowsR + '</tbody></table></div>' +
+    '<p class="hint" style="margin-top:6px">▲ = mejor ROI en el periodo. <b>—</b> = el simulador aún no lleva ese tiempo corriendo; no se inventa historial. La última fila es el ROI acumulado de cada uno desde que arrancó (no es el mismo periodo: el más viejo tiene más días). Bitcoin: comprar y mantener, sin comisiones (el historial de mercado de los tableros cubre hasta ~1 año).</p></div>';
+
+  /* ---- máximos y mínimos históricos */
+  var HL = L.map(function (x) { return hiLo(x.d); });
+  var hcell = function (f) { return '<tr><td>' + esc(f[0]) + '</td>' + L.map(function (x, i) { return '<td class="n">' + f[1](x.d, x.d.kpis, HL[i]) + '</td>'; }).join('') + '</tr>'; };
+  var capOf = function (K) { return K.capital || 1; };
+  out += '<div><h2>Máximos y mínimos históricos <span class="r" style="font-weight:400">desde que arrancó cada simulador</span></h2><div class="tw cmp"><table><thead>' + head + '</thead><tbody>' +
+    [['Máximo histórico (ATH), USDT', function (d, K, h) { return nf(h.hi, 2) + '<small style="display:block;color:var(--muted)">' + esc(fmtDT(h.hiTs)) + '</small>'; }],
+     ['ROI en el máximo', function (d, K, h) { return sgn((h.hi / capOf(K) - 1) * 100, 2, '%'); }],
+     ['Mínimo histórico (ATL), USDT', function (d, K, h) { return nf(h.lo, 2) + '<small style="display:block;color:var(--muted)">' + esc(fmtDT(h.loTs)) + '</small>'; }],
+     ['ROI en el mínimo', function (d, K, h) { return sgn((h.lo / capOf(K) - 1) * 100, 2, '%'); }],
+     ['Equity actual, USDT', function (d, K) { return nf(K.equity, 2); }],
+     ['Distancia al máximo', function (d, K, h) { return sgn((K.equity / h.hi - 1) * 100, 2, '%'); }],
+     ['Distancia al mínimo', function (d, K, h) { return sgn((K.equity / h.lo - 1) * 100, 2, '%'); }],
+     ['Caída máxima (peak a valle)', function (d, K) { return nf(K.max_dd, 2) + '%'; }]].map(hcell).join('') +
+    '</tbody></table></div><p class="hint" style="margin-top:6px">Máximo y mínimo del equity del portafolio (incluye el efectivo) medidos sobre todas las velas del simulador, no solo sobre las gráficas. ROI = frente al capital inicial de cada uno. Son cifras de una prueba corta: un máximo de hace unos días no es un “récord” en ningún sentido estadístico.</p></div>';
+  var anyMarket = L.every(function (x) { return fin(x.d.kpis.market_pnl); });
+  out += '<div><h2>Cifras acumuladas de cada uno</h2><div class="tw cmp"><table><thead>' + head + '</thead><tbody>' +
+    row('Velas', function (d) { return esc(d.interval); }) +
+    row('Bots', function (d) { return d.bots.length; }) +
+    row('Corriendo desde', function (d, K) { return esc(dayf.format(new Date(K.first_ts))); }) +
+    row('Días de prueba', function (d, K) { return nf(days(K), 1); }) +
+    row('Capital (USDT)', function (d, K) { return nf(K.capital, 0); }) +
+    row('Equity (USDT)', function (d, K) { return nf(K.equity, 2); }) +
+    row('P&L (USDT)', function (d, K) { return sgn(K.pnl, 2); }) +
+    row('ROI', function (d, K) { return sgn(K.roi, 2, '%'); }) +
+    (anyMarket ? row('Por el mercado (USDT)', function (d, K) { return sgn(K.market_pnl, 2); }) + row('Por los bots (USDT)', function (d, K) { return sgn(K.own_pnl, 2); }) : '') +
+    row('Comisiones (USDT)', function (d, K) { return nf(K.fees, 2); }) +
+    row('Operaciones', function (d, K) { return K.n_trades; }) +
+    row('Operaciones por día', function (d, K) { return nf(K.n_trades / days(K), 1); }) +
+    row('Máx. drawdown', function (d, K) { return nf(K.max_dd, 2) + '%'; }) +
+    row('Ganancia / pérdida histórica', function (d, K) { return nf(K.gross_profit, 0) + ' / ' + nf(K.gross_loss, 0); }) +
+    row('Bots activos / pausados / retirados', function (d) { return countStatus(d, 'active') + ' / ' + countStatus(d, 'paused') + ' / ' + countStatus(d, 'retired'); }) +
+    '</tbody></table></div></div>';
+  var fams = L.map(function (x) { var m = {}; (x.d.families || []).forEach(function (f) { m[f.key] = f; }); return m; }), keys = [], names = {};
+  L.forEach(function (x) { (x.d.families || []).forEach(function (f) { if (keys.indexOf(f.key) < 0) { keys.push(f.key); names[f.key] = f.name; } }); });
+  var cell = function (f) { return f ? sgn(f.pnl, 2) + '<small style="display:block;color:var(--muted)">' + f.bots.length + ' bots · ' + f.n_trades + ' ops</small>' : '—'; };
+  out += '<div><h2>Por estrategia (P&amp;L en USDT)</h2><div class="tw cmp"><table><thead><tr><th>Estrategia</th>' + L.map(function (x) { return '<th class="n"><span class="sw" style="background:' + x.color + '"></span>' + esc(x.name) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+    keys.map(function (k) { return '<tr><td>' + esc(names[k]) + '</td>' + fams.map(function (m) { return '<td class="n">' + cell(m[k]) + '</td>'; }).join('') + '</tr>'; }).join('') +
+    '</tbody></table></div><p class="hint" style="margin-top:6px">El P&amp;L de cada estrategia incluye el efecto del mercado sobre lo que mantiene. Simuladores con distinto número de bots o de capital por estrategia no son comparables en USDT: usa el ROI de cada pestaña Rendimiento si necesitas igualar tamaños.</p></div>';
+  return out;
+}
+function buildPanels(d, status, st, w) {
+  return { summary: panelSummary(d, st, w), resumen: panelResumen(d, st, w), pnl: panelPnl(d, st, w), tx: panelTx(d, st, w), riesgo: panelRiesgo(d, st, w), tendencias: panelTend(d, st, w), bots: panelBots(d), comparar: panelComparar(d, st, w) };
+}
+function bannersHtml(d, status) {
+  var s = '';
+  if (d && d.synthetic) s += '<div class="banner crit"><span><b>DATOS INVENTADOS.</b> ' + esc(d.source) + '. Esto solo prueba el sistema; no representa ningún mercado real.</span></div>';
+  else if (d) s += '<div class="banner info"><span><b>Simulación con dinero ficticio.</b> Precios reales de ' + esc(d.source) + '. Los resultados simulados no garantizan resultados futuros.</span></div>';
+  if (status && status.ok === false) s += '<div class="banner warn"><span><b>La última corrida no actualizó el tablero</b> (' + esc(fmtDT(status.ts)) + '): ' + esc(status.message) + ' Se conserva el estado anterior.</span></div>';
+  return s;
+}
+function subHtml(d, status) {
+  if (!d) return status && status.ok === false ? 'Sin datos todavía.' : 'Sin datos todavía.';
+  return 'Periodo ' + esc(fmtDT(d.kpis.first_ts)) + ' → ' + esc(fmtDT(d.kpis.last_ts)) + ' · velas de ' + esc(d.interval) + ' · actualizado ' + esc(fmtDT(d.generated_at)) + ' (' + ago(d.generated_at) + ')';
+}
+function emptyHtml(status) {
+  return '<div class="empty"><h2>Aún no hay datos</h2><p>' + (status && status.ok === false ? 'La primera corrida no pudo completarse: ' + esc(status.message) : 'La primera corrida programada publicará aquí el tablero.') + '</p></div>';
+}
+
+var api = { simNavHtml: simNavHtml, buildPanels: buildPanels, bannersHtml: bannersHtml, subHtml: subHtml, emptyHtml: emptyHtml, REG: REG, niceTicks: niceTicks, lineChart: lineChart, barChart: barChart, coneChart: coneChart };
+if (TEST) { globalThis.__dashApi = api; return; }
+
+/* ------------------------------------------------------------------ DOM */
+var $ = function (s, r) { return (r || document).querySelector(s); };
+var state = { tab: 'summary', smCash: false, smPer: 'all', hidden: {}, tx: { bot: '', ex: '', sym: '', side: '' }, txLimit: 100, sym: '', hz: '24', others: [], selfOrder: null, cmpPer: 'common' };
+var D = null, S = null, pending = null;
+
+function width() { var p = $('#panel'); return Math.max(280, (p && p.clientWidth) || 640) - 2; }
+function wire() {
+  var panel = $('#panel');
+  panel.querySelectorAll('.legend button[data-key]').forEach(function (b) { b.addEventListener('click', function () { state.hidden[b.dataset.key] = !state.hidden[b.dataset.key]; render(); }); });
+  panel.querySelectorAll('.chart').forEach(function (el) {
+    var g = REG[el.dataset.chart]; if (!g) return;
+    var svg = el.querySelector('svg'), tip = el.querySelector('.tip'), xh = el.querySelector('.xh');
+    function hide() { tip.hidden = true; xh.style.display = 'none'; }
+    function move(e) {
+      var r = svg.getBoundingClientRect(); if (!r.width) return;
+      var i = nearest(g.xpx, (e.clientX - r.left) * (g.w / r.width)), html = g.tip(i); if (!html) { hide(); return; }
+      xh.setAttribute('x1', g.xpx[i]); xh.setAttribute('x2', g.xpx[i]); xh.style.display = '';
+      tip.innerHTML = html; tip.hidden = false;
+      var left = g.xpx[i] * (r.width / g.w), tw = tip.offsetWidth, tx = left + 12;
+      if (tx + tw > r.width) tx = left - tw - 12;
+      tip.style.left = Math.max(0, tx) + 'px';
+    }
+    el.addEventListener('pointermove', move); el.addEventListener('pointerdown', move); el.addEventListener('pointerleave', hide);
+  });
+  panel.querySelectorAll('.dn').forEach(function (box) {          /* hover/toque en las dos donas */
+    var tip = box.querySelector('.tip');
+    box.querySelectorAll('[data-tip]').forEach(function (el) {
+      function show(e) {
+        var r = box.getBoundingClientRect(); tip.innerHTML = el.getAttribute('data-tip'); tip.hidden = false;
+        var x = e.clientX - r.left + 12, y = e.clientY - r.top + 12;
+        if (x + tip.offsetWidth > r.width) x = e.clientX - r.left - tip.offsetWidth - 12;
+        tip.style.left = Math.max(0, x) + 'px'; tip.style.top = Math.max(0, y) + 'px';
+      }
+      el.addEventListener('pointermove', show); el.addEventListener('pointerdown', show); el.addEventListener('pointerleave', function () { tip.hidden = true; });
+    });
+  });
+  panel.querySelectorAll('[data-cmpper]').forEach(function (b) { b.addEventListener('click', function () { if (b.disabled) return; state.cmpPer = b.dataset.cmpper; render(); }); });
+  panel.querySelectorAll('[data-smper]').forEach(function (b) { b.addEventListener('click', function () { state.smPer = b.dataset.smper; render(); }); });
+  panel.querySelectorAll('[data-smcash]').forEach(function (b) { b.addEventListener('click', function () { state.smCash = b.dataset.smcash === '1'; render(); }); });
+  var bind = function (id, fn) { var e = $('#' + id); if (e) e.addEventListener('change', function () { fn(e.value); render(); }); };
+  bind('f-bot', function (v) { state.tx.bot = v; state.txLimit = 100; }); bind('f-ex', function (v) { state.tx.ex = v; state.txLimit = 100; });
+  bind('f-sym', function (v) { state.tx.sym = v; state.txLimit = 100; }); bind('f-side', function (v) { state.tx.side = v; state.txLimit = 100; });
+  bind('p-sym', function (v) { state.sym = v; }); bind('t-sym', function (v) { state.sym = v; });
+  var more = $('#more'); if (more) more.addEventListener('click', function () { state.txLimit += 200; render(); });
+  panel.querySelectorAll('[data-hz]').forEach(function (b) { b.addEventListener('click', function () { state.hz = b.dataset.hz; render(); }); });
+}
+function render() {
+  var panel = $('#panel');
+  if (!D) { panel.innerHTML = emptyHtml(S); return; }
+  Object.keys(REG).forEach(function (k) { delete REG[k]; });
+  panel.innerHTML = buildPanels(D, S, state, width())[state.tab] || '';
+  wire();
+}
+function setTab(t, push) {
+  state.tab = t;
+  document.querySelectorAll('#tabs button').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === t)); });
+  if (push) { try { history.replaceState(null, '', '#' + t); } catch (e) { /* sin historial en el visor */ } }
+  render();
+}
+/* Botones arriba para cambiar de simulador (mismo orden que el registro; el actual queda resaltado). Conservan la pestaña abierta. */
+function navName(e) { var known = { binance: 'Actual', activo: 'Dinámico', indice: 'Indexado', ajustado: 'Ajustado V1' }; if (!e.name && known[e.dir]) return known[e.dir]; var n = (e.name || e.dir || '').replace(/^Simulador\s+/i, ''); return n ? n.charAt(0).toUpperCase() + n.slice(1) : e.dir; }
+function simNavHtml(list, myId, myDir) {
+  return '<span class="lbl">Simulador</span>' + list.map(function (e) {
+    var cur = e.id === myId || e.dir === myDir;
+    return '<a href="../' + esc(e.dir) + '/" data-dir="' + esc(e.dir) + '"' + (cur ? ' aria-current="page"' : '') + '>' + esc(navName(e)) + '</a>';
+  }).join('');
+}
+function renderSimNav(list) {
+  var nav = $('#sim-nav'); if (!nav || !Array.isArray(list) || list.length < 2) return;
+  nav.innerHTML = simNavHtml(list, D && D.sim && D.sim.id, location.pathname.replace(/\/+$/, '').split('/').pop() || '');
+  var cur = nav.querySelector('a[aria-current="page"]');
+  if (cur && cur.scrollIntoView) { try { nav.scrollLeft = Math.max(0, cur.offsetLeft - 16); } catch (e) { /* sin scroll */ } }     // en móvil, deja a la vista el simulador actual
+  nav.querySelectorAll('a').forEach(function (a) {
+    a.addEventListener('click', function (ev) {
+      if (a.getAttribute('aria-current') === 'page') { ev.preventDefault(); return; }
+      if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button) return;          // abrir en pestaña nueva funciona normal
+      ev.preventDefault(); location.href = '../' + a.dataset.dir + '/#' + state.tab;
+    });
+  });
+}
+/* Descubre los demás simuladores en el sitio publicado (carpetas hermanas) con el registro ../sims.json; si no existe, usa
+   los conocidos y, en una copia suelta, data/other.json. Cada uno que responda se agrega a la comparación. */
+function loadSims() {
+  var get = function (u) { return fetch(u + (u.indexOf('?') < 0 ? '?t=' : '&t=') + Date.now()).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).catch(function () { return null; }); };
+  var published = /github\.io$/.test(location.hostname);
+  var reg = published ? get('../sims.json') : Promise.resolve(null);
+  reg.then(function (list) {
+    if (!Array.isArray(list) || !list.length) list = published ? ['binance', 'activo', 'indice'].map(function (k) { return { dir: k, id: k }; }) : [];
+    var myId = D.sim && D.sim.id;
+    list.forEach(function (e, i) { if (e.id === myId) state.selfOrder = i; });
+    var others = list.filter(function (e) { return e.id !== myId && e.dir !== myId; });
+    if (published) renderSimNav(list);
+    var jobs = others.map(function (e, k) { return get('../' + e.dir + '/data/dashboard.json').then(function (x) { return x && x.kpis ? { d: x, order: list.indexOf(e) } : null; }); });
+    if (!published) jobs.push(get('data/other.json').then(function (x) { return x && x.kpis ? { d: x, order: 99 } : null; }));
+    Promise.all(jobs).then(function (res) {
+      state.others = res.filter(Boolean).filter(function (o) { return !(o.d.sim && D.sim && o.d.sim.id === D.sim.id); });
+      if (state.tab === 'comparar') render();
+    });
+  });
+}
+function load() {
+  var get = function (u) { return fetch(u + '?t=' + Date.now()).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).catch(function () { return null; }); };
+  Promise.all([get('data/dashboard.json'), get('data/status.json')]).then(function (res) {
+    D = res[0]; S = res[1];
+    $('#banners').innerHTML = bannersHtml(D, S);
+    $('#sub').innerHTML = subHtml(D, S);
+    if (D) {
+      var st = $('#stamp'); st.textContent = D.synthetic ? 'Datos inventados · solo pruebas' : 'Simulación · dinero ficticio';
+      var nm = D.sim && D.sim.name; if (nm) { $('#h1').textContent = nm + ' · bots cripto'; try { document.title = nm + ' · bots cripto'; } catch (e) { /* sin título */ } }
+      loadSims();
+    }
+    render();
+  });
+}
+document.querySelectorAll('#tabs button').forEach(function (b) { b.addEventListener('click', function () { setTab(b.dataset.tab, true); }); });
+var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(render, 150); });
+var h = (location.hash || '').replace('#', ''); if (/^(summary|resumen|pnl|tx|riesgo|tendencias|bots|comparar)$/.test(h)) state.tab = h;
+setTab(state.tab, false);
+load();
+})();
+</script>
