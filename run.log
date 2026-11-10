@@ -1,0 +1,52 @@
+Bajando velas diarias de Binance…
+  BTCUSDT: 3363 días (2017-08-17 → 2026-10-31)
+  ETHUSDT: 3363 días (2017-08-17 → 2026-10-31)
+  BNBUSDT: 3282 días (2017-11-06 → 2026-10-31)
+  XRPUSDT: 3103 días (2018-05-04 → 2026-10-31)
+  SOLUSDT: 2273 días (2020-08-11 → 2026-10-31)
+  TRXUSDT: 3065 días (2018-06-11 → 2026-10-31)
+  ZECUSDT: 2782 días (2019-03-21 → 2026-10-31)
+  DOGEUSDT: 2676 días (2019-07-05 → 2026-10-31)
+  LINKUSDT: 2846 días (2019-01-16 → 2026-10-31)
+  ADAUSDT: 3120 días (2018-04-17 → 2026-10-31)
+  NEARUSDT: 2209 días (2020-10-14 → 2026-10-31)
+  XLMUSDT: 3076 días (2018-05-31 → 2026-10-31)
+  BCHUSDT: 2530 días (2019-11-28 → 2026-10-31)
+  LTCUSDT: 3245 días (2017-12-13 → 2026-10-31)
+  UNIUSDT: 2236 días (2020-09-17 → 2026-10-31)
+  AVAXUSDT: 2231 días (2020-09-22 → 2026-10-31)
+  SUIUSDT: 1278 días (2023-05-03 → 2026-10-31)
+  HBARUSDT: 2590 días (2019-09-29 → 2026-10-31)
+  TAOUSDT: 934 días (2024-04-11 → 2026-10-31)
+  SHIBUSDT: 2001 días (2021-05-10 → 2026-10-31)
+  QNTUSDT: 1921 días (2021-07-29 → 2026-10-31)
+  ENAUSDT: 943 días (2024-04-02 → 2026-10-31)
+  AAVEUSDT: 2208 días (2020-10-15 → 2026-10-31)
+  WLDUSDT: 1196 días (2023-07-24 → 2026-10-31)
+  PUMPUSDT: 416 días (2025-09-11 → 2026-10-31)
+Calculando (2000 permutaciones por prueba)…
+  min12m                 7 d → sin evidencia suficiente
+  min12m                30 d → sin evidencia suficiente
+  min12m                90 d → sin evidencia suficiente
+  max12m                 7 d → sin evidencia suficiente
+  max12m                30 d → sin evidencia suficiente
+  max12m                90 d → sin evidencia suficiente
+  peor_semana            7 d → sin evidencia suficiente
+  peor_semana           30 d → sin evidencia suficiente
+  peor_semana           90 d → sin evidencia suficiente
+  mejor_semana           7 d → sin evidencia suficiente
+  mejor_semana          30 d → sin evidencia suficiente
+  mejor_semana          90 d → sin evidencia suficiente
+  vol_baja               7 d → sin evidencia suficiente
+  vol_baja              30 d → sin evidencia suficiente
+  vol_baja              90 d → sin evidencia suficiente
+  vol_alta               7 d → sin evidencia suficiente
+  vol_alta              30 d → sin evidencia suficiente
+  vol_alta              90 d → sin evidencia suficiente
+  capitulacion_amplia    7 d → sin veredicto
+  capitulacion_amplia   30 d → sin veredicto
+  capitulacion_amplia   90 d → sin veredicto
+  euforia_amplia         7 d → sin veredicto
+  euforia_amplia        30 d → sin veredicto
+  euforia_amplia        90 d → sin veredicto
+Listo en 71 s
