@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Observatorio de mercado</title>
+<style>
+  :root { --bg:#ffffff; --fg:#1c1f24; --mut:#5d6672; --line:#e3e6ea; --card:#f6f7f9; --pos:#0b7a4b; --neg:#b3261e; --acc:#2456c7; --warn:#8a5a00; --warnbg:#fff4d6; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14171c; --fg:#e8eaed; --mut:#9aa3ae; --line:#2a2f37; --card:#1c2027; --pos:#4cc38a; --neg:#f2837a; --acc:#8fb0ff; --warn:#f1c56b; --warnbg:#33290f; } }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--fg); font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  main { max-width:1040px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; } h2 { font-size:17px; margin:30px 0 6px; } h3 { font-size:14px; margin:18px 0 6px; color:var(--mut); font-weight:600; }
+  .sub { color:var(--mut); font-size:13px; }
+  nav { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0 4px; }
+  nav a { color:var(--fg); text-decoration:none; font-size:13px; padding:4px 10px; border:1px solid var(--line); border-radius:999px; background:var(--card); }
+  .aviso { background:var(--warnbg); color:var(--warn); border-radius:10px; padding:10px 12px; margin:12px 0; font-size:13px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .card b { display:block; font-size:19px; } .card span { color:var(--mut); font-size:12px; }
+  .wrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { padding:6px 9px; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th:first-child, td:first-child { text-align:left; } th { color:var(--mut); font-weight:600; background:var(--bg); }
+  td.l, th.l { text-align:left; white-space:normal; }
+  .wrap table { min-width:760px; }
+  .pos { color:var(--pos); } .neg { color:var(--neg); } .mut { color:var(--mut); }
+  .chip { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px; border:1px solid var(--line); background:var(--card); margin:1px 2px 1px 0; }
+  .chip.ok { color:var(--pos); border-color:var(--pos); } .chip.bad { color:var(--neg); border-color:var(--neg); } .chip.mid { color:var(--warn); border-color:var(--warn); }
+  .rangebar { position:relative; width:90px; height:8px; background:var(--line); border-radius:4px; display:inline-block; vertical-align:middle; }
+  .rangebar i { position:absolute; top:-2px; width:3px; height:12px; background:var(--acc); border-radius:2px; }
+  .spark { display:block; width:100%; height:54px; } .spark text { fill:var(--mut); font-size:9px; }
+  .two { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
+  .note { color:var(--mut); font-size:12px; margin:8px 0 0; }
+  a { color:var(--acc); }
+  #err { color:var(--neg); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Observatorio de mercado</h1>
+  <div class="sub" id="meta">Cargando…</div>
+  <div id="err"></div>
+  <div class="aviso" id="aviso" hidden></div>
+  <nav>
+    <a href="#f0">0 · Rango de 12 meses</a><a href="#f1">1 · Flujos y derivados</a><a href="#f2">2 · Anuncios y calendario</a>
+    <a href="#f3">3 · Noticias y redes</a><a href="#pred">Predicciones</a><a href="#src">Fuentes</a>
+  </nav>
+  <div id="root"></div>
+  <p class="note">Solo mide y registra: no opera ni envía órdenes. Pre-registro con definiciones y criterios fijos: <code>OBSERVATORIO_MERCADO.md</code> en el repositorio.
+  Los resultados "sin evidencia suficiente" son resultados válidos: significan que esa señal no demostró aportar nada con los datos disponibles.</p>
+</main>
+<script>
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const safeUrl = u => /^https?:\/\//i.test(u || "") ? esc(u) : "";
+const pc = (v, d = 1, sign = false) => v == null ? "—" : (sign && v > 0 ? "+" : "") + (v * 100).toFixed(d) + "%";
+const num = (v, d = 2) => v == null ? "—" : Number(v).toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d });
+const big = v => v == null ? "—" : Math.abs(v) >= 1e9 ? (v / 1e9).toFixed(2) + " B" : Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1) + " M" : num(v, 0);
+const cls = v => v == null ? "" : v > 0 ? "pos" : v < 0 ? "neg" : "";
+const when = ms => ms ? new Date(ms).toLocaleString() : "—";
+const VER = { "con evidencia": "ok", "aporta": "ok", "sin evidencia suficiente": "bad", "sin veredicto": "mid" };
+const chip = (t, c) => `<span class="chip ${c || VER[t] || ""}">${esc(t)}</span>`;
+const th = (...c) => "<tr>" + c.map(x => `<th class="${String(x).startsWith('<span class="l">') ? "l" : ""}">${x.replace(/^<span class="l">(.*)<\/span>$/, "$1")}</th>`).join("") + "</tr>";
+
+function spark(vals, opts = {}) {
+  const pts = vals.map((v, i) => [i, v]).filter(p => p[1] != null);
+  if (pts.length < 2) return `<div class="note">Aún sin datos suficientes (${pts.length} día${pts.length == 1 ? "" : "s"}).</div>`;
+  const W = 300, Hh = 54, lo = Math.min(...pts.map(p => p[1])), hi = Math.max(...pts.map(p => p[1])), sp = (hi - lo) || 1;
+  const x = i => 4 + i * (W - 8) / Math.max(1, vals.length - 1), y = v => Hh - 6 - (v - lo) / sp * (Hh - 14);
+  const d = pts.map((p, k) => (k ? "L" : "M") + x(p[0]).toFixed(1) + " " + y(p[1]).toFixed(1)).join(" ");
+  const fmt = opts.fmt || (v => num(v, 2));
+  return `<svg class="spark" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" role="img" aria-label="${esc(opts.label || "serie")}"><path d="${d}" fill="none" stroke="var(--acc)" stroke-width="1.5"/>
+    <text x="4" y="9">${esc(fmt(hi))}</text><text x="4" y="${Hh - 1}">${esc(fmt(lo))}</text></svg>`;
+}
+
+function card(n, l) { return `<div class="card"><b>${n}</b><span>${esc(l)}</span></div>`; }
+
+function fase0(d) {
+  if (!d) return `<div class="note">Todavía no hay datos de precios diarios.</div>`;
+  const h = d.hoy, am = h.amplitud;
+  let o = `<div class="grid">${card(esc(h.fecha), "último cierre diario (UTC)")}${card(am.monedas_con_ventana, "monedas con 12 meses de historia")}` +
+    `${card(pc(am.cerca_de_minimos_7d, 0), "tocaron mínimo de 12 m en 7 días")}${card(pc(am.cerca_de_maximos_7d, 0), "tocaron máximo de 12 m en 7 días")}</div>`;
+  if (h.etiquetas_mercado.length) o += `<p>${h.etiquetas_mercado.map(l => chip(labText(d, l), "mid")).join("")}</p>`;
+  const rows = [...h.monedas].sort((a, b) => (a.pct_rank ?? 9) - (b.pct_rank ?? 9)).map(c => {
+    const p = c.pct_rank;
+    return `<tr><td>${esc(c.symbol.replace("USDT", ""))}</td><td>${num(c.close, c.close < 1 ? 4 : 2)}</td>` +
+      `<td>${p == null ? "—" : `<span class="rangebar"><i style="left:calc(${(p * 100).toFixed(0)}% - 1px)"></i></span> ${(p * 100).toFixed(0)}%`}</td>` +
+      `<td class="${cls(c.ret7)}">${pc(c.ret7, 1, true)}</td><td>${pc(c.dist_min, 0, true)}</td><td>${pc(c.dist_max, 0)}</td><td>${pc(c.dd_ath, 0)}</td>` +
+      `<td>${c.days_since_min ?? "—"}</td><td>${c.vol_pct == null ? "—" : (c.vol_pct * 100).toFixed(0) + "%"}</td>` +
+      `<td class="l">${c.etiquetas.map(l => chip(labText(d, l), "mid")).join("") || '<span class="mut">—</span>'}</td></tr>`;
+  }).join("");
+  o += `<h3>Dónde está cada moneda en su rango de 12 meses (de más abajo a más arriba)</h3><div class="wrap"><table>${th("Moneda", "Precio", "Percentil 12 m", "7 días", "Sobre mín.", "Bajo máx.", "Bajo ATH", "Días desde mín.", "Vol. (percentil)", '<span class="l">Etiquetas activas</span>')}${rows}</table></div>`;
+  o += `<p class="note">Percentil 12 m: 0 % = en el mínimo del año, 100 % = en el máximo. Las etiquetas describen dónde está el precio: <b>no son señales de compra ni de venta</b>.</p>`;
+  const body = d.resumen.map(r => `<tr><td class="l">${esc(r.texto)}</td><td>${r.h} d</td><td>${chip(r.veredicto)}</td><td>${r.ep_desc} / ${r.ep_conf}</td>` +
+    `<td class="${cls(r.mediana)}">${pc(r.mediana, 1, true)}</td><td>${r.pct_positivo == null ? "—" : (r.pct_positivo * 100).toFixed(0) + "%"}</td>` +
+    `<td class="${cls(r.exceso_desc)}">${pc(r.exceso_desc, 1, true)}</td><td class="${cls(r.exceso_conf)}">${pc(r.exceso_conf, 1, true)}</td><td>${r.p_desc == null ? "—" : r.p_desc.toFixed(3)}</td></tr>`).join("");
+  const ok = d.resumen.filter(r => r.veredicto == "con evidencia").length;
+  o += `<h3>¿Qué pasó después las veces anteriores? (corrida en frío 2019-2026, resultados fijos)</h3><p><b>${ok} de ${d.resumen.length}</b> combinaciones de etiqueta y horizonte cumplieron el criterio estricto del pre-registro ` +
+    `(descubrimiento 2019-2023, confirmación 2024-2026, corrección por 24 pruebas, sostenido en BTC+ETH y sin depender de un solo año).</p>` +
+    `<div class="wrap"><table>${th('<span class="l">Etiqueta</span>', "Horizonte", "Veredicto", "Episodios de mercado (desc/conf)", "Mediana", "% positivo", "Exceso desc.", "Exceso conf.", "p desc.")}${body}</table></div>` +
+    `<p class="note">Exceso = retorno mediano tras la etiqueta menos el retorno mediano de la misma moneda en el mismo periodo. Episodios de mercado: eventos de cualquier moneda a menos de 30 días cuentan como uno
+    (las monedas caen casi todas el mismo día). Umbral de significancia del descubrimiento: p &lt; ${(d.params.alfa_descubrimiento).toFixed(4)}. Sesgo de supervivencia: el universo se eligió hoy.</p>`;
+  return o;
+}
+const LAB = { min12m: "Mínimo de 12 meses", max12m: "Máximo de 12 meses", peor_semana: "Peor semana del año", mejor_semana: "Mejor semana del año", vol_baja: "Volatilidad baja", vol_alta: "Volatilidad alta", capitulacion_amplia: "Capitulación amplia", euforia_amplia: "Euforia amplia" };
+const labText = (d, l) => LAB[l] || l;
+
+const FEAT = { taker_buy_ratio_24h: "Compra agresiva (spot, 24 h)", book_imb_top100: "Desbalance del libro (top 100)", okx_funding: "Funding OKX", okx_ls_ratio: "Largos/cortos OKX", okx_taker_buy_ratio_1h: "Compra agresiva OKX (1 h)",
+  kc_funding: "Funding KuCoin", coinbase_premium: "Prima Coinbase", liq_imb: "Liquidaciones: largos vs cortos", oi_chg_1d: "Cambio de interés abierto (1 d)", dvol_minus_vol30: "DVOL menos vol. realizada", stable_chg_7d: "Stablecoins (7 d)", fng: "Fear & Greed", tone_btc: "Tono noticias BTC", tone_eth: "Tono noticias ETH", tone: "Tono general", st_balance: "Balance Stocktwits" };
+const TGT = { ret7: "retorno 7 d", rv7: "volatilidad 7 d" };
+
+function evalTable(list, minDays, days) {
+  if (!list || !list.length) return `<div class="note">Evaluación pendiente: ${days} de ${minDays} días de datos.</div>`;
+  const rows = list.map(r => `<tr><td class="l">${esc(FEAT[r.feature] || r.feature)}</td><td>${esc(r.asset)}</td><td>${TGT[r.target] || r.target}</td><td>${r.n}</td><td>${r.rho == null ? "—" : r.rho.toFixed(2)}</td>` +
+    `<td>${r.rho_mitad1 == null ? "—" : r.rho_mitad1.toFixed(2) + " / " + r.rho_mitad2.toFixed(2)}</td><td>${chip(r.veredicto)}</td></tr>`).join("");
+  return `<div class="wrap"><table>${th('<span class="l">Variable</span>', "Activo", "Contra", "Días", "ρ parcial", "ρ mitades", "Veredicto")}${rows}</table></div>
+    <p class="note">ρ de Spearman parcial (se quitan el retorno previo, la volatilidad de 30 d y, en noticias, el Fear &amp; Greed). "Aporta" exige |ρ| ≥ 0.15, ≥ ${minDays} días y el mismo signo en las dos mitades. Las ventanas de 7 días se traslapan: el n efectivo es ≈ n/7.</p>`;
+}
+
+function fase1(d) {
+  const u = d.ultima, S = d.serie_diaria, one = a => {
+    const k = x => u[a + "_" + x];
+    return `<div class="card"><b>${a.toUpperCase()} ${num(k("price"), 0)}</b><span>precio spot Binance</span></div>` +
+      card(pc(k("taker_buy_ratio_24h"), 1), `${a.toUpperCase()} · compra agresiva spot 24 h`) + card(k("okx_funding") == null ? "—" : (k("okx_funding") * 100).toFixed(4) + "%", `${a.toUpperCase()} · funding OKX (8 h)`) +
+      card("$" + big(k("okx_oi_usd")), `${a.toUpperCase()} · interés abierto OKX`) + card(num(k("okx_ls_ratio"), 2), `${a.toUpperCase()} · razón largos/cortos OKX`) + card(k("dvol") == null ? "—" : num(k("dvol"), 1), `${a.toUpperCase()} · DVOL (volatilidad implícita, anual %)`) +
+      card(pc(k("coinbase_premium"), 3, true), `${a.toUpperCase()} · prima Coinbase vs Binance`) + card("$" + big(k("liq_long_usd")) + " / $" + big(k("liq_short_usd")), `${a.toUpperCase()} · liquidaciones largos / cortos (ventana reciente OKX)`);
+  };
+  let o = `<div class="sub">Última foto: ${when(u.ts)} · ${d.dias_con_datos} día(s) con datos (la evaluación empieza a los ${d.minimo_dias})</div><div class="grid" style="margin-top:8px">${one("btc")}${one("eth")}` +
+    `${card(u.stable_total_usd == null ? "—" : "$" + big(u.stable_total_usd), "stablecoins en circulación (total)")}${card(pc(u.stable_chg_7d, 2, true), "cambio de stablecoins en 7 días")}${card(u.btc_dominance == null ? "—" : u.btc_dominance.toFixed(1) + "%", "dominancia de BTC")}${card(u.fng ?? "—", "Fear & Greed")}</div>`;
+  o += `<h3>Últimos 30 días (una foto por día, ≈00:07 UTC)</h3><div class="two">` +
+    [["btc_taker_buy_ratio_24h", "BTC · compra agresiva spot", v => pc(v, 1)], ["btc_okx_funding", "BTC · funding OKX", v => (v * 100).toFixed(4) + "%"], ["btc_dvol", "BTC · DVOL", v => num(v, 1)],
+     ["btc_okx_oi_usd", "BTC · interés abierto", v => "$" + big(v)], ["eth_taker_buy_ratio_24h", "ETH · compra agresiva spot", v => pc(v, 1)], ["eth_okx_funding", "ETH · funding OKX", v => (v * 100).toFixed(4) + "%"]]
+      .map(([k, t, f]) => `<div class="card"><span>${t}</span>${spark(S[k] || [], { fmt: f, label: t })}</div>`).join("") + `</div>`;
+  if (d.kucoin_top_oi.length) o += `<h3>Perpetuos de KuCoin con más interés abierto</h3><div class="wrap"><table>${th("Moneda", "Interés abierto", "Funding", "Volumen 24 h")}` +
+    d.kucoin_top_oi.map(c => `<tr><td>${esc(c.base)}</td><td>$${big(c.oi_usd)}</td><td>${c.funding == null ? "—" : (c.funding * 100).toFixed(4) + "%"}</td><td>$${big(c.turnover24h)}</td></tr>`).join("") + "</table></div>";
+  return o + `<h3>¿Estas variables anticipan algo?</h3>` + evalTable(d.evaluacion, d.minimo_dias, d.dias_con_datos) +
+    `<p class="note">Binance Futures y Bybit bloquean a GitHub Actions (HTTP 451/403): los derivados vienen de OKX, KuCoin y Deribit. El desbalance del libro cubre una franja de precio muy angosta (fácil de manipular): contexto, no señal.</p>`;
+}
+
+const KIND = { listing: "Listado", delisting: "Retiro", fomc: "FOMC" };
+function fase2(d) {
+  const nx = d.proximos_fomc.map(e => `<span class="chip mid">${esc(e.title)} · ${new Date(e.ts_pub).toLocaleString()}</span>`).join("");
+  const rows = d.eventos_recientes.map(e => `<tr><td class="l">${new Date(e.ts_pub).toLocaleDateString()}</td><td class="l">${esc(e.exchange)}</td><td class="l">${esc(KIND[e.kind] || e.kind)}</td>` +
+    `<td class="l">${safeUrl(e.url) ? `<a href="${safeUrl(e.url)}" target="_blank" rel="noopener noreferrer">${esc(e.title)}</a>` : esc(e.title)}</td><td class="l">${esc((e.symbols || []).join(", "))}</td></tr>`).join("");
+  const est = Object.entries(d.estudio || {}).map(([k, v]) => {
+    const w = (v.ventanas || {})["-1_+1"] || {}, w2 = (v.ventanas || {})["+1_+7"] || {};
+    return `<tr><td class="l">${esc(KIND[k] || k)}</td><td>${v.n_eventos}</td><td>${w.n ?? "—"}</td><td class="${cls(w.mediana)}">${pc(w.mediana, 2, true)}</td><td>${w.p == null ? "—" : w.p.toFixed(3)}</td>` +
+      `<td class="${cls(w2.mediana)}">${pc(w2.mediana, 2, true)}</td><td>${w2.p == null ? "—" : w2.p.toFixed(3)}</td><td>${chip(v.veredicto)}</td><td class="l">${esc(v.motivo || "")}</td></tr>`;
+  }).join("");
+  return `<div class="sub">${d.n_eventos} eventos guardados · ${d.nuevos_en_esta_corrida} nuevos en la última corrida</div><p>${nx || '<span class="mut">Sin reuniones FOMC próximas en el calendario.</span>'}</p>` +
+    `<h3>Estudio de eventos (retorno anormal frente a la mediana de la misma moneda)</h3><div class="wrap"><table>${th('<span class="l">Tipo</span>', "Anuncios", "Con precio", "[−1,+1] d", "p", "[+1,+7] d", "p", "Veredicto", '<span class="l">Motivo</span>')}${est}</table></div>` +
+    `<p class="note">Criterio: p &lt; 0.01, ≥ 20 eventos con precio y mismo signo en las dos mitades (se juzga la ventana [−1,+1]). CPI de EE. UU. no está: la fuente oficial bloquea a GitHub Actions y no se inventan fechas.</p>` +
+    `<h3>Anuncios y calendario recientes</h3><div class="wrap"><table>${th('<span class="l">Fecha</span>', '<span class="l">Fuente</span>', '<span class="l">Tipo</span>', '<span class="l">Título</span>', '<span class="l">Monedas</span>')}${rows}</table></div>`;
+}
+
+function fase3(d) {
+  const tone = d.tono_diario, last = tone[tone.length - 1];
+  let o = `<div class="sub">${d.n_items.toLocaleString()} titulares/publicaciones guardados · ${d.nuevos_en_esta_corrida} nuevos · puntaje: léxico ${esc(d.version_lexico)} (línea base tosca: no entiende ironía ni contexto) · ${d.dias_con_datos} día(s) con datos</div>`;
+  o += `<div class="two" style="margin-top:8px"><div class="card"><span>Tono medio diario de medios y Reddit (−1 muy negativo, +1 muy positivo)</span>${spark(tone.map(t => t.tone), { fmt: v => num(v, 2), label: "tono" })}</div>` +
+    `<div class="card"><span>Balance de etiquetas de Stocktwits (alcistas − bajistas)</span>${spark(tone.map(t => t.st_balance), { fmt: v => num(v, 2), label: "stocktwits" })}</div></div>`;
+  if (last) o += `<div class="grid" style="margin-top:8px">${card(last.n, "titulares en el último día con datos")}${card(last.tone == null ? "—" : last.tone.toFixed(2), "tono medio")}${card(pc(last.pct_pos, 0), "positivos")}${card(pc(last.pct_neg, 0), "negativos")}</div>`;
+  o += `<h3>¿El tono anticipa algo?</h3>` + evalTable(d.evaluacion, d.minimo_dias, d.dias_con_datos);
+  const rows = d.titulares.map(t => `<tr><td class="l">${t.ts_pub ? new Date(t.ts_pub).toLocaleString() : "—"}</td><td class="l">${esc(t.source)}</td><td class="${cls(t.score)}">${t.score == null ? "—" : t.score.toFixed(2)}</td>` +
+    `<td class="l">${safeUrl(t.url) ? `<a href="${safeUrl(t.url)}" target="_blank" rel="noopener noreferrer">${esc(t.title)}</a>` : esc(t.title)}</td></tr>`).join("");
+  return o + `<h3>Titulares recientes con su puntaje</h3><div class="wrap"><table>${th('<span class="l">Publicado</span>', '<span class="l">Fuente</span>', "Tono", '<span class="l">Titular</span>')}${rows}</table></div>` +
+    `<p class="note">Fuentes: RSS de medios cripto, Reddit (RSS) y Stocktwits (etiquetas que pusieron sus autores). X/Twitter y los grupos privados de Telegram quedan fuera: sin acceso legítimo. Hay promoción pagada y bots: se registra el número de titulares por día para saber cuándo el dato es flaco.</p>`;
+}
+
+function pred(d) {
+  const m = d.marcador, per = m.por_activo || {};
+  let o = `<div class="sub">${m.n_total} predicciones registradas · ${m.n_resueltas} ya resueltas (se evalúa con ≥ ${m.minimo}) · ${chip(m.veredicto)}</div>`;
+  const names = { vol30: "vol. 30 d (base)", ewma: "EWMA 0.94", dvol: "DVOL" };
+  const body = Object.entries(per).map(([a, v]) => `<tr><td>${esc(a)}</td><td>${v.n}</td><td>${pc(v.acierto_direccion, 0)}</td><td>${v.brier.toFixed(3)}</td><td>${v.brier_skill_vs_0_5 == null ? "—" : v.brier_skill_vs_0_5.toFixed(3)}</td>` +
+    `<td class="l">${v.mejor_vol_qlike ? esc(names[v.mejor_vol_qlike] || v.mejor_vol_qlike) : "—"}</td></tr>`).join("");
+  if (body) o += `<div class="wrap"><table>${th("Activo", "Resueltas", "Acierto de dirección", "Brier", "Skill vs 50/50", '<span class="l">Mejor pronóstico de volatilidad (QLIKE)</span>')}${body}</table></div>`;
+  const rows = d.recientes.map(p => `<tr><td>${esc(p.asset)}</td><td>${esc(p.asof)}</td><td>${pc(p.p_up, 0)}</td><td>${pc(p.vol30, 1)}</td><td>${pc(p.ewma, 1)}</td><td>${pc(p.dvol, 1)}</td>` +
+    `<td>${p.resolved ? (p.up ? "subió" : "bajó") + " " + pc(Math.expm1(p.ret7), 1, true) : '<span class="mut">pendiente</span>'}</td><td>${p.resolved ? pc(p.rv7, 1) : "—"}</td></tr>`).join("");
+  return o + `<h3>Últimas predicciones (BTC y ETH, 7 días, registradas ≈00:07 UTC con el cierre de la víspera)</h3><div class="wrap"><table>${th("Activo", "Cierre base", "P(sube)", "Vol. 30 d", "EWMA", "DVOL", "Resultado", "Vol. realizada")}${rows}</table></div>` +
+    `<p class="note">${esc(m.aviso)} La P(sube) inicial es solo la frecuencia histórica de semanas al alza (365 d): cualquier modelo futuro debe superarla en Brier skill con ≥ ${m.minimo} predicciones resueltas. ` +
+    `Volatilidad: desviación de 7 días de los retornos (√Σr²); se compara cada pronóstico con lo realizado.</p>`;
+}
+
+function src(st) {
+  const e = Object.entries(st), bad = e.filter(([, v]) => v !== "ok");
+  return `<div class="sub">${e.length - bad.length} de ${e.length} fuentes respondieron en la última corrida</div><p>` +
+    e.map(([k, v]) => `<span class="chip ${v == "ok" ? "ok" : "bad"}" title="${esc(v)}">${esc(k)}</span>`).join("") + `</p>` +
+    (bad.length ? `<div class="wrap"><table>${th('<span class="l">Fuente</span>', '<span class="l">Motivo</span>')}${bad.map(([k, v]) => `<tr><td class="l">${esc(k)}</td><td class="l">${esc(v)}</td></tr>`).join("")}</table></div>` : "");
+}
+
+fetch("data/mercado.json?" + Date.now()).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(d => {
+  document.getElementById("meta").textContent = `Actualizado ${when(d.generado_ms)} (cada hora)`;
+  const av = document.getElementById("aviso"); av.hidden = false; av.textContent = d.aviso;
+  document.getElementById("root").innerHTML =
+    `<h2 id="f0">Fase 0 · Rango de 12 meses</h2>${fase0(d.fase0)}<h2 id="f1">Fase 1 · Flujo de órdenes y derivados</h2>${fase1(d.fase1)}` +
+    `<h2 id="f2">Fase 2 · Anuncios y calendario</h2>${fase2(d.fase2)}<h2 id="f3">Fase 3 · Noticias y redes</h2>${fase3(d.fase3)}` +
+    `<h2 id="pred">Predicciones registradas</h2>${pred(d.predicciones)}<h2 id="src">Fuentes</h2>${src(d.estado_fuentes)}`;
+}).catch(e => { document.getElementById("meta").textContent = ""; document.getElementById("err").textContent = "No pude cargar los datos (" + e.message + "). Se publican tras la primera corrida del observatorio."; });
+</script>
+</body>
+</html>

@@ -239,6 +239,23 @@ No es un bot: **solo mide**. Cada corrida horaria toma 6 fotos (una cada ~20 s) 
 - **Dónde verlo:** resumen en cada corrida (pestaña Summary del job) y página `…/crypto-paper-sim/observatorio/` (GitHub Pages).
 - **Local:** `python observatory_step.py --state stats.json --out out --snapshots 3 --interval 10`.
 
+## Observatorio de mercado (fases 0-3: solo mide y registra)
+
+Segundo observatorio (el primero mide spreads). **No opera ni toca los simuladores.** Pre-registro con definiciones y criterios fijos: `OBSERVATORIO_MERCADO.md`.
+
+| Fase | Qué mide | Código |
+|---|---|---|
+| 0 | Posición en el rango de 12 meses, extremos de semana y de volatilidad, amplitud; qué pasó después (corrida en frío 2019-2026: **0 de 24** combinaciones con evidencia) | `sim/market_ranges.py`, `mercado_fase0_run.py`, `mercado_fase0_results.json` |
+| 1 | Flujo de órdenes y derivados: compra agresiva, funding, interés abierto, largos/cortos, liquidaciones, libro, stablecoins, DVOL, prima Coinbase | `sim/market_feeds.py` |
+| 2 | Anuncios de listados/retiros (Binance, OKX, KuCoin) y FOMC; estudio de eventos | `sim/market_events.py` |
+| 3 | Noticias (6 RSS), Reddit (RSS) y Stocktwits con puntaje por léxico | `sim/market_text.py` |
+| — | Predicciones BTC/ETH a 7 días registradas con fecha (P(sube) = frecuencia base; vol. 30 d / EWMA / DVOL) y su marcador | `sim/market_pred.py`, `sim/market_eval.py` |
+
+- Corre cada hora dentro del workflow `simulate` (paso "Observatorio de mercado", `continue-on-error`) con `mercado_step.py`; estado en `mercado/state/` y página en `…/crypto-paper-sim/mercado/` (rama `sim-data`).
+- Cada fuente falla por separado y el hueco queda registrado (no se interpola). Binance Futures y Bybit están bloqueados desde GitHub Actions: los derivados vienen de OKX, KuCoin y Deribit.
+- Las fases 1-3 solo dan veredicto con ≥ 90-120 días de datos propios; antes dicen "sin veredicto". Un resultado "sin evidencia suficiente" es válido.
+- Pruebas: `tests/test_market_ranges.py`, `tests/test_market_phase123.py`, `tests/test_market_step.py`. Sondeo de fuentes: `scripts/probe_market.py` (workflow `probe-market`).
+
 ## Inicio rápido (en tu computadora)
 
 ```bash

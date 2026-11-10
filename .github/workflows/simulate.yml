@@ -141,6 +141,21 @@ jobs:
           fi
           exit 0
 
+      - name: Observatorio de mercado (solo mide y registra; si falla, no afecta a los simuladores)
+        id: mkt
+        if: env.SOURCE == 'binance'
+        continue-on-error: true
+        run: |
+          set +e
+          D=store/mercado
+          mkdir -p "$D/state" "$D/data"
+          python mercado_step.py --store "$D" 2>&1 | tee "$RUNNER_TEMP/mkt.txt"
+          CODE=${PIPESTATUS[0]}
+          cp web/mercado.html "$D/index.html"
+          { echo "### Observatorio de mercado"; echo; tail -n 1 "$RUNNER_TEMP/mkt.txt"; } >> "$GITHUB_STEP_SUMMARY"
+          [ "$CODE" -ne 0 ] && echo "::warning::Observatorio de mercado terminó con código $CODE: $(tail -c 300 "$RUNNER_TEMP/mkt.txt")"
+          exit 0
+
       - name: Guardar estado y tablero en sim-data
         if: always()
         run: |
