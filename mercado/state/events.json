@@ -152,6 +152,5 @@
 {"id":"fomc:2027-06-09","exchange":"fed","kind":"fomc","title":"Decisión FOMC 2027-06-09","ts_pub":1812564000000,"symbols":["BTC"],"url":"https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"},
 {"id":"fomc:2027-07-28","exchange":"fed","kind":"fomc","title":"Decisión FOMC 2027-07-28","ts_pub":1816797600000,"symbols":["BTC"],"url":"https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"},
 {"id":"fomc:2027-09-15","exchange":"fed","kind":"fomc","title":"Decisión FOMC 2027-09-15","ts_pub":1821031200000,"symbols":["BTC"],"url":"https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"},
-{"id":"fomc:2027-10-27","exchange":"fed","kind":"fomc","title":"Decisión FOMC 2027-10-27","ts_pub":1824660000000,"symbols":["BTC"],"url":"https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"},
 {"id":"fomc:2027-12-08","exchange":"fed","kind":"fomc","title":"Decisión FOMC 2027-12-08","ts_pub":1828292400000,"symbols":["BTC"],"url":"https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"}
 ]
